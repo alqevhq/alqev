@@ -18,6 +18,32 @@ export interface AiRecommendation {
   createdAt?: Timestamp | null;
 }
 
+export type AiRoadmapStepStatus =
+  | "completed"
+  | "current"
+  | "upcoming";
+
+export interface AiRoadmapStep {
+  id: string;
+  order: number;
+  title: string;
+  description: string;
+  status: AiRoadmapStepStatus;
+  required: boolean;
+  estimatedDays: number;
+
+  processId?: string;
+  documentKey?: string;
+}
+
+export interface AiRoadmapResult {
+  steps: AiRoadmapStep[];
+  completedSteps: number;
+  totalSteps: number;
+  estimatedDaysRemaining: number;
+  nextStep: AiRoadmapStep | null;
+}
+
 export interface ExtractedField {
   key: string;
   label: string;

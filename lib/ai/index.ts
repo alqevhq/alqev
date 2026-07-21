@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./analyzer";
 export * from "./readiness";
 export * from "./recommendations";
+export * from "./roadmap";
 export * from "./ocr";
 export * from "./forms";
 export * from "./compare";

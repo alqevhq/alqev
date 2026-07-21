@@ -9,10 +9,17 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   serverTimestamp,
 } from "firebase/firestore";
 
 import { auth, db } from "../../../lib/firebase";
+import {
+  getPlanLimits,
+  hasReachedLimit,
+  normalizeSubscriptionPlan,
+  type SubscriptionPlan,
+} from "../../../lib/subscription";
 import {
   countryOptions,
   getProcessTemplate,
@@ -31,10 +38,19 @@ export default function NewProcessPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [subscription, setSubscription] =
+    useState<SubscriptionPlan>("free");
+  const [processCount, setProcessCount] = useState(0);
 
   const selectedTemplate = useMemo(
     () => getProcessTemplate(templateKey),
     [templateKey],
+  );
+
+  const planLimits = getPlanLimits(subscription);
+  const hasProcessLimit = hasReachedLimit(
+    processCount,
+    planLimits.maxProcesses,
   );
 
   useEffect(() => {
@@ -56,15 +72,25 @@ export default function NewProcessPage() {
       setUser(currentUser);
 
       try {
-        const snapshot = await getDoc(
-          doc(db, "users", currentUser.uid),
-        );
+        const [profileSnapshot, processesSnapshot] = await Promise.all([
+          getDoc(doc(db, "users", currentUser.uid)),
+          getDocs(
+            collection(
+              db,
+              "users",
+              currentUser.uid,
+              "processes",
+            ),
+          ),
+        ]);
 
         if (!isMounted) return;
 
-        const savedCountry = snapshot.exists()
-          ? snapshot.data().country
-          : "";
+        const profileData = profileSnapshot.exists()
+          ? profileSnapshot.data()
+          : {};
+
+        const savedCountry = profileData.country;
 
         if (
           typeof savedCountry === "string" &&
@@ -72,8 +98,16 @@ export default function NewProcessPage() {
         ) {
           setCountry(savedCountry.trim());
         }
+
+        setSubscription(
+          normalizeSubscriptionPlan(profileData.subscription),
+        );
+        setProcessCount(processesSnapshot.size);
       } catch (error) {
-        console.error("Profil ülkesi okunamadı:", error);
+        console.error("Plan ve süreç bilgileri okunamadı:", error);
+        setErrorMessage(
+          "Plan ve süreç bilgileri yüklenemedi. Lütfen sayfayı yenileyip tekrar dene.",
+        );
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -111,6 +145,13 @@ export default function NewProcessPage() {
       return;
     }
 
+    if (hasProcessLimit) {
+      setErrorMessage(
+        "Free planında en fazla 1 süreç oluşturabilirsin. Yeni bir süreç başlatmak için Premium plana geçmelisin.",
+      );
+      return;
+    }
+
     if (!selectedTemplate) {
       setErrorMessage("Lütfen bir süreç türü seç.");
       return;
@@ -125,6 +166,36 @@ export default function NewProcessPage() {
 
     try {
       setIsSubmitting(true);
+
+      const [latestProfileSnapshot, latestProcessesSnapshot] =
+        await Promise.all([
+          getDoc(doc(db, "users", user.uid)),
+          getDocs(
+            collection(db, "users", user.uid, "processes"),
+          ),
+        ]);
+
+      const latestPlan = normalizeSubscriptionPlan(
+        latestProfileSnapshot.exists()
+          ? latestProfileSnapshot.data().subscription
+          : "free",
+      );
+      const latestLimits = getPlanLimits(latestPlan);
+
+      if (
+        hasReachedLimit(
+          latestProcessesSnapshot.size,
+          latestLimits.maxProcesses,
+        )
+      ) {
+        setSubscription(latestPlan);
+        setProcessCount(latestProcessesSnapshot.size);
+        setErrorMessage(
+          "Free planında en fazla 1 süreç oluşturabilirsin. Yeni bir süreç başlatmak için Premium plana geçmelisin.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
       const requiredDocuments =
         selectedTemplate.documents.map((item) => ({
@@ -220,6 +291,39 @@ export default function NewProcessPage() {
             takip etsin.
           </p>
 
+          {hasProcessLimit ? (
+            <div className="mt-10 rounded-3xl border border-amber-400/25 bg-amber-400/[0.08] p-6 sm:p-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
+                FREE PLAN LİMİTİ
+              </p>
+
+              <h2 className="mt-3 text-2xl font-bold text-white">
+                Mevcut süreç limitine ulaştın
+              </h2>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-amber-100/75">
+                Free planında en fazla 1 süreç oluşturabilirsin.
+                Yeni bir süreç başlatmak ve tüm süreçlerini aynı
+                anda yönetmek için Premium plana geç.
+              </p>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/pricing"
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-amber-300 px-6 text-sm font-bold text-slate-950 transition hover:bg-amber-200"
+                >
+                  Premium&apos;a yükselt
+                </Link>
+
+                <Link
+                  href="/processes"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 px-6 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
+                >
+                  Mevcut sürece dön
+                </Link>
+              </div>
+            </div>
+          ) : (
           <form
             onSubmit={handleSubmit}
             className="mt-10 space-y-8"
@@ -409,6 +513,7 @@ export default function NewProcessPage() {
               </button>
             </div>
           </form>
+          )}
         </section>
       </div>
     </main>
