@@ -276,30 +276,99 @@ export default function CopilotPage() {
     return "Süreç durumun, eksik belgelerin, hazırlık puanın veya yaklaşan tarihler hakkında soru sorabilirsin.";
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const question = input.trim();
-    if (!question || replying) return;
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  const question = input.trim();
+
+  if (!question || replying) return;
+
+  const previousMessages = messages;
+
+  const userMessage: Message = {
+    id: `user-${Date.now()}`,
+    role: "user",
+    content: question,
+  };
+
+  setMessages((current) => [
+    ...current,
+    userMessage,
+  ]);
+
+  setInput("");
+  setReplying(true);
+  setError("");
+
+  try {
+    const response = await fetch("/api/copilot", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question,
+        processes,
+        readiness: analysis.readiness,
+        conversation: previousMessages.map(
+          ({ role, content }) => ({
+            role,
+            content,
+          }),
+        ),
+      }),
+    });
+
+    const data = (await response.json()) as {
+      answer?: string;
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          "Copilot API isteği başarısız oldu.",
+      );
+    }
+
+    if (!data.answer?.trim()) {
+      throw new Error(
+        "Copilot geçerli bir cevap döndürmedi.",
+      );
+    }
 
     setMessages((current) => [
       ...current,
-      { id: `user-${Date.now()}`, role: "user", content: question },
+      {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: data.answer!.trim(),
+      },
     ]);
-    setInput("");
-    setReplying(true);
+  } catch (requestError) {
+    console.error(
+      "Gemini Copilot hatası:",
+      requestError,
+    );
 
-    window.setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: createReply(question),
-        },
-      ]);
-      setReplying(false);
-    }, 400);
+    setError(
+      requestError instanceof Error
+        ? `${requestError.message} Yerel Copilot yanıtı kullanıldı.`
+        : "Gemini bağlantısı kurulamadı. Yerel Copilot yanıtı kullanıldı.",
+    );
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: createReply(question),
+      },
+    ]);
+  } finally {
+    setReplying(false);
   }
+}
 
   if (loading) {
     return (
