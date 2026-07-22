@@ -30,7 +30,7 @@ export default function HeroContent() {
       </div>
 
       <p className="mt-5 text-sm text-slate-500">
-        Deutsch · Türkçe · English · العربية · فارسی
+        Deutsch · English · Türkçe · Русский · العربية · فارسی
       </p>
     </div>
   );

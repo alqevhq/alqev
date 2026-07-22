@@ -11,6 +11,7 @@ import {
   orderBy,
   query,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import {
   onAuthStateChanged,
@@ -19,6 +20,424 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { analyzeProcesses } from "@/lib/ai";
+
+type SupportedLanguage = "de" | "en" | "tr" | "ru" | "ar" | "fa";
+
+const supportedLanguages: { code: SupportedLanguage; label: string }[] = [
+  { code: "de", label: "Deutsch" },
+  { code: "en", label: "English" },
+  { code: "tr", label: "Türkçe" },
+  { code: "ru", label: "Русский" },
+  { code: "ar", label: "العربية" },
+  { code: "fa", label: "فارسی" },
+];
+
+const uiTranslations: Record<
+  SupportedLanguage,
+  Record<string, string>
+> = {
+  tr: {
+    immigrationReadiness: "Göçmenlik Hazırlığı",
+    readinessVeryClose: "Başvuruya çok yakınsın",
+    readinessGood: "Hazırlığın iyi ilerliyor",
+    readinessMissing: "Bazı önemli eksikler var",
+    readinessStarted: "Hazırlığa yeni başlıyorsun",
+    readinessNoData: "Henüz analiz verisi yok",
+    readinessProgress: "{completed} / {total} belge tamamlandı. Zorunlu belgelere daha yüksek ağırlık verildi.",
+    readinessEmpty: "Hazırlık puanı için önce bir süreç ve belge listesi oluştur.",
+    priorityCritical: "Kritik", priorityWarning: "Önemli", priorityInfo: "Öneri", prioritySuccess: "Hazır",
+    criticalAiAlert: "Kritik AI uyarısı", aiSuggestion: "AI önerisi",
+    requiredDocumentMissing: "{process} sürecindeki zorunlu belge henüz yüklenmedi.",
+    deadlineToday: "Bu sürecin hedef tarihi bugün.", deadlineInDays: "{count} gün sonra hedef tarihe ulaşacak.",
+    preparationControlled: "Hazırlığın kontrol altında", preparationControlledText: "Şu anda kritik bir eksik görünmüyor. Sürecindeki bilgileri güncel tutmaya devam et.",
+    createFirstProcessTitle: "İlk sürecini oluştur", createFirstProcessText: "Kişisel öneriler ve hazırlık analizi için ilk sürecini başlat.",
+    riskHigh: "Yüksek risk", riskHighText: "Kritik bir eksik veya çok yakın bir hedef tarih bulunuyor.",
+    riskMedium: "Orta risk", riskMediumText: "Tamamlanması gereken belge veya yaklaşan tarih bulunuyor.",
+    riskLow: "Düşük risk", riskLowText: "Şu anda acil müdahale gerektiren bir durum görünmüyor.",
+    checkProcess: "Sürecini kontrol et", uploadRequiredDocument: "{process} sürecindeki zorunlu belgeyi yükle.",
+    checkAlerts: "Yeni uyarı veya eksik belge olup olmadığını kontrol et.", startRoadmap: "Kişisel yol haritanı oluşturmak için bir süreç başlat.",
+    estimateByMissing: "Bu tahmin eksik belge sayısına göre oluşturuldu.", noRequiredMissing: "Mevcut belge listesinde zorunlu bir eksik görünmüyor.",
+    documentUploaded: "Belge yüklendi.", optionalNotUploaded: "İsteğe bağlı belge henüz yüklenmedi.", requiredNotUploaded: "Zorunlu belge henüz yüklenmedi.", noDocumentList: "Bu süreç için henüz belge listesi oluşturulmamış.",
+    criticalTopics: "{count} kritik konu öncelikli olarak ele alınmalı.", requiredDocumentsPending: "{count} zorunlu belge tamamlanmayı bekliyor.", noCriticalMissing: "Şu anda kritik bir eksik görünmüyor.",
+    noDeadline: "Hedef tarih yok", untitledDocument: "Başlıksız belge", untitledProcess: "Başlıksız Süreç", userFallback: "Kullanıcı",
+
+    loading: "ALQEV hazırlanıyor...",
+    signOut: "Çıkış yap",
+    signingOut: "Çıkış yapılıyor...",
+    dailyCenter: "Günlük yaşam merkezi",
+    welcomeMorning: "Günaydın",
+    welcomeDay: "İyi günler",
+    welcomeEvening: "İyi akşamlar",
+    welcomeNight: "İyi geceler",
+    intro: "Bugünkü önceliklerini, eksik belgelerini ve yaklaşan tarihlerini tek ekrandan yönet.",
+    plan: "Plan",
+    language: "Dil",
+    country: "Ülke",
+    profile: "Profil",
+    completed: "Tamamlandı",
+    incomplete: "Tamamlanmadı",
+    freePlan: "Ücretsiz plan",
+    unspecified: "Belirtilmedi",
+    startProcess: "Yeni süreç başlat",
+    viewProcesses: "Süreçlerimi görüntüle",
+    completeProfile: "Profilini tamamlaman gerekiyor",
+    completeProfileText: "Ülke, dil ve kişisel ihtiyaç bilgilerini eklediğinde ALQEV daha doğru öneriler oluşturabilir.",
+    completeProfileButton: "Profili tamamla",
+    activeProcesses: "Aktif süreçler",
+    activeProcessesDesc: "Devam eden başvuru ve resmî işlemlerin.",
+    documents: "Belgeler",
+    documentsReady: "Belgelerin %{percent} oranında hazır.",
+    criticalTasks: "Kritik görevler",
+    criticalTasksDesc: "Hızlıca ele alınması gereken uyarılar.",
+    missingDocuments: "Eksik belgeler",
+    requiredWaiting: "{count} zorunlu belge bekliyor.",
+    aiReadiness: "AI hazırlık analizi",
+    readyDocuments: "Hazır belgeler",
+    requiredMissing: "Zorunlu eksikler",
+    todayPriorities: "Bugünkü önceliklerin",
+    topThree: "En önemli 3 adım",
+    riskAnalysis: "Risk analizi",
+    nextStep: "Sonraki adım",
+    estimatedReadiness: "Tahmini hazırlık",
+    ready: "Hazır",
+    days: "{count} gün",
+    openStep: "Adımı aç →",
+    featuredProcess: "Öne çıkan süreç",
+    completedPercent: "%{percent} tamamlandı",
+    processDetails: "Süreç detayını aç",
+    noProcess: "Henüz bir sürecin yok",
+    noProcessText: "İlk sürecini başlattığında ilerleme durumun ve gerekli belgelerin burada görünecek.",
+    firstProcess: "İlk süreci başlat",
+    aiSummary: "AI durum özeti",
+    goToProcess: "Sürece git",
+    createProcess: "Süreç oluştur",
+    upcomingDate: "Yaklaşan önemli tarih",
+    noUpcomingDate: "Yaklaşan tarih yok",
+    noUpcomingDateText: "Süreçlerine hedef tarih eklediğinde en yakın tarih burada görünecek.",
+    targetToday: "Hedef tarih bugün.",
+    daysRemaining: "{count} gün içinde tamamlanmalı.",
+  },
+  de: {
+    immigrationReadiness: "Einwanderungsbereitschaft",
+    readinessVeryClose: "Du bist fast bereit für den Antrag", readinessGood: "Deine Vorbereitung läuft gut", readinessMissing: "Einige wichtige Punkte fehlen", readinessStarted: "Du hast mit der Vorbereitung begonnen", readinessNoData: "Noch keine Analysedaten",
+    readinessProgress: "{completed} / {total} Dokumente abgeschlossen. Pflichtdokumente wurden stärker gewichtet.", readinessEmpty: "Erstelle zuerst einen Vorgang und eine Dokumentenliste.",
+    priorityCritical: "Kritisch", priorityWarning: "Wichtig", priorityInfo: "Empfehlung", prioritySuccess: "Bereit", criticalAiAlert: "Kritischer KI-Hinweis", aiSuggestion: "KI-Empfehlung",
+    requiredDocumentMissing: "Das Pflichtdokument im Vorgang {process} wurde noch nicht hochgeladen.", deadlineToday: "Die Frist dieses Vorgangs ist heute.", deadlineInDays: "Die Frist ist in {count} Tagen.",
+    preparationControlled: "Deine Vorbereitung ist unter Kontrolle", preparationControlledText: "Derzeit gibt es keine kritischen Lücken. Halte die Angaben in deinem Vorgang aktuell.", createFirstProcessTitle: "Ersten Vorgang erstellen", createFirstProcessText: "Starte deinen ersten Vorgang für persönliche Empfehlungen und die Bereitschaftsanalyse.",
+    riskHigh: "Hohes Risiko", riskHighText: "Es gibt eine kritische Lücke oder eine sehr nahe Frist.", riskMedium: "Mittleres Risiko", riskMediumText: "Ein Dokument oder eine nahende Frist erfordert Aufmerksamkeit.", riskLow: "Niedriges Risiko", riskLowText: "Derzeit ist kein dringender Handlungsbedarf erkennbar.",
+    checkProcess: "Vorgang prüfen", uploadRequiredDocument: "Lade das Pflichtdokument im Vorgang {process} hoch.", checkAlerts: "Prüfe neue Hinweise oder fehlende Dokumente.", startRoadmap: "Starte einen Vorgang, um deinen persönlichen Fahrplan zu erstellen.", estimateByMissing: "Diese Schätzung basiert auf der Anzahl fehlender Dokumente.", noRequiredMissing: "In der aktuellen Dokumentenliste fehlen keine Pflichtdokumente.",
+    documentUploaded: "Dokument hochgeladen.", optionalNotUploaded: "Das optionale Dokument wurde noch nicht hochgeladen.", requiredNotUploaded: "Das Pflichtdokument wurde noch nicht hochgeladen.", noDocumentList: "Für diesen Vorgang wurde noch keine Dokumentenliste erstellt.", criticalTopics: "{count} kritische Punkte sollten zuerst bearbeitet werden.", requiredDocumentsPending: "{count} Pflichtdokumente warten auf Abschluss.", noCriticalMissing: "Derzeit gibt es keine kritische Lücke.", noDeadline: "Keine Frist", untitledDocument: "Unbenanntes Dokument", untitledProcess: "Unbenannter Vorgang", userFallback: "Benutzer",
+
+    loading: "ALQEV wird vorbereitet...",
+    signOut: "Abmelden",
+    signingOut: "Abmeldung...",
+    dailyCenter: "Zentrale für den Alltag",
+    welcomeMorning: "Guten Morgen",
+    welcomeDay: "Guten Tag",
+    welcomeEvening: "Guten Abend",
+    welcomeNight: "Gute Nacht",
+    intro: "Verwalte deine heutigen Prioritäten, fehlenden Dokumente und anstehenden Fristen auf einen Blick.",
+    plan: "Tarif",
+    language: "Sprache",
+    country: "Land",
+    profile: "Profil",
+    completed: "Abgeschlossen",
+    incomplete: "Unvollständig",
+    freePlan: "Kostenloser Tarif",
+    unspecified: "Nicht angegeben",
+    startProcess: "Neuen Vorgang starten",
+    viewProcesses: "Meine Vorgänge anzeigen",
+    completeProfile: "Bitte vervollständige dein Profil",
+    completeProfileText: "Mit Angaben zu Land, Sprache und Bedürfnissen kann ALQEV genauere Empfehlungen erstellen.",
+    completeProfileButton: "Profil vervollständigen",
+    activeProcesses: "Aktive Vorgänge",
+    activeProcessesDesc: "Deine laufenden Anträge und behördlichen Vorgänge.",
+    documents: "Dokumente",
+    documentsReady: "Deine Dokumente sind zu %{percent} bereit.",
+    criticalTasks: "Kritische Aufgaben",
+    criticalTasksDesc: "Hinweise, die schnell bearbeitet werden sollten.",
+    missingDocuments: "Fehlende Dokumente",
+    requiredWaiting: "{count} Pflichtdokumente fehlen.",
+    aiReadiness: "KI-Bereitschaftsanalyse",
+    readyDocuments: "Vorhandene Dokumente",
+    requiredMissing: "Fehlende Pflichtdokumente",
+    todayPriorities: "Deine heutigen Prioritäten",
+    topThree: "Die 3 wichtigsten Schritte",
+    riskAnalysis: "Risikoanalyse",
+    nextStep: "Nächster Schritt",
+    estimatedReadiness: "Geschätzte Vorbereitung",
+    ready: "Bereit",
+    days: "{count} Tage",
+    openStep: "Schritt öffnen →",
+    featuredProcess: "Hervorgehobener Vorgang",
+    completedPercent: "%{percent} abgeschlossen",
+    processDetails: "Vorgang öffnen",
+    noProcess: "Du hast noch keinen Vorgang",
+    noProcessText: "Sobald du deinen ersten Vorgang startest, erscheinen Fortschritt und erforderliche Dokumente hier.",
+    firstProcess: "Ersten Vorgang starten",
+    aiSummary: "KI-Statusübersicht",
+    goToProcess: "Zum Vorgang",
+    createProcess: "Vorgang erstellen",
+    upcomingDate: "Nächster wichtiger Termin",
+    noUpcomingDate: "Keine anstehenden Termine",
+    noUpcomingDateText: "Sobald du einem Vorgang eine Frist hinzufügst, erscheint sie hier.",
+    targetToday: "Die Frist ist heute.",
+    daysRemaining: "Innerhalb von {count} Tagen abzuschließen.",
+  },
+  en: {
+    immigrationReadiness: "Immigration Readiness", readinessVeryClose: "You are very close to applying", readinessGood: "Your preparation is progressing well", readinessMissing: "Some important items are missing", readinessStarted: "You have just started preparing", readinessNoData: "No analysis data yet", readinessProgress: "{completed} / {total} documents completed. Required documents were weighted more heavily.", readinessEmpty: "Create a process and document list first to calculate readiness.", priorityCritical: "Critical", priorityWarning: "Important", priorityInfo: "Suggestion", prioritySuccess: "Ready", criticalAiAlert: "Critical AI alert", aiSuggestion: "AI suggestion", requiredDocumentMissing: "The required document in {process} has not been uploaded yet.", deadlineToday: "This process is due today.", deadlineInDays: "This process reaches its deadline in {count} days.", preparationControlled: "Your preparation is under control", preparationControlledText: "No critical gap is visible right now. Keep your process information up to date.", createFirstProcessTitle: "Create your first process", createFirstProcessText: "Start your first process for personalized recommendations and readiness analysis.", riskHigh: "High risk", riskHighText: "There is a critical gap or a very close deadline.", riskMedium: "Medium risk", riskMediumText: "A document or upcoming deadline needs attention.", riskLow: "Low risk", riskLowText: "Nothing currently appears to require urgent action.", checkProcess: "Check your process", uploadRequiredDocument: "Upload the required document in {process}.", checkAlerts: "Check for new alerts or missing documents.", startRoadmap: "Start a process to create your personal roadmap.", estimateByMissing: "This estimate is based on the number of missing documents.", noRequiredMissing: "No required document is missing from the current list.", documentUploaded: "Document uploaded.", optionalNotUploaded: "The optional document has not been uploaded yet.", requiredNotUploaded: "The required document has not been uploaded yet.", noDocumentList: "No document list has been created for this process yet.", criticalTopics: "{count} critical items should be handled first.", requiredDocumentsPending: "{count} required documents are waiting to be completed.", noCriticalMissing: "No critical gap is visible right now.", noDeadline: "No deadline", untitledDocument: "Untitled document", untitledProcess: "Untitled process", userFallback: "User",
+
+    loading: "Preparing ALQEV...",
+    signOut: "Sign out",
+    signingOut: "Signing out...",
+    dailyCenter: "Daily life hub",
+    welcomeMorning: "Good morning",
+    welcomeDay: "Good afternoon",
+    welcomeEvening: "Good evening",
+    welcomeNight: "Good night",
+    intro: "Manage today’s priorities, missing documents, and upcoming deadlines from one screen.",
+    plan: "Plan",
+    language: "Language",
+    country: "Country",
+    profile: "Profile",
+    completed: "Completed",
+    incomplete: "Incomplete",
+    freePlan: "Free plan",
+    unspecified: "Not specified",
+    startProcess: "Start a new process",
+    viewProcesses: "View my processes",
+    completeProfile: "Please complete your profile",
+    completeProfileText: "ALQEV can provide more accurate recommendations when you add your country, language, and personal needs.",
+    completeProfileButton: "Complete profile",
+    activeProcesses: "Active processes",
+    activeProcessesDesc: "Your ongoing applications and official procedures.",
+    documents: "Documents",
+    documentsReady: "Your documents are %{percent} ready.",
+    criticalTasks: "Critical tasks",
+    criticalTasksDesc: "Alerts that should be handled quickly.",
+    missingDocuments: "Missing documents",
+    requiredWaiting: "{count} required documents are missing.",
+    aiReadiness: "AI readiness analysis",
+    readyDocuments: "Ready documents",
+    requiredMissing: "Required missing",
+    todayPriorities: "Today’s priorities",
+    topThree: "Top 3 steps",
+    riskAnalysis: "Risk analysis",
+    nextStep: "Next step",
+    estimatedReadiness: "Estimated readiness",
+    ready: "Ready",
+    days: "{count} days",
+    openStep: "Open step →",
+    featuredProcess: "Featured process",
+    completedPercent: "%{percent} completed",
+    processDetails: "Open process details",
+    noProcess: "You do not have a process yet",
+    noProcessText: "Once you start your first process, its progress and required documents will appear here.",
+    firstProcess: "Start your first process",
+    aiSummary: "AI status summary",
+    goToProcess: "Go to process",
+    createProcess: "Create process",
+    upcomingDate: "Upcoming important date",
+    noUpcomingDate: "No upcoming date",
+    noUpcomingDateText: "When you add a deadline to a process, the nearest date will appear here.",
+    targetToday: "The deadline is today.",
+    daysRemaining: "Must be completed within {count} days.",
+  },
+  ru: {
+    immigrationReadiness: "Готовность к иммиграции", readinessVeryClose: "Вы почти готовы к подаче заявления", readinessGood: "Подготовка идет хорошо", readinessMissing: "Не хватает нескольких важных пунктов", readinessStarted: "Вы только начали подготовку", readinessNoData: "Данных для анализа пока нет", readinessProgress: "Завершено документов: {completed} / {total}. Обязательные документы имеют больший вес.", readinessEmpty: "Сначала создайте процесс и список документов.", priorityCritical: "Критично", priorityWarning: "Важно", priorityInfo: "Рекомендация", prioritySuccess: "Готово", criticalAiAlert: "Критическое предупреждение ИИ", aiSuggestion: "Рекомендация ИИ", requiredDocumentMissing: "Обязательный документ в процессе «{process}» еще не загружен.", deadlineToday: "Срок этого процесса истекает сегодня.", deadlineInDays: "До срока этого процесса осталось {count} дней.", preparationControlled: "Подготовка под контролем", preparationControlledText: "Сейчас критических пробелов нет. Поддерживайте данные процесса в актуальном состоянии.", createFirstProcessTitle: "Создайте первый процесс", createFirstProcessText: "Запустите первый процесс для персональных рекомендаций и анализа готовности.", riskHigh: "Высокий риск", riskHighText: "Есть критический пробел или очень близкий срок.", riskMedium: "Средний риск", riskMediumText: "Документ или приближающийся срок требуют внимания.", riskLow: "Низкий риск", riskLowText: "Сейчас нет ситуации, требующей срочных действий.", checkProcess: "Проверить процесс", uploadRequiredDocument: "Загрузите обязательный документ в процессе «{process}».", checkAlerts: "Проверьте новые предупреждения и недостающие документы.", startRoadmap: "Начните процесс, чтобы создать личный план действий.", estimateByMissing: "Оценка основана на количестве недостающих документов.", noRequiredMissing: "В текущем списке нет недостающих обязательных документов.", documentUploaded: "Документ загружен.", optionalNotUploaded: "Необязательный документ еще не загружен.", requiredNotUploaded: "Обязательный документ еще не загружен.", noDocumentList: "Для этого процесса список документов еще не создан.", criticalTopics: "В первую очередь нужно решить критические вопросы: {count}.", requiredDocumentsPending: "Ожидают завершения обязательные документы: {count}.", noCriticalMissing: "Сейчас критических пробелов нет.", noDeadline: "Срок не указан", untitledDocument: "Документ без названия", untitledProcess: "Процесс без названия", userFallback: "Пользователь",
+
+    loading: "ALQEV загружается...",
+    signOut: "Выйти",
+    signingOut: "Выход...",
+    dailyCenter: "Центр повседневных дел",
+    welcomeMorning: "Доброе утро",
+    welcomeDay: "Добрый день",
+    welcomeEvening: "Добрый вечер",
+    welcomeNight: "Доброй ночи",
+    intro: "Управляйте сегодняшними приоритетами, недостающими документами и ближайшими сроками на одном экране.",
+    plan: "Тариф",
+    language: "Язык",
+    country: "Страна",
+    profile: "Профиль",
+    completed: "Завершено",
+    incomplete: "Не завершено",
+    freePlan: "Бесплатный тариф",
+    unspecified: "Не указано",
+    startProcess: "Начать новый процесс",
+    viewProcesses: "Мои процессы",
+    completeProfile: "Пожалуйста, заполните профиль",
+    completeProfileText: "После добавления страны, языка и личных потребностей ALQEV сможет давать более точные рекомендации.",
+    completeProfileButton: "Заполнить профиль",
+    activeProcesses: "Активные процессы",
+    activeProcessesDesc: "Ваши текущие заявления и официальные процедуры.",
+    documents: "Документы",
+    documentsReady: "Ваши документы готовы на %{percent}.",
+    criticalTasks: "Критические задачи",
+    criticalTasksDesc: "Предупреждения, требующие быстрого решения.",
+    missingDocuments: "Недостающие документы",
+    requiredWaiting: "Не хватает обязательных документов: {count}.",
+    aiReadiness: "Анализ готовности ИИ",
+    readyDocuments: "Готовые документы",
+    requiredMissing: "Обязательные недостающие",
+    todayPriorities: "Приоритеты на сегодня",
+    topThree: "3 главных шага",
+    riskAnalysis: "Анализ рисков",
+    nextStep: "Следующий шаг",
+    estimatedReadiness: "Оценка готовности",
+    ready: "Готово",
+    days: "{count} дней",
+    openStep: "Открыть шаг →",
+    featuredProcess: "Основной процесс",
+    completedPercent: "Завершено: %{percent}",
+    processDetails: "Открыть процесс",
+    noProcess: "У вас пока нет процесса",
+    noProcessText: "После запуска первого процесса здесь появятся его прогресс и необходимые документы.",
+    firstProcess: "Начать первый процесс",
+    aiSummary: "Сводка ИИ",
+    goToProcess: "Перейти к процессу",
+    createProcess: "Создать процесс",
+    upcomingDate: "Ближайшая важная дата",
+    noUpcomingDate: "Нет ближайших дат",
+    noUpcomingDateText: "После добавления срока к процессу ближайшая дата появится здесь.",
+    targetToday: "Срок истекает сегодня.",
+    daysRemaining: "Необходимо завершить в течение {count} дней.",
+  },
+  ar: {
+    immigrationReadiness: "الجاهزية للهجرة", readinessVeryClose: "أنت قريب جدًا من تقديم الطلب", readinessGood: "استعدادك يتقدم بشكل جيد", readinessMissing: "توجد بعض النواقص المهمة", readinessStarted: "لقد بدأت الاستعداد للتو", readinessNoData: "لا توجد بيانات تحليل بعد", readinessProgress: "تم إكمال {completed} من أصل {total} وثيقة. مُنحت الوثائق الإلزامية وزنًا أكبر.", readinessEmpty: "أنشئ إجراءً وقائمة وثائق أولًا لحساب الجاهزية.", priorityCritical: "حرج", priorityWarning: "مهم", priorityInfo: "اقتراح", prioritySuccess: "جاهز", criticalAiAlert: "تنبيه حرج من الذكاء الاصطناعي", aiSuggestion: "اقتراح الذكاء الاصطناعي", requiredDocumentMissing: "لم تُرفع الوثيقة الإلزامية في إجراء {process} بعد.", deadlineToday: "الموعد النهائي لهذا الإجراء اليوم.", deadlineInDays: "يتبقى {count} يوم على الموعد النهائي.", preparationControlled: "استعدادك تحت السيطرة", preparationControlledText: "لا تظهر نواقص حرجة حاليًا. حافظ على تحديث معلومات الإجراء.", createFirstProcessTitle: "أنشئ أول إجراء", createFirstProcessText: "ابدأ أول إجراء للحصول على توصيات شخصية وتحليل الجاهزية.", riskHigh: "مخاطر مرتفعة", riskHighText: "توجد مشكلة حرجة أو موعد نهائي قريب جدًا.", riskMedium: "مخاطر متوسطة", riskMediumText: "توجد وثيقة أو مهلة قريبة تحتاج إلى اهتمام.", riskLow: "مخاطر منخفضة", riskLowText: "لا توجد حاليًا حالة تتطلب تدخلاً عاجلًا.", checkProcess: "تحقق من الإجراء", uploadRequiredDocument: "ارفع الوثيقة الإلزامية في إجراء {process}.", checkAlerts: "تحقق من التنبيهات الجديدة أو الوثائق الناقصة.", startRoadmap: "ابدأ إجراءً لإنشاء خارطة طريقك الشخصية.", estimateByMissing: "يعتمد هذا التقدير على عدد الوثائق الناقصة.", noRequiredMissing: "لا توجد وثائق إلزامية ناقصة في القائمة الحالية.", documentUploaded: "تم رفع الوثيقة.", optionalNotUploaded: "لم تُرفع الوثيقة الاختيارية بعد.", requiredNotUploaded: "لم تُرفع الوثيقة الإلزامية بعد.", noDocumentList: "لم تُنشأ قائمة وثائق لهذا الإجراء بعد.", criticalTopics: "يجب معالجة {count} من المسائل الحرجة أولًا.", requiredDocumentsPending: "تنتظر {count} وثيقة إلزامية الإكمال.", noCriticalMissing: "لا تظهر نواقص حرجة حاليًا.", noDeadline: "لا يوجد موعد نهائي", untitledDocument: "وثيقة بلا عنوان", untitledProcess: "إجراء بلا عنوان", userFallback: "المستخدم",
+
+    loading: "جارٍ تجهيز ALQEV...",
+    signOut: "تسجيل الخروج",
+    signingOut: "جارٍ تسجيل الخروج...",
+    dailyCenter: "مركز الحياة اليومية",
+    welcomeMorning: "صباح الخير",
+    welcomeDay: "مرحبًا",
+    welcomeEvening: "مساء الخير",
+    welcomeNight: "ليلة سعيدة",
+    intro: "أدر أولويات اليوم والوثائق الناقصة والمواعيد القادمة من شاشة واحدة.",
+    plan: "الخطة",
+    language: "اللغة",
+    country: "البلد",
+    profile: "الملف الشخصي",
+    completed: "مكتمل",
+    incomplete: "غير مكتمل",
+    freePlan: "الخطة المجانية",
+    unspecified: "غير محدد",
+    startProcess: "بدء إجراء جديد",
+    viewProcesses: "عرض إجراءاتي",
+    completeProfile: "يرجى إكمال ملفك الشخصي",
+    completeProfileText: "يمكن لـ ALQEV تقديم توصيات أدق عند إضافة البلد واللغة والاحتياجات الشخصية.",
+    completeProfileButton: "إكمال الملف",
+    activeProcesses: "الإجراءات النشطة",
+    activeProcessesDesc: "طلباتك وإجراءاتك الرسمية الجارية.",
+    documents: "الوثائق",
+    documentsReady: "وثائقك جاهزة بنسبة %{percent}.",
+    criticalTasks: "المهام الحرجة",
+    criticalTasksDesc: "تنبيهات يجب التعامل معها بسرعة.",
+    missingDocuments: "الوثائق الناقصة",
+    requiredWaiting: "عدد الوثائق الإلزامية الناقصة: {count}.",
+    aiReadiness: "تحليل الجاهزية بالذكاء الاصطناعي",
+    readyDocuments: "الوثائق الجاهزة",
+    requiredMissing: "النواقص الإلزامية",
+    todayPriorities: "أولويات اليوم",
+    topThree: "أهم 3 خطوات",
+    riskAnalysis: "تحليل المخاطر",
+    nextStep: "الخطوة التالية",
+    estimatedReadiness: "الجاهزية المقدرة",
+    ready: "جاهز",
+    days: "{count} يوم",
+    openStep: "فتح الخطوة ←",
+    featuredProcess: "الإجراء المميز",
+    completedPercent: "اكتمل %{percent}",
+    processDetails: "فتح تفاصيل الإجراء",
+    noProcess: "ليس لديك إجراء بعد",
+    noProcessText: "عند بدء أول إجراء ستظهر هنا نسبة التقدم والوثائق المطلوبة.",
+    firstProcess: "بدء أول إجراء",
+    aiSummary: "ملخص حالة الذكاء الاصطناعي",
+    goToProcess: "الانتقال إلى الإجراء",
+    createProcess: "إنشاء إجراء",
+    upcomingDate: "الموعد المهم القادم",
+    noUpcomingDate: "لا توجد مواعيد قادمة",
+    noUpcomingDateText: "عند إضافة موعد نهائي إلى إجراء سيظهر أقرب موعد هنا.",
+    targetToday: "الموعد النهائي اليوم.",
+    daysRemaining: "يجب إكماله خلال {count} يوم.",
+  },
+  fa: {
+    immigrationReadiness: "آمادگی مهاجرت", readinessVeryClose: "تقریباً آماده ارسال درخواست هستید", readinessGood: "آمادگی شما به‌خوبی پیش می‌رود", readinessMissing: "چند مورد مهم ناقص است", readinessStarted: "تازه آماده‌سازی را شروع کرده‌اید", readinessNoData: "هنوز داده‌ای برای تحلیل وجود ندارد", readinessProgress: "{completed} از {total} مدرک تکمیل شده است. به مدارک الزامی وزن بیشتری داده شد.", readinessEmpty: "برای محاسبه آمادگی ابتدا یک فرایند و فهرست مدارک ایجاد کنید.", priorityCritical: "بحرانی", priorityWarning: "مهم", priorityInfo: "پیشنهاد", prioritySuccess: "آماده", criticalAiAlert: "هشدار بحرانی هوش مصنوعی", aiSuggestion: "پیشنهاد هوش مصنوعی", requiredDocumentMissing: "مدرک الزامی در فرایند {process} هنوز بارگذاری نشده است.", deadlineToday: "مهلت این فرایند امروز است.", deadlineInDays: "تا مهلت این فرایند {count} روز باقی مانده است.", preparationControlled: "آمادگی شما تحت کنترل است", preparationControlledText: "در حال حاضر نقص بحرانی دیده نمی‌شود. اطلاعات فرایند را به‌روز نگه دارید.", createFirstProcessTitle: "اولین فرایند را ایجاد کنید", createFirstProcessText: "برای دریافت پیشنهادهای شخصی و تحلیل آمادگی، اولین فرایند را شروع کنید.", riskHigh: "ریسک بالا", riskHighText: "یک نقص بحرانی یا مهلت بسیار نزدیک وجود دارد.", riskMedium: "ریسک متوسط", riskMediumText: "یک مدرک یا مهلت نزدیک نیاز به توجه دارد.", riskLow: "ریسک پایین", riskLowText: "در حال حاضر موردی که نیازمند اقدام فوری باشد دیده نمی‌شود.", checkProcess: "فرایند را بررسی کنید", uploadRequiredDocument: "مدرک الزامی فرایند {process} را بارگذاری کنید.", checkAlerts: "هشدارهای جدید یا مدارک ناقص را بررسی کنید.", startRoadmap: "برای ساخت نقشه راه شخصی خود یک فرایند شروع کنید.", estimateByMissing: "این برآورد بر اساس تعداد مدارک ناقص محاسبه شده است.", noRequiredMissing: "در فهرست فعلی هیچ مدرک الزامی ناقصی وجود ندارد.", documentUploaded: "مدرک بارگذاری شد.", optionalNotUploaded: "مدرک اختیاری هنوز بارگذاری نشده است.", requiredNotUploaded: "مدرک الزامی هنوز بارگذاری نشده است.", noDocumentList: "هنوز برای این فرایند فهرست مدارک ایجاد نشده است.", criticalTopics: "ابتدا باید {count} مورد بحرانی بررسی شود.", requiredDocumentsPending: "{count} مدرک الزامی در انتظار تکمیل است.", noCriticalMissing: "در حال حاضر نقص بحرانی دیده نمی‌شود.", noDeadline: "بدون مهلت", untitledDocument: "مدرک بدون عنوان", untitledProcess: "فرایند بدون عنوان", userFallback: "کاربر",
+
+    loading: "ALQEV در حال آماده‌سازی است...",
+    signOut: "خروج",
+    signingOut: "در حال خروج...",
+    dailyCenter: "مرکز امور روزمره",
+    welcomeMorning: "صبح بخیر",
+    welcomeDay: "روز بخیر",
+    welcomeEvening: "عصر بخیر",
+    welcomeNight: "شب بخیر",
+    intro: "اولویت‌های امروز، مدارک ناقص و مهلت‌های پیش رو را در یک صفحه مدیریت کنید.",
+    plan: "طرح",
+    language: "زبان",
+    country: "کشور",
+    profile: "پروفایل",
+    completed: "تکمیل شده",
+    incomplete: "تکمیل نشده",
+    freePlan: "طرح رایگان",
+    unspecified: "مشخص نشده",
+    startProcess: "شروع فرایند جدید",
+    viewProcesses: "مشاهده فرایندهای من",
+    completeProfile: "لطفاً پروفایل خود را تکمیل کنید",
+    completeProfileText: "با افزودن کشور، زبان و نیازهای شخصی، ALQEV پیشنهادهای دقیق‌تری ارائه می‌دهد.",
+    completeProfileButton: "تکمیل پروفایل",
+    activeProcesses: "فرایندهای فعال",
+    activeProcessesDesc: "درخواست‌ها و امور رسمی در حال انجام شما.",
+    documents: "مدارک",
+    documentsReady: "مدارک شما %{percent} آماده است.",
+    criticalTasks: "کارهای حیاتی",
+    criticalTasksDesc: "هشدارهایی که باید سریع بررسی شوند.",
+    missingDocuments: "مدارک ناقص",
+    requiredWaiting: "{count} مدرک الزامی ناقص است.",
+    aiReadiness: "تحلیل آمادگی هوش مصنوعی",
+    readyDocuments: "مدارک آماده",
+    requiredMissing: "مدارک الزامی ناقص",
+    todayPriorities: "اولویت‌های امروز",
+    topThree: "۳ گام مهم",
+    riskAnalysis: "تحلیل ریسک",
+    nextStep: "گام بعدی",
+    estimatedReadiness: "آمادگی تخمینی",
+    ready: "آماده",
+    days: "{count} روز",
+    openStep: "باز کردن گام ←",
+    featuredProcess: "فرایند برجسته",
+    completedPercent: "%{percent} تکمیل شده",
+    processDetails: "باز کردن جزئیات فرایند",
+    noProcess: "هنوز فرایندی ندارید",
+    noProcessText: "پس از شروع اولین فرایند، پیشرفت و مدارک لازم در اینجا نمایش داده می‌شود.",
+    firstProcess: "شروع اولین فرایند",
+    aiSummary: "خلاصه وضعیت هوش مصنوعی",
+    goToProcess: "رفتن به فرایند",
+    createProcess: "ایجاد فرایند",
+    upcomingDate: "تاریخ مهم پیش رو",
+    noUpcomingDate: "تاریخ نزدیکی وجود ندارد",
+    noUpcomingDateText: "با افزودن مهلت به یک فرایند، نزدیک‌ترین تاریخ اینجا نمایش داده می‌شود.",
+    targetToday: "مهلت امروز است.",
+    daysRemaining: "باید ظرف {count} روز تکمیل شود.",
+  },
+};
+
+function normalizeLanguage(value: string | undefined): SupportedLanguage {
+  return supportedLanguages.some((item) => item.code === value)
+    ? (value as SupportedLanguage)
+    : "tr";
+}
+
+function fillTemplate(
+  value: string,
+  variables: Record<string, string | number>,
+): string {
+  return Object.entries(variables).reduce(
+    (result, [key, replacement]) =>
+      result.replaceAll(`{${key}}`, String(replacement)),
+    value,
+  );
+}
 
 type UserProfile = {
   fullName: string;
@@ -88,6 +507,7 @@ const languageLabels: Record<string, string> = {
   en: "English",
   ar: "العربية",
   fa: "فارسی",
+  ru: "Русский",
 };
 
 const priorityStyles: Record<
@@ -103,25 +523,25 @@ const priorityStyles: Record<
     card: "border-rose-400/20 bg-rose-400/[0.055]",
     icon: "bg-rose-400/15 text-rose-200",
     badge: "bg-rose-400/10 text-rose-200",
-    label: "Kritik",
+    label: "priorityCritical",
   },
   warning: {
     card: "border-amber-400/20 bg-amber-400/[0.05]",
     icon: "bg-amber-400/15 text-amber-200",
     badge: "bg-amber-400/10 text-amber-200",
-    label: "Önemli",
+    label: "priorityWarning",
   },
   info: {
     card: "border-indigo-400/20 bg-indigo-400/[0.05]",
     icon: "bg-indigo-400/15 text-indigo-200",
     badge: "bg-indigo-400/10 text-indigo-200",
-    label: "Öneri",
+    label: "priorityInfo",
   },
   success: {
     card: "border-emerald-400/20 bg-emerald-400/[0.05]",
     icon: "bg-emerald-400/15 text-emerald-200",
     badge: "bg-emerald-400/10 text-emerald-200",
-    label: "Hazır",
+    label: "prioritySuccess",
   },
 };
 
@@ -192,7 +612,7 @@ function normalizeDocuments(
         typeof item.title === "string" &&
         item.title.trim()
           ? item.title
-          : "Başlıksız belge",
+          : uiTranslations.tr.untitledDocument,
       description:
         typeof item.description === "string"
           ? item.description
@@ -223,7 +643,7 @@ function createFallbackProfile(
     fullName:
       user.displayName?.trim() ||
       user.email?.split("@")[0] ||
-      "Kullanıcı",
+      uiTranslations.tr.userFallback,
     email: user.email || "",
     language: "tr",
     country: "",
@@ -249,14 +669,18 @@ function parseDeadline(
 
 function formatDeadline(
   value: string | null,
+  language: SupportedLanguage,
+  noDeadline: string,
 ): string {
   const date = parseDeadline(value);
 
   if (!date) {
-    return "Hedef tarih yok";
+    return noDeadline;
   }
 
-  return new Intl.DateTimeFormat("tr-TR", {
+  const locales: Record<SupportedLanguage, string> = { tr: "tr-TR", de: "de-DE", en: "en-US", ru: "ru-RU", ar: "ar-SA", fa: "fa-IR" };
+
+  return new Intl.DateTimeFormat(locales[language], {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -292,51 +716,44 @@ function isCompletedDocument(
   );
 }
 
-function getGreeting(): string {
+function getGreeting(language: SupportedLanguage): string {
+  const copy = uiTranslations[language];
   const hour = new Date().getHours();
 
   if (hour < 6) {
-    return "İyi geceler";
+    return copy.welcomeNight;
   }
 
   if (hour < 12) {
-    return "Günaydın";
+    return copy.welcomeMorning;
   }
 
   if (hour < 18) {
-    return "İyi günler";
+    return copy.welcomeDay;
   }
 
-  return "İyi akşamlar";
+  return copy.welcomeEvening;
 }
 
 function getReadinessLabel(
   score: number,
+  copy: Record<string, string>,
 ): string {
-  if (score >= 90) {
-    return "Başvuruya çok yakınsın";
-  }
-
-  if (score >= 70) {
-    return "Hazırlığın iyi ilerliyor";
-  }
-
-  if (score >= 40) {
-    return "Bazı önemli eksikler var";
-  }
-
-  if (score > 0) {
-    return "Hazırlığa yeni başlıyorsun";
-  }
-
-  return "Henüz analiz verisi yok";
+  if (score >= 90) return copy.readinessVeryClose;
+  if (score >= 70) return copy.readinessGood;
+  if (score >= 40) return copy.readinessMissing;
+  if (score > 0) return copy.readinessStarted;
+  return copy.readinessNoData;
 }
 
-function getRiskLevel(input: {
+function getRiskLevel(
+  input: {
   criticalCount: number;
   requiredMissingCount: number;
   nearestDeadlineDays: number | null;
-}): {
+  },
+  copy: Record<string, string>,
+): {
   label: string;
   description: string;
   className: string;
@@ -348,9 +765,8 @@ function getRiskLevel(input: {
       input.requiredMissingCount > 0)
   ) {
     return {
-      label: "Yüksek risk",
-      description:
-        "Kritik bir eksik veya çok yakın bir hedef tarih bulunuyor.",
+      label: copy.riskHigh,
+      description: copy.riskHighText,
       className:
         "border-rose-400/20 bg-rose-400/[0.07] text-rose-100",
     };
@@ -362,18 +778,16 @@ function getRiskLevel(input: {
       input.nearestDeadlineDays <= 14)
   ) {
     return {
-      label: "Orta risk",
-      description:
-        "Tamamlanması gereken belge veya yaklaşan tarih bulunuyor.",
+      label: copy.riskMedium,
+      description: copy.riskMediumText,
       className:
         "border-amber-400/20 bg-amber-400/[0.07] text-amber-100",
     };
   }
 
   return {
-    label: "Düşük risk",
-    description:
-      "Şu anda acil müdahale gerektiren bir durum görünmüyor.",
+    label: copy.riskLow,
+    description: copy.riskLowText,
     className:
       "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-100",
   };
@@ -399,6 +813,9 @@ export default function DashboardPage() {
 
   const [errorMessage, setErrorMessage] =
     useState("");
+
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<SupportedLanguage>("tr");
 
   useEffect(() => {
     let isMounted = true;
@@ -455,6 +872,14 @@ export default function DashboardPage() {
             const data =
               userDocumentSnapshot.data();
 
+            const savedLanguage = normalizeLanguage(
+              typeof data.language === "string"
+                ? data.language
+                : "tr",
+            );
+
+            setSelectedLanguage(savedLanguage);
+
             setProfile({
               fullName:
                 typeof data.fullName === "string" &&
@@ -462,17 +887,13 @@ export default function DashboardPage() {
                   ? data.fullName.trim()
                   : currentUser.displayName?.trim() ||
                     currentUser.email?.split("@")[0] ||
-                    "Kullanıcı",
+                    uiTranslations.tr.userFallback,
               email:
                 typeof data.email === "string" &&
                 data.email.trim()
                   ? data.email.trim()
                   : currentUser.email || "",
-              language:
-                typeof data.language === "string" &&
-                data.language.trim()
-                  ? data.language.trim()
-                  : "tr",
+              language: savedLanguage,
               country:
                 typeof data.country === "string"
                   ? data.country.trim()
@@ -492,6 +913,7 @@ export default function DashboardPage() {
               ),
             });
           } else {
+            setSelectedLanguage("tr");
             setProfile(
               createFallbackProfile(currentUser),
             );
@@ -544,7 +966,7 @@ export default function DashboardPage() {
                     typeof data.title === "string" &&
                     data.title.trim()
                       ? data.title
-                      : "Başlıksız Süreç",
+                      : uiTranslations.tr.untitledProcess,
                   description:
                     typeof data.description ===
                     "string"
@@ -743,6 +1165,7 @@ export default function DashboardPage() {
   );
 
   const dashboardIntelligence = useMemo(() => {
+    const copy = uiTranslations[selectedLanguage];
     const criticalRecommendations =
       aiAnalysis.recommendations.filter(
         (item) =>
@@ -769,8 +1192,8 @@ export default function DashboardPage() {
         id: `recommendation-${priorities.length}`,
         title:
           recommendation.severity === "critical"
-            ? "Kritik AI uyarısı"
-            : "AI önerisi",
+            ? copy.criticalAiAlert
+            : copy.aiSuggestion,
         description: recommendation.message,
         href: dashboardData.primaryProcess
           ? `/processes/${dashboardData.primaryProcess.id}`
@@ -790,7 +1213,7 @@ export default function DashboardPage() {
       priorities.push({
         id: `missing-${item.processId}-${item.document.key}`,
         title: item.document.title,
-        description: `${item.processTitle} sürecindeki zorunlu belge henüz yüklenmedi.`,
+        description: fillTemplate(copy.requiredDocumentMissing, { process: item.processTitle }),
         href: `/processes/${item.processId}`,
         severity: "warning",
       });
@@ -805,8 +1228,8 @@ export default function DashboardPage() {
         title: nearestDeadline.title,
         description:
           nearestDeadline.daysUntil === 0
-            ? "Bu sürecin hedef tarihi bugün."
-            : `${nearestDeadline.daysUntil} gün sonra hedef tarihe ulaşacak.`,
+            ? copy.deadlineToday
+            : fillTemplate(copy.deadlineInDays, { count: nearestDeadline.daysUntil }),
         href: `/processes/${nearestDeadline.id}`,
         severity:
           nearestDeadline.daysUntil <= 3
@@ -823,9 +1246,8 @@ export default function DashboardPage() {
     ) {
       priorities.push({
         id: "ready-primary-process",
-        title: "Hazırlığın kontrol altında",
-        description:
-          "Şu anda kritik bir eksik görünmüyor. Sürecindeki bilgileri güncel tutmaya devam et.",
+        title: copy.preparationControlled,
+        description: copy.preparationControlledText,
         href: `/processes/${dashboardData.primaryProcess.id}`,
         severity: "success",
       });
@@ -834,9 +1256,8 @@ export default function DashboardPage() {
     if (priorities.length === 0) {
       priorities.push({
         id: "create-first-process",
-        title: "İlk sürecini oluştur",
-        description:
-          "Kişisel öneriler ve hazırlık analizi için ilk sürecini başlat.",
+        title: copy.createFirstProcessTitle,
+        description: copy.createFirstProcessText,
         href: "/processes/new",
         severity: "info",
       });
@@ -851,7 +1272,7 @@ export default function DashboardPage() {
           .length,
       nearestDeadlineDays:
         nearestDeadline?.daysUntil ?? null,
-    });
+    }, copy);
 
     const estimatedDays =
       dashboardData.requiredMissingDocuments
@@ -886,7 +1307,34 @@ export default function DashboardPage() {
       estimatedDays,
       nextAction,
     };
-  }, [aiAnalysis, dashboardData]);
+  }, [aiAnalysis, dashboardData, selectedLanguage]);
+
+
+  async function handleLanguageChange(
+    language: SupportedLanguage,
+  ) {
+    setSelectedLanguage(language);
+    setProfile((currentProfile) =>
+      currentProfile
+        ? { ...currentProfile, language }
+        : currentProfile,
+    );
+
+    if (!user) {
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        language,
+      });
+    } catch (error) {
+      console.error("Dil tercihi kaydedilemedi:", error);
+      setErrorMessage(
+        "Dil tercihi kaydedilemedi. Lütfen tekrar dene.",
+      );
+    }
+  }
 
   async function handleSignOut() {
     try {
@@ -918,7 +1366,7 @@ export default function DashboardPage() {
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
 
           <p className="mt-4 text-sm text-slate-400">
-            ALQEV hazırlanıyor...
+            {uiTranslations[selectedLanguage].loading}
           </p>
         </div>
       </main>
@@ -929,11 +1377,15 @@ export default function DashboardPage() {
     return null;
   }
 
+  const language = selectedLanguage;
+  const copy = uiTranslations[language];
+  const direction = language === "ar" || language === "fa" ? "rtl" : "ltr";
+
   const displayName =
     profile.fullName.trim() ||
     user.displayName?.trim() ||
     user.email?.split("@")[0] ||
-    "Kullanıcı";
+    uiTranslations.tr.userFallback;
 
   const firstName =
     displayName.split(/\s+/)[0] ||
@@ -942,13 +1394,19 @@ export default function DashboardPage() {
   const subscriptionLabel =
     profile.subscription.toLowerCase() ===
     "free"
-      ? "Ücretsiz plan"
+      ? copy.freePlan
       : profile.subscription;
 
   const countryLabel = profile.country
-    ? countryLabels[profile.country] ||
-      profile.country
-    : "Belirtilmedi";
+    ? (() => {
+        try {
+          const regionNames = new Intl.DisplayNames([language], { type: "region" });
+          return regionNames.of(profile.country) || countryLabels[profile.country] || profile.country;
+        } catch {
+          return countryLabels[profile.country] || profile.country;
+        }
+      })()
+    : copy.unspecified;
 
   const languageLabel =
     languageLabels[profile.language] ||
@@ -974,7 +1432,7 @@ export default function DashboardPage() {
       : 0;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main dir={direction} className="min-h-screen bg-slate-950 text-white">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 overflow-hidden"
@@ -1003,6 +1461,22 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <select
+              value={language}
+              onChange={(event) =>
+                handleLanguageChange(
+                  event.target.value as SupportedLanguage,
+                )
+              }
+              aria-label={copy.language}
+              className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
+            >
+              {supportedLanguages.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-white">
                 {displayName}
@@ -1020,8 +1494,8 @@ export default function DashboardPage() {
               className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSigningOut
-                ? "Çıkış yapılıyor..."
-                : "Çıkış yap"}
+                ? copy.signingOut
+                : copy.signOut}
             </button>
           </div>
         </nav>
@@ -1041,24 +1515,22 @@ export default function DashboardPage() {
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-start">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
-                Günlük yaşam merkezi
+                {copy.dailyCenter}
               </p>
 
               <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                {getGreeting()}, {firstName}. 👋
+                {getGreeting(language)}, {firstName}. 👋
               </h1>
 
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-                Bugünkü önceliklerini, eksik
-                belgelerini ve yaklaşan tarihlerini
-                tek ekrandan yönet.
+                {copy.intro}
               </p>
             </div>
 
             <div className="grid min-w-64 gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 text-sm">
               <div className="flex items-center justify-between gap-6">
                 <span className="text-slate-500">
-                  Plan
+                  {copy.plan}
                 </span>
 
                 <span className="font-semibold text-slate-200">
@@ -1068,7 +1540,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between gap-6">
                 <span className="text-slate-500">
-                  Dil
+                  {copy.language}
                 </span>
 
                 <span className="font-semibold text-slate-200">
@@ -1078,7 +1550,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between gap-6">
                 <span className="text-slate-500">
-                  Ülke
+                  {copy.country}
                 </span>
 
                 <span className="font-semibold text-slate-200">
@@ -1088,7 +1560,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between gap-6">
                 <span className="text-slate-500">
-                  Profil
+                  {copy.profile}
                 </span>
 
                 <span
@@ -1099,8 +1571,8 @@ export default function DashboardPage() {
                   }
                 >
                   {profile.onboardingCompleted
-                    ? "Tamamlandı"
-                    : "Tamamlanmadı"}
+                    ? copy.completed
+                    : copy.incomplete}
                 </span>
               </div>
             </div>
@@ -1111,14 +1583,14 @@ export default function DashboardPage() {
               href="/processes/new"
               className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
             >
-              Yeni süreç başlat
+              {copy.startProcess}
             </Link>
 
             <Link
               href="/processes"
               className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
             >
-              Süreçlerimi görüntüle
+              {copy.viewProcesses}
             </Link>
           </div>
         </section>
@@ -1127,13 +1599,11 @@ export default function DashboardPage() {
           <section className="mt-6 rounded-3xl border border-amber-400/20 bg-amber-400/[0.06] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
             <div>
               <p className="font-semibold text-amber-100">
-                Profilini tamamlaman gerekiyor
+                {copy.completeProfile}
               </p>
 
               <p className="mt-2 text-sm leading-6 text-amber-100/70">
-                Ülke, dil ve kişisel ihtiyaç
-                bilgilerini eklediğinde ALQEV
-                daha doğru öneriler oluşturabilir.
+                {copy.completeProfileText}
               </p>
             </div>
 
@@ -1141,25 +1611,25 @@ export default function DashboardPage() {
               href="/onboarding"
               className="mt-5 inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-200 sm:mt-0"
             >
-              Profili tamamla
+              {copy.completeProfileButton}
             </Link>
           </section>
         ) : null}
 
         <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <DashboardCard
-            title="Aktif süreçler"
+            title={copy.activeProcesses}
             value={String(
               dashboardData.activeProcesses.length,
             )}
-            description="Devam eden başvuru ve resmî işlemlerin."
+            description={copy.activeProcessesDesc}
             href="/processes"
           />
 
           <DashboardCard
-            title="Belgeler"
+            title={copy.documents}
             value={`${dashboardData.totalCompletedDocuments} / ${dashboardData.totalDocuments}`}
-            description={`Belgelerin %${completedPercentage} oranında hazır.`}
+            description={fillTemplate(copy.documentsReady, { percent: completedPercentage })}
             href={
               primaryProcess
                 ? `/processes/${primaryProcess.id}`
@@ -1168,11 +1638,11 @@ export default function DashboardPage() {
           />
 
           <DashboardCard
-            title="Kritik görevler"
+            title={copy.criticalTasks}
             value={String(
               dashboardIntelligence.criticalCount,
             )}
-            description="Hızlıca ele alınması gereken uyarılar."
+            description={copy.criticalTasksDesc}
             href={
               primaryProcess
                 ? `/processes/${primaryProcess.id}`
@@ -1181,11 +1651,11 @@ export default function DashboardPage() {
           />
 
           <DashboardCard
-            title="Eksik belgeler"
+            title={copy.missingDocuments}
             value={String(
               dashboardData.totalMissingDocuments,
             )}
-            description={`${dashboardData.requiredMissingDocuments.length} zorunlu belge bekliyor.`}
+            description={fillTemplate(copy.requiredWaiting, { count: dashboardData.requiredMissingDocuments.length })}
             href={
               primaryProcess
                 ? `/processes/${primaryProcess.id}`
@@ -1199,11 +1669,11 @@ export default function DashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">
-                  AI hazırlık analizi
+                  {copy.aiReadiness}
                 </p>
 
                 <h2 className="mt-3 text-2xl font-bold">
-                  Immigration Readiness
+                  {copy.immigrationReadiness}
                 </h2>
               </div>
 
@@ -1228,19 +1698,19 @@ export default function DashboardPage() {
             </div>
 
             <p className="mt-4 font-semibold text-slate-200">
-              {getReadinessLabel(readinessScore)}
+              {getReadinessLabel(readinessScore, copy)}
             </p>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
               {aiAnalysis.readiness.totalItems > 0
-                ? `${aiAnalysis.readiness.completedItems} / ${aiAnalysis.readiness.totalItems} belge tamamlandı. Zorunlu belgelere daha yüksek ağırlık verildi.`
-                : "Hazırlık puanı için önce bir süreç ve belge listesi oluştur."}
+                ? fillTemplate(copy.readinessProgress, { completed: aiAnalysis.readiness.completedItems, total: aiAnalysis.readiness.totalItems })
+                : copy.readinessEmpty}
             </p>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.05] p-4">
                 <p className="text-sm text-emerald-200/70">
-                  Hazır belgeler
+                  {copy.readyDocuments}
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-emerald-100">
@@ -1252,7 +1722,7 @@ export default function DashboardPage() {
 
               <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.05] p-4">
                 <p className="text-sm text-amber-200/70">
-                  Zorunlu eksikler
+                  {copy.requiredMissing}
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-amber-100">
@@ -1274,12 +1744,12 @@ export default function DashboardPage() {
                 </p>
 
                 <h2 className="mt-3 text-2xl font-bold">
-                  Bugünkü önceliklerin
+                  {copy.todayPriorities}
                 </h2>
               </div>
 
               <p className="text-sm text-slate-500">
-                En önemli 3 adım
+                {copy.topThree}
               </p>
             </div>
 
@@ -1310,7 +1780,7 @@ export default function DashboardPage() {
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${style.badge}`}
                           >
-                            {style.label}
+                            {copy[style.label]}
                           </span>
                         </div>
 
@@ -1335,7 +1805,7 @@ export default function DashboardPage() {
             className={`rounded-3xl border p-6 ${dashboardIntelligence.risk.className}`}
           >
             <p className="text-sm font-medium opacity-70">
-              Risk analizi
+              {copy.riskAnalysis}
             </p>
 
             <p className="mt-3 text-2xl font-bold">
@@ -1352,7 +1822,7 @@ export default function DashboardPage() {
 
           <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
             <p className="text-sm font-medium text-slate-500">
-              Sonraki adım
+              {copy.nextStep}
             </p>
 
             <p className="mt-3 text-xl font-bold">
@@ -1360,16 +1830,16 @@ export default function DashboardPage() {
                 ? dashboardIntelligence.nextAction
                     .document.title
                 : primaryProcess
-                  ? "Sürecini kontrol et"
-                  : "İlk sürecini oluştur"}
+                  ? copy.checkProcess
+                  : copy.createFirstProcessTitle}
             </p>
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
               {dashboardIntelligence.nextAction
-                ? `${dashboardIntelligence.nextAction.processTitle} sürecindeki zorunlu belgeyi yükle.`
+                ? fillTemplate(copy.uploadRequiredDocument, { process: dashboardIntelligence.nextAction.processTitle })
                 : primaryProcess
-                  ? "Yeni uyarı veya eksik belge olup olmadığını kontrol et."
-                  : "Kişisel yol haritanı oluşturmak için bir süreç başlat."}
+                  ? copy.checkAlerts
+                  : copy.startRoadmap}
             </p>
 
             <Link
@@ -1382,27 +1852,27 @@ export default function DashboardPage() {
               }
               className="mt-5 inline-flex text-sm font-semibold text-indigo-300 transition hover:text-indigo-200"
             >
-              Adımı aç →
+              {copy.openStep}
             </Link>
           </article>
 
           <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
             <p className="text-sm font-medium text-slate-500">
-              Tahmini hazırlık
+              {copy.estimatedReadiness}
             </p>
 
             <p className="mt-3 text-2xl font-bold">
               {dashboardIntelligence.estimatedDays >
               0
-                ? `${dashboardIntelligence.estimatedDays} gün`
-                : "Hazır"}
+                ? fillTemplate(copy.days, { count: dashboardIntelligence.estimatedDays })
+                : copy.ready}
             </p>
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
               {dashboardIntelligence.estimatedDays >
               0
-                ? "Bu tahmin eksik belge sayısına göre oluşturuldu."
-                : "Mevcut belge listesinde zorunlu bir eksik görünmüyor."}
+                ? copy.estimateByMissing
+                : copy.noRequiredMissing}
             </p>
           </article>
         </section>
@@ -1414,7 +1884,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
                     <p className="text-sm font-medium text-slate-500">
-                      Öne çıkan süreç
+                      {copy.featuredProcess}
                     </p>
 
                     <h2 className="mt-2 text-2xl font-bold">
@@ -1423,7 +1893,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm font-semibold text-indigo-300">
-                    %{primaryProcess.progress} tamamlandı
+                    {fillTemplate(copy.completedPercent, { percent: primaryProcess.progress })}
                   </div>
                 </div>
 
@@ -1491,11 +1961,11 @@ export default function DashboardPage() {
                                 >
                                   {completed
                                     ? documentItem.fileName ||
-                                      "Belge yüklendi."
+                                      copy.documentUploaded
                                     : documentItem.required ===
                                         false
-                                      ? "İsteğe bağlı belge henüz yüklenmedi."
-                                      : "Zorunlu belge henüz yüklenmedi."}
+                                      ? copy.optionalNotUploaded
+                                      : copy.requiredNotUploaded}
                                 </p>
                               </div>
                             </div>
@@ -1504,8 +1974,7 @@ export default function DashboardPage() {
                       )
                   ) : (
                     <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-500">
-                      Bu süreç için henüz belge
-                      listesi oluşturulmamış.
+                      {copy.noDocumentList}
                     </div>
                   )}
                 </div>
@@ -1514,7 +1983,7 @@ export default function DashboardPage() {
                   href={`/processes/${primaryProcess.id}`}
                   className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 transition hover:text-indigo-200"
                 >
-                  Süreç detayını aç
+                  {copy.processDetails}
                   <span aria-hidden="true">
                     →
                   </span>
@@ -1527,20 +1996,18 @@ export default function DashboardPage() {
                 </div>
 
                 <h2 className="mt-5 text-2xl font-bold">
-                  Henüz bir sürecin yok
+                  {copy.noProcess}
                 </h2>
 
                 <p className="mt-3 max-w-lg text-sm leading-6 text-slate-400">
-                  İlk sürecini başlattığında
-                  ilerleme durumun ve gerekli
-                  belgelerin burada görünecek.
+                  {copy.noProcessText}
                 </p>
 
                 <Link
                   href="/processes/new"
                   className="mt-6 inline-flex rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
                 >
-                  İlk süreci başlat
+                  {copy.firstProcess}
                 </Link>
               </div>
             )}
@@ -1549,22 +2016,22 @@ export default function DashboardPage() {
           <aside className="space-y-6">
             <article className="rounded-3xl border border-indigo-400/20 bg-indigo-500/[0.08] p-6">
               <p className="text-sm font-semibold text-indigo-300">
-                AI durum özeti
+                {copy.aiSummary}
               </p>
 
               <p className="mt-4 text-xl font-bold text-slate-100">
-                {getReadinessLabel(readinessScore)}
+                {getReadinessLabel(readinessScore, copy)}
               </p>
 
               <p className="mt-3 text-sm leading-6 text-slate-400">
                 {dashboardIntelligence
                   .criticalCount > 0
-                  ? `${dashboardIntelligence.criticalCount} kritik konu öncelikli olarak ele alınmalı.`
+                  ? fillTemplate(copy.criticalTopics, { count: dashboardIntelligence.criticalCount })
                   : dashboardData
                         .requiredMissingDocuments
                         .length > 0
-                    ? `${dashboardData.requiredMissingDocuments.length} zorunlu belge tamamlanmayı bekliyor.`
-                    : "Şu anda kritik bir eksik görünmüyor."}
+                    ? fillTemplate(copy.requiredDocumentsPending, { count: dashboardData.requiredMissingDocuments.length })
+                    : copy.noCriticalMissing}
               </p>
 
               <Link
@@ -1576,14 +2043,14 @@ export default function DashboardPage() {
                 className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
               >
                 {primaryProcess
-                  ? "Sürece git"
-                  : "Süreç oluştur"}
+                  ? copy.goToProcess
+                  : copy.createProcess}
               </Link>
             </article>
 
             <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
               <p className="text-sm font-medium text-slate-500">
-                Yaklaşan önemli tarih
+                {copy.upcomingDate}
               </p>
 
               {nearestDeadline ? (
@@ -1595,14 +2062,16 @@ export default function DashboardPage() {
                   <p className="mt-2 text-sm text-slate-400">
                     {nearestDeadline.daysUntil ===
                     0
-                      ? "Hedef tarih bugün."
-                      : `${nearestDeadline.daysUntil} gün içinde tamamlanmalı.`}
+                      ? copy.targetToday
+                      : fillTemplate(copy.daysRemaining, { count: nearestDeadline.daysUntil })}
                   </p>
 
                   <div className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
                     <p className="text-sm font-medium text-amber-200">
                       {formatDeadline(
                         nearestDeadline.deadline,
+                        language,
+                        copy.noDeadline,
                       )}
                     </p>
                   </div>
@@ -1610,13 +2079,11 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="mt-3 text-xl font-bold">
-                    Yaklaşan tarih yok
+                    {copy.noUpcomingDate}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Süreçlerine hedef tarih
-                    eklediğinde en yakın tarih burada
-                    görünecek.
+                    {copy.noUpcomingDateText}
                   </p>
                 </>
               )}
