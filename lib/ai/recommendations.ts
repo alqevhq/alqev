@@ -53,14 +53,20 @@ export function generateRecommendations(
           "missing",
         ]),
 
+        // Geriye dönük uyumluluk için Türkçe fallback korunuyor.
         title: "Eksik Belge",
-
         message: `"${doc.title}" belgesini yüklemen gerekiyor.`,
+
+        // Dashboard seçilen dile göre bu anahtarları çevirecek.
+        titleKey: "missingDocument",
+        messageKey: "uploadMissingDocument",
+        variables: {
+          document: doc.title,
+        },
 
         severity: "warning",
 
         processId: process.id,
-
         documentKey: doc.key,
       });
     }
@@ -78,9 +84,11 @@ export function generateRecommendations(
           ]),
 
           title: "Süre Doldu",
-
           message:
             "Bu sürecin hedef tarihi geçmiş görünüyor.",
+
+          titleKey: "deadlineExpired",
+          messageKey: "deadlineExpiredMessage",
 
           severity: "critical",
 
@@ -94,8 +102,13 @@ export function generateRecommendations(
           ]),
 
           title: "Yaklaşan Son Tarih",
-
           message: `Son tarihe ${remaining} gün kaldı.`,
+
+          titleKey: "deadlineApproaching",
+          messageKey: "deadlineApproachingMessage",
+          variables: {
+            count: remaining,
+          },
 
           severity:
             remaining <= 5
@@ -116,9 +129,11 @@ export function generateRecommendations(
       id: "all-complete",
 
       title: "Harika!",
-
       message:
         "Tüm zorunlu belgeler tamamlanmış görünüyor.",
+
+      titleKey: "allComplete",
+      messageKey: "allCompleteMessage",
 
       severity: "success",
     });
@@ -127,8 +142,13 @@ export function generateRecommendations(
       id: "readiness-score",
 
       title: "Hazırlık Puanı",
-
       message: `Genel hazırlık puanın %${readiness.score}.`,
+
+      titleKey: "readinessScore",
+      messageKey: "readinessScoreMessage",
+      variables: {
+        score: readiness.score,
+      },
 
       severity:
         readiness.score < 50

@@ -6,10 +6,32 @@ export type AiSeverity =
   | "critical"
   | "success";
 
+export type AiRecommendationTextKey =
+  | "missingDocument"
+  | "uploadMissingDocument"
+  | "deadlineExpired"
+  | "deadlineExpiredMessage"
+  | "deadlineApproaching"
+  | "deadlineApproachingMessage"
+  | "allComplete"
+  | "allCompleteMessage"
+  | "readinessScore"
+  | "readinessScoreMessage";
+
 export interface AiRecommendation {
   id: string;
+
+  /**
+   * Fallback metinlerdir. Eski bileşenlerin bozulmaması için korunur.
+   * Çok dilli arayüzler titleKey/messageKey alanlarını kullanmalıdır.
+   */
   title: string;
   message: string;
+
+  titleKey?: AiRecommendationTextKey;
+  messageKey?: AiRecommendationTextKey;
+  variables?: Record<string, string | number>;
+
   severity: AiSeverity;
 
   processId?: string;

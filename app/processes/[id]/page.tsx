@@ -26,6 +26,16 @@ import {
 } from "firebase/storage";
 import { auth, db, storage } from "@/lib/firebase";
 import ProcessAiPanel from "@/components/process/ProcessAiPanel";
+import {
+  getLocalizedCountryLabel,
+  getLocalizedDocumentTitle,
+  getLocalizedProcessTitle,
+} from "@/lib/process-templates";
+import {
+  isRtlLanguage,
+  readStoredLanguage,
+  type Language,
+} from "@/lib/i18n";
 
 type OcrFieldValue = string | number | boolean | null;
 
@@ -54,6 +64,7 @@ type RequiredDocument = {
 
 type Process = {
   id: string;
+  templateKey?: string;
   title: string;
   description: string;
   category: string;
@@ -77,6 +88,499 @@ type UploadState = {
 type OcrState = {
   documentKey: string;
   mode: "analyzing" | "saving";
+};
+
+
+const pageCopy = {
+  tr: {
+    loading: "{pageCopy[language].loading}",
+    loadFailed: "{pageCopy[language].loadFailed}",
+    noProcessInfo: "Süreç bilgileri bulunamadı.",
+    back: "{pageCopy[language].back}",
+    detail: "{copy.detail}",
+    overallProgress: "Genel ilerleme",
+    documentsWord: "belge",
+    country: "Ülke",
+    deadline: "Hedef tarih",
+    created: "Oluşturulma",
+    category: "Kategori",
+    unspecified: "Belirtilmedi",
+    documents: "Belgeler",
+    requiredList: "Gerekli belge listesi",
+    uploadInfo: "PDF, JPG, PNG veya WEBP · En fazla 10 MB",
+    bulkUpload: "Çoklu yükle",
+    uploadingCount: "{current}/{total} yükleniyor",
+    deleting: "Siliniyor...",
+    deleteSelected: "Seçilenleri sil ({count})",
+    search: "Belge ara...",
+    allStatuses: "Tüm durumlar",
+    missing: "Eksik",
+    uploaded: "Yüklendi",
+    approved: "Onaylandı",
+    defaultSort: "Varsayılan sıralama",
+    sortName: "Ada göre",
+    sortStatus: "Duruma göre",
+    sortDate: "Yükleme tarihine göre",
+    noDocuments: "Bu süreç için henüz belge listesi oluşturulmamış.",
+    conditional: "Duruma göre gerekli",
+    required: "Zorunlu belge",
+    save: "Kaydet",
+    cancel: "Vazgeç",
+    uploading: "Yükleniyor...",
+    aiSaving: "AI sonucu kaydediliyor...",
+    aiAnalyzing: "AI belgeyi analiz ediyor...",
+    extracting: "Metin ve belge alanları çıkarılıyor.",
+    aiOcrResult: "AI OCR sonucu",
+    document: "Belge",
+    reanalyze: "Yeniden analiz et",
+    showFullText: "Okunan tam metni göster",
+    aiFailed: "AI analizi tamamlanamadı",
+    retry: "Tekrar dene",
+    analyzeAi: "AI ile analiz et",
+    uploadNew: "Yeni dosya yükle",
+    chooseFile: "Dosya seç",
+    preview: "Önizle",
+    rename: "Yeniden adlandır",
+    delete: "Sil",
+    notes: "Notlar",
+    previewLabel: "Belge önizleme",
+    openNewTab: "Yeni sekmede aç",
+    close: "Kapat",
+    active: "Aktif",
+    completed: "Tamamlandı",
+    paused: "Beklemede",
+    cancelled: "İptal edildi",
+    rejected: "Reddedildi",
+  },
+  de: {
+    loading: "Vorgang wird geladen...",
+    loadFailed: "Vorgang konnte nicht angezeigt werden",
+    noProcessInfo: "Vorgangsinformationen wurden nicht gefunden.",
+    back: "Zurück zu den Vorgängen",
+    detail: "Vorgangsdetails",
+    overallProgress: "Gesamtfortschritt",
+    documentsWord: "Dokumente",
+    country: "Land",
+    deadline: "Frist",
+    created: "Erstellt",
+    category: "Kategorie",
+    unspecified: "Nicht angegeben",
+    documents: "Dokumente",
+    requiredList: "Erforderliche Dokumente",
+    uploadInfo: "PDF, JPG, PNG oder WEBP · Maximal 10 MB",
+    bulkUpload: "Mehrere hochladen",
+    uploadingCount: "{current}/{total} werden hochgeladen",
+    deleting: "Wird gelöscht...",
+    deleteSelected: "Ausgewählte löschen ({count})",
+    search: "Dokument suchen...",
+    allStatuses: "Alle Status",
+    missing: "Fehlt",
+    uploaded: "Hochgeladen",
+    approved: "Genehmigt",
+    defaultSort: "Standardsortierung",
+    sortName: "Nach Name",
+    sortStatus: "Nach Status",
+    sortDate: "Nach Upload-Datum",
+    noDocuments: "Für diesen Vorgang wurde noch keine Dokumentenliste erstellt.",
+    conditional: "Je nach Fall erforderlich",
+    required: "Pflichtdokument",
+    save: "Speichern",
+    cancel: "Abbrechen",
+    uploading: "Wird hochgeladen...",
+    aiSaving: "KI-Ergebnis wird gespeichert...",
+    aiAnalyzing: "KI analysiert das Dokument...",
+    extracting: "Text und Dokumentfelder werden extrahiert.",
+    aiOcrResult: "KI-OCR-Ergebnis",
+    document: "Dokument",
+    reanalyze: "Erneut analysieren",
+    showFullText: "Vollständigen Text anzeigen",
+    aiFailed: "KI-Analyse fehlgeschlagen",
+    retry: "Erneut versuchen",
+    analyzeAi: "Mit KI analysieren",
+    uploadNew: "Neue Datei hochladen",
+    chooseFile: "Datei auswählen",
+    preview: "Vorschau",
+    rename: "Umbenennen",
+    delete: "Löschen",
+    notes: "Notizen",
+    previewLabel: "Dokumentvorschau",
+    openNewTab: "In neuem Tab öffnen",
+    close: "Schließen",
+    active: "Aktiv",
+    completed: "Abgeschlossen",
+    paused: "Pausiert",
+    cancelled: "Abgebrochen",
+    rejected: "Abgelehnt",
+  },
+  en: {
+    loading: "Loading process information...",
+    loadFailed: "Process could not be displayed",
+    noProcessInfo: "Process information was not found.",
+    back: "Back to processes",
+    detail: "Process Details",
+    overallProgress: "Overall progress",
+    documentsWord: "documents",
+    country: "Country",
+    deadline: "Target date",
+    created: "Created",
+    category: "Category",
+    unspecified: "Not specified",
+    documents: "Documents",
+    requiredList: "Required document list",
+    uploadInfo: "PDF, JPG, PNG or WEBP · Maximum 10 MB",
+    bulkUpload: "Upload multiple",
+    uploadingCount: "Uploading {current}/{total}",
+    deleting: "Deleting...",
+    deleteSelected: "Delete selected ({count})",
+    search: "Search documents...",
+    allStatuses: "All statuses",
+    missing: "Missing",
+    uploaded: "Uploaded",
+    approved: "Approved",
+    defaultSort: "Default sorting",
+    sortName: "By name",
+    sortStatus: "By status",
+    sortDate: "By upload date",
+    noDocuments: "No document list has been created for this process yet.",
+    conditional: "Required depending on the case",
+    required: "Required document",
+    save: "Save",
+    cancel: "Cancel",
+    uploading: "Uploading...",
+    aiSaving: "Saving AI result...",
+    aiAnalyzing: "AI is analyzing the document...",
+    extracting: "Extracting text and document fields.",
+    aiOcrResult: "AI OCR result",
+    document: "Document",
+    reanalyze: "Analyze again",
+    showFullText: "Show full extracted text",
+    aiFailed: "AI analysis could not be completed",
+    retry: "Try again",
+    analyzeAi: "Analyze with AI",
+    uploadNew: "Upload new file",
+    chooseFile: "Choose file",
+    preview: "Preview",
+    rename: "Rename",
+    delete: "Delete",
+    notes: "Notes",
+    previewLabel: "Document preview",
+    openNewTab: "Open in new tab",
+    close: "Close",
+    active: "Active",
+    completed: "Completed",
+    paused: "Paused",
+    cancelled: "Cancelled",
+    rejected: "Rejected",
+  },
+  ru: {
+    loading: "Загрузка информации о процессе...",
+    loadFailed: "Не удалось отобразить процесс",
+    noProcessInfo: "Информация о процессе не найдена.",
+    back: "Назад к процессам",
+    detail: "Детали процесса",
+    overallProgress: "Общий прогресс",
+    documentsWord: "документов",
+    country: "Страна",
+    deadline: "Целевая дата",
+    created: "Создан",
+    category: "Категория",
+    unspecified: "Не указано",
+    documents: "Документы",
+    requiredList: "Список необходимых документов",
+    uploadInfo: "PDF, JPG, PNG или WEBP · Не более 10 МБ",
+    bulkUpload: "Загрузить несколько",
+    uploadingCount: "Загрузка {current}/{total}",
+    deleting: "Удаление...",
+    deleteSelected: "Удалить выбранные ({count})",
+    search: "Поиск документа...",
+    allStatuses: "Все статусы",
+    missing: "Отсутствует",
+    uploaded: "Загружено",
+    approved: "Одобрено",
+    defaultSort: "Сортировка по умолчанию",
+    sortName: "По названию",
+    sortStatus: "По статусу",
+    sortDate: "По дате загрузки",
+    noDocuments: "Для этого процесса список документов ещё не создан.",
+    conditional: "Требуется в зависимости от ситуации",
+    required: "Обязательный документ",
+    save: "Сохранить",
+    cancel: "Отмена",
+    uploading: "Загрузка...",
+    aiSaving: "Сохранение результата ИИ...",
+    aiAnalyzing: "ИИ анализирует документ...",
+    extracting: "Извлекаются текст и поля документа.",
+    aiOcrResult: "Результат OCR ИИ",
+    document: "Документ",
+    reanalyze: "Повторить анализ",
+    showFullText: "Показать полный распознанный текст",
+    aiFailed: "Не удалось завершить анализ ИИ",
+    retry: "Повторить",
+    analyzeAi: "Анализировать с ИИ",
+    uploadNew: "Загрузить новый файл",
+    chooseFile: "Выбрать файл",
+    preview: "Предпросмотр",
+    rename: "Переименовать",
+    delete: "Удалить",
+    notes: "Заметки",
+    previewLabel: "Предпросмотр документа",
+    openNewTab: "Открыть в новой вкладке",
+    close: "Закрыть",
+    active: "Активен",
+    completed: "Завершён",
+    paused: "Приостановлен",
+    cancelled: "Отменён",
+    rejected: "Отклонено",
+  },
+  ar: {
+    loading: "جارٍ تحميل معلومات الإجراء...",
+    loadFailed: "تعذر عرض الإجراء",
+    noProcessInfo: "لم يتم العثور على معلومات الإجراء.",
+    back: "العودة إلى الإجراءات",
+    detail: "تفاصيل الإجراء",
+    overallProgress: "التقدم العام",
+    documentsWord: "وثائق",
+    country: "البلد",
+    deadline: "التاريخ المستهدف",
+    created: "تاريخ الإنشاء",
+    category: "الفئة",
+    unspecified: "غير محدد",
+    documents: "الوثائق",
+    requiredList: "قائمة الوثائق المطلوبة",
+    uploadInfo: "PDF أو JPG أو PNG أو WEBP · بحد أقصى 10 ميغابايت",
+    bulkUpload: "رفع متعدد",
+    uploadingCount: "جارٍ رفع {current}/{total}",
+    deleting: "جارٍ الحذف...",
+    deleteSelected: "حذف المحدد ({count})",
+    search: "البحث عن وثيقة...",
+    allStatuses: "جميع الحالات",
+    missing: "ناقص",
+    uploaded: "مرفوع",
+    approved: "معتمد",
+    defaultSort: "الترتيب الافتراضي",
+    sortName: "حسب الاسم",
+    sortStatus: "حسب الحالة",
+    sortDate: "حسب تاريخ الرفع",
+    noDocuments: "لم يتم إنشاء قائمة وثائق لهذا الإجراء بعد.",
+    conditional: "مطلوبة حسب الحالة",
+    required: "وثيقة إلزامية",
+    save: "حفظ",
+    cancel: "إلغاء",
+    uploading: "جارٍ الرفع...",
+    aiSaving: "جارٍ حفظ نتيجة الذكاء الاصطناعي...",
+    aiAnalyzing: "الذكاء الاصطناعي يحلل الوثيقة...",
+    extracting: "جارٍ استخراج النص وحقول الوثيقة.",
+    aiOcrResult: "نتيجة OCR بالذكاء الاصطناعي",
+    document: "وثيقة",
+    reanalyze: "إعادة التحليل",
+    showFullText: "عرض النص الكامل",
+    aiFailed: "تعذر إكمال تحليل الذكاء الاصطناعي",
+    retry: "إعادة المحاولة",
+    analyzeAi: "تحليل بالذكاء الاصطناعي",
+    uploadNew: "رفع ملف جديد",
+    chooseFile: "اختيار ملف",
+    preview: "معاينة",
+    rename: "إعادة تسمية",
+    delete: "حذف",
+    notes: "ملاحظات",
+    previewLabel: "معاينة الوثيقة",
+    openNewTab: "فتح في علامة تبويب جديدة",
+    close: "إغلاق",
+    active: "نشط",
+    completed: "مكتمل",
+    paused: "متوقف مؤقتًا",
+    cancelled: "ملغى",
+    rejected: "مرفوض",
+  },
+  fa: {
+    loading: "در حال بارگذاری اطلاعات فرایند...",
+    loadFailed: "نمایش فرایند ممکن نشد",
+    noProcessInfo: "اطلاعات فرایند یافت نشد.",
+    back: "بازگشت به فرایندها",
+    detail: "جزئیات فرایند",
+    overallProgress: "پیشرفت کلی",
+    documentsWord: "مدرک",
+    country: "کشور",
+    deadline: "تاریخ هدف",
+    created: "تاریخ ایجاد",
+    category: "دسته‌بندی",
+    unspecified: "مشخص نشده",
+    documents: "مدارک",
+    requiredList: "فهرست مدارک لازم",
+    uploadInfo: "PDF، JPG، PNG یا WEBP · حداکثر ۱۰ مگابایت",
+    bulkUpload: "بارگذاری چندگانه",
+    uploadingCount: "در حال بارگذاری {current}/{total}",
+    deleting: "در حال حذف...",
+    deleteSelected: "حذف موارد انتخاب‌شده ({count})",
+    search: "جستجوی مدرک...",
+    allStatuses: "همه وضعیت‌ها",
+    missing: "ناقص",
+    uploaded: "بارگذاری‌شده",
+    approved: "تأییدشده",
+    defaultSort: "مرتب‌سازی پیش‌فرض",
+    sortName: "بر اساس نام",
+    sortStatus: "بر اساس وضعیت",
+    sortDate: "بر اساس تاریخ بارگذاری",
+    noDocuments: "هنوز فهرست مدرکی برای این فرایند ایجاد نشده است.",
+    conditional: "بسته به شرایط لازم است",
+    required: "مدرک الزامی",
+    save: "ذخیره",
+    cancel: "لغو",
+    uploading: "در حال بارگذاری...",
+    aiSaving: "در حال ذخیره نتیجه هوش مصنوعی...",
+    aiAnalyzing: "هوش مصنوعی در حال تحلیل مدرک است...",
+    extracting: "متن و فیلدهای مدرک استخراج می‌شوند.",
+    aiOcrResult: "نتیجه OCR هوش مصنوعی",
+    document: "مدرک",
+    reanalyze: "تحلیل دوباره",
+    showFullText: "نمایش متن کامل",
+    aiFailed: "تحلیل هوش مصنوعی تکمیل نشد",
+    retry: "تلاش دوباره",
+    analyzeAi: "تحلیل با هوش مصنوعی",
+    uploadNew: "بارگذاری فایل جدید",
+    chooseFile: "انتخاب فایل",
+    preview: "پیش‌نمایش",
+    rename: "تغییر نام",
+    delete: "حذف",
+    notes: "یادداشت‌ها",
+    previewLabel: "پیش‌نمایش مدرک",
+    openNewTab: "باز کردن در برگه جدید",
+    close: "بستن",
+    active: "فعال",
+    completed: "تکمیل شده",
+    paused: "متوقف",
+    cancelled: "لغو شده",
+    rejected: "رد شده",
+  },
+} as const;
+
+function fillTemplate(
+  value: string,
+  variables: Record<string, string | number>,
+): string {
+  return Object.entries(variables).reduce(
+    (result, [key, replacement]) =>
+      result.replaceAll(`{${key}}`, String(replacement)),
+    value,
+  );
+}
+
+function getDateLocale(language: Language): string {
+  switch (language) {
+    case "de":
+      return "de-DE";
+    case "en":
+      return "en-GB";
+    case "ru":
+      return "ru-RU";
+    case "ar":
+      return "ar";
+    case "fa":
+      return "fa-IR";
+    default:
+      return "tr-TR";
+  }
+}
+
+
+const localizedProcessDescriptions: Record<
+  string,
+  Record<Language, string>
+> = {
+  "residence-renewal": {
+    tr: "Mevcut oturum iznini süresi dolmadan yenile.",
+    de: "Verlängere deinen Aufenthaltstitel vor seinem Ablauf.",
+    en: "Renew your current residence permit before it expires.",
+    ru: "Продлите действующий вид на жительство до истечения срока.",
+    ar: "جدّد تصريح إقامتك الحالي قبل انتهاء صلاحيته.",
+    fa: "اجازه اقامت فعلی خود را پیش از پایان اعتبار تمدید کنید.",
+  },
+  "family-reunion": {
+    tr: "Eş veya aile üyeleri için aile birleşimi sürecini yönet.",
+    de: "Verwalte den Familiennachzug für Ehepartner oder Familienangehörige.",
+    en: "Manage family reunification for a spouse or family members.",
+    ru: "Управляйте процессом воссоединения с супругом или членами семьи.",
+    ar: "أدر إجراءات لمّ الشمل للزوج أو أفراد الأسرة.",
+    fa: "فرایند پیوست همسر یا اعضای خانواده را مدیریت کنید.",
+  },
+  "work-permit": {
+    tr: "İş teklifi veya mevcut iş için çalışma izni sürecini takip et.",
+    de: "Verfolge das Arbeitserlaubnisverfahren für ein Angebot oder eine bestehende Stelle.",
+    en: "Track the work permit process for a job offer or current employment.",
+    ru: "Отслеживайте оформление разрешения на работу.",
+    ar: "تابع إجراءات تصريح العمل لعرض أو وظيفة حالية.",
+    fa: "فرایند مجوز کار برای پیشنهاد یا شغل فعلی را پیگیری کنید.",
+  },
+  "eu-blue-card": {
+    tr: "Nitelikli çalışanlar için AB Mavi Kart başvurusunu yönet.",
+    de: "Verwalte den Antrag auf die Blaue Karte EU für qualifizierte Fachkräfte.",
+    en: "Manage the EU Blue Card application for qualified workers.",
+    ru: "Управляйте заявлением на Голубую карту ЕС.",
+    ar: "أدر طلب البطاقة الزرقاء للعمال المؤهلين.",
+    fa: "درخواست کارت آبی اتحادیه اروپا را مدیریت کنید.",
+  },
+  "student-visa": {
+    tr: "Eğitim başlangıcına kadar öğrenci vizesi adımlarını takip et.",
+    de: "Verfolge die Schritte zum Studentenvisum bis zum Studienbeginn.",
+    en: "Track student visa steps until your studies begin.",
+    ru: "Отслеживайте этапы получения студенческой визы.",
+    ar: "تابع خطوات تأشيرة الطالب حتى بدء الدراسة.",
+    fa: "مراحل ویزای دانشجویی را تا شروع تحصیل پیگیری کنید.",
+  },
+  citizenship: {
+    tr: "Vatandaşlık uygunluğu, belgeler ve başvuru tarihlerini yönet.",
+    de: "Verwalte Voraussetzungen, Dokumente und Termine der Einbürgerung.",
+    en: "Manage citizenship eligibility, documents, and application dates.",
+    ru: "Управляйте требованиями, документами и сроками заявления.",
+    ar: "أدر شروط الجنسية والوثائق ومواعيد الطلب.",
+    fa: "شرایط، مدارک و تاریخ‌های درخواست شهروندی را مدیریت کنید.",
+  },
+};
+
+const localizedCategoryLabels: Record<
+  string,
+  Record<Language, string>
+> = {
+  residence: {
+    tr: "Oturum",
+    de: "Aufenthalt",
+    en: "Residence",
+    ru: "Проживание",
+    ar: "الإقامة",
+    fa: "اقامت",
+  },
+  family: {
+    tr: "Aile",
+    de: "Familie",
+    en: "Family",
+    ru: "Семья",
+    ar: "الأسرة",
+    fa: "خانواده",
+  },
+  employment: {
+    tr: "Çalışma",
+    de: "Beschäftigung",
+    en: "Employment",
+    ru: "Работа",
+    ar: "العمل",
+    fa: "اشتغال",
+  },
+  education: {
+    tr: "Eğitim",
+    de: "Bildung",
+    en: "Education",
+    ru: "Образование",
+    ar: "التعليم",
+    fa: "تحصیل",
+  },
+  citizenship: {
+    tr: "Vatandaşlık",
+    de: "Einbürgerung",
+    en: "Citizenship",
+    ru: "Гражданство",
+    ar: "الجنسية",
+    fa: "شهروندی",
+  },
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -125,57 +629,66 @@ function calculateProcessStats(documents: RequiredDocument[]) {
   };
 }
 
-function getStatusLabel(status: string) {
+function getStatusLabel(status: string, language: Language) {
+  const copy = pageCopy[language];
+
   switch (status) {
     case "active":
-      return "Aktif";
-
+      return copy.active;
     case "completed":
-      return "Tamamlandı";
-
+      return copy.completed;
     case "paused":
-      return "Beklemede";
-
+      return copy.paused;
     case "cancelled":
-      return "İptal edildi";
-
+      return copy.cancelled;
     default:
-      return status || "Belirtilmedi";
+      return status || copy.unspecified;
   }
 }
 
-function getDocumentStatusLabel(status?: string) {
+function getDocumentStatusLabel(
+  status: string | undefined,
+  language: Language,
+) {
+  const copy = pageCopy[language];
+
   switch (status) {
     case "uploaded":
-      return "Yüklendi";
-
+      return copy.uploaded;
     case "approved":
-      return "Onaylandı";
-
+      return copy.approved;
     case "rejected":
-      return "Reddedildi";
-
+      return copy.rejected;
     case "missing":
     default:
-      return "Eksik";
+      return copy.missing;
   }
 }
 
-function formatDate(value?: Timestamp | null) {
+function formatDate(
+  value: Timestamp | null | undefined,
+  language: Language,
+) {
   if (!value) {
-    return "Belirtilmedi";
+    return pageCopy[language].unspecified;
   }
 
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(value.toDate());
+  return new Intl.DateTimeFormat(
+    getDateLocale(language),
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(value.toDate());
 }
 
-function formatDeadline(value: string | null) {
+function formatDeadline(
+  value: string | null,
+  language: Language,
+) {
   if (!value) {
-    return "Belirtilmedi";
+    return pageCopy[language].unspecified;
   }
 
   const date = new Date(`${value}T00:00:00`);
@@ -184,11 +697,14 @@ function formatDeadline(value: string | null) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    getDateLocale(language),
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(date);
 }
 
 function getOcrFieldLabel(key: string) {
@@ -247,6 +763,8 @@ export default function ProcessDetailPage() {
 
   const processId = typeof params.id === "string" ? params.id : params.id?.[0];
 
+  const [language, setLanguage] =
+    useState<Language>("tr");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [process, setProcess] = useState<Process | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -284,6 +802,10 @@ export default function ProcessDetailPage() {
   } | null>(null);
   const bulkInputRef = useRef<HTMLInputElement | null>(null);
   const processRef = useRef<Process | null>(null);
+
+  useEffect(() => {
+    setLanguage(readStoredLanguage("tr"));
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -360,6 +882,10 @@ export default function ProcessDetailPage() {
 
         const loadedProcess: Process = {
           id: snapshot.id,
+          templateKey:
+            typeof data.templateKey === "string"
+              ? data.templateKey
+              : undefined,
           title:
             typeof data.title === "string" ? data.title : "Başlıksız Süreç",
           description:
@@ -850,12 +1376,12 @@ export default function ProcessDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
 
           <p className="mt-4 text-sm text-slate-400">
-            Süreç bilgileri yükleniyor...
+            {pageCopy[language].loading}
           </p>
         </div>
       </main>
@@ -864,29 +1390,57 @@ export default function ProcessDetailPage() {
 
   if (errorMessage || !process) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
         <section className="w-full max-w-lg rounded-3xl border border-red-400/20 bg-red-400/10 p-8 text-center">
-          <h1 className="text-2xl font-semibold">Süreç görüntülenemedi</h1>
+          <h1 className="text-2xl font-semibold">{pageCopy[language].loadFailed}</h1>
 
           <p className="mt-3 text-sm leading-6 text-red-100/80">
-            {errorMessage || "Süreç bilgileri bulunamadı."}
+            {errorMessage || pageCopy[language].noProcessInfo}
           </p>
 
           <Link
             href="/processes"
             className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-slate-200"
           >
-            Süreçlere dön
+            {pageCopy[language].back}
           </Link>
         </section>
       </main>
     );
   }
 
+  const copy = pageCopy[language];
+  const direction = isRtlLanguage(language)
+    ? "rtl"
+    : "ltr";
+
+  const localizedProcessTitle =
+    getLocalizedProcessTitle(
+      {
+        templateKey: process.templateKey,
+        title: process.title,
+      },
+      language,
+    ) || process.title;
+
+  const localizedProcessDescription =
+    (process.templateKey
+      ? localizedProcessDescriptions[
+          process.templateKey
+        ]?.[language]
+      : undefined) || process.description;
+
+  const localizedCategory =
+    localizedCategoryLabels[
+      process.category
+    ]?.[language] ||
+    process.category ||
+    copy.unspecified;
+
   const progress = Math.min(100, Math.max(0, Math.round(process.progress)));
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6">
+    <main dir={direction} className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/4 top-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-700/20 blur-[150px]" />
 
@@ -898,45 +1452,45 @@ export default function ProcessDetailPage() {
           href="/processes"
           className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
         >
-          <span aria-hidden="true">←</span>
-          Süreçlere dön
+          <span aria-hidden="true">{direction === "rtl" ? "→" : "←"}</span>
+          {pageCopy[language].back}
         </Link>
 
         <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
-                Süreç Detayı
+                {copy.detail}
               </p>
 
               <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                {process.title}
+                {localizedProcessTitle}
               </h1>
 
               {process.description ? (
                 <p className="mt-4 leading-7 text-slate-400">
-                  {process.description}
+                  {localizedProcessDescription}
                 </p>
               ) : null}
             </div>
 
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-200">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              {getStatusLabel(process.status)}
+              {getStatusLabel(process.status, language)}
             </div>
           </div>
 
           <div className="mt-10">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm text-slate-400">Genel ilerleme</p>
+                <p className="text-sm text-slate-400">{copy.overallProgress}</p>
 
                 <p className="mt-1 text-3xl font-bold">%{progress}</p>
               </div>
 
               <p className="text-sm text-slate-400">
                 {process.completedDocumentCount} / {process.totalDocumentCount}{" "}
-                belge
+                {copy.documentsWord}
               </p>
             </div>
 
@@ -950,30 +1504,30 @@ export default function ProcessDetailPage() {
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">Ülke</p>
+              <p className="text-sm text-slate-500">{copy.country}</p>
               <p className="mt-2 font-semibold text-slate-100">
-                {process.country}
+                {getLocalizedCountryLabel(process.country, language)}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">Hedef tarih</p>
+              <p className="text-sm text-slate-500">{copy.deadline}</p>
               <p className="mt-2 font-semibold text-slate-100">
-                {formatDeadline(process.deadline)}
+                {formatDeadline(process.deadline, language)}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">Oluşturulma</p>
+              <p className="text-sm text-slate-500">{copy.created}</p>
               <p className="mt-2 font-semibold text-slate-100">
-                {formatDate(process.createdAt)}
+                {formatDate(process.createdAt, language)}
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">Kategori</p>
+              <p className="text-sm text-slate-500">{copy.category}</p>
               <p className="mt-2 font-semibold text-slate-100">
-                {process.category || "Belirtilmedi"}
+                {localizedCategory}
               </p>
             </div>
           </div>
@@ -985,13 +1539,13 @@ export default function ProcessDetailPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
-                Belgeler
+                {copy.documents}
               </p>
 
-              <h2 className="mt-3 text-2xl font-bold">Gerekli belge listesi</h2>
+              <h2 className="mt-3 text-2xl font-bold">{copy.requiredList}</h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                PDF, JPG, PNG veya WEBP · En fazla 10 MB
+                {copy.uploadInfo}
               </p>
             </div>
 
@@ -1004,7 +1558,7 @@ export default function ProcessDetailPage() {
               >
                 {bulkProgress
                   ? `${bulkProgress.current}/${bulkProgress.total} yükleniyor`
-                  : "Çoklu yükle"}
+                  : copy.bulkUpload}
               </button>
               <input
                 ref={bulkInputRef}
@@ -1022,8 +1576,8 @@ export default function ProcessDetailPage() {
                   className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2.5 text-sm font-semibold text-red-200 disabled:opacity-50"
                 >
                   {isBulkDeleting
-                    ? "Siliniyor..."
-                    : `Seçilenleri sil (${selectedDocumentKeys.length})`}
+                    ? copy.deleting
+                    : fillTemplate(copy.deleteSelected, { count: selectedDocumentKeys.length })}
                 </button>
               ) : null}
             </div>
@@ -1033,7 +1587,7 @@ export default function ProcessDetailPage() {
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Belge ara..."
+              placeholder={copy.search}
               className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none focus:border-indigo-400/50"
             />
             <select
@@ -1043,10 +1597,10 @@ export default function ProcessDetailPage() {
               }
               className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none"
             >
-              <option value="all">Tüm durumlar</option>
-              <option value="missing">Eksik</option>
-              <option value="uploaded">Yüklendi</option>
-              <option value="approved">Onaylandı</option>
+              <option value="all">{copy.allStatuses}</option>
+              <option value="missing">{copy.missing}</option>
+              <option value="uploaded">{copy.uploaded}</option>
+              <option value="approved">{copy.approved}</option>
             </select>
             <select
               value={sortMode}
@@ -1055,10 +1609,10 @@ export default function ProcessDetailPage() {
               }
               className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none"
             >
-              <option value="default">Varsayılan sıralama</option>
-              <option value="name">Ada göre</option>
-              <option value="status">Duruma göre</option>
-              <option value="date">Yükleme tarihine göre</option>
+              <option value="default">{copy.defaultSort}</option>
+              <option value="name">{copy.sortName}</option>
+              <option value="status">{copy.sortStatus}</option>
+              <option value="date">{copy.sortDate}</option>
             </select>
           </div>
 
@@ -1076,7 +1630,7 @@ export default function ProcessDetailPage() {
 
           {process.requiredDocuments.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-slate-500">
-              Bu süreç için henüz belge listesi oluşturulmamış.
+              {copy.noDocuments}
             </div>
           ) : (
             <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -1147,7 +1701,7 @@ export default function ProcessDetailPage() {
                                 : "rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200"
                             }
                           >
-                            {getDocumentStatusLabel(item.status)}
+                            {getDocumentStatusLabel(item.status, language)}
                           </span>
                         </div>
 
@@ -1206,7 +1760,7 @@ export default function ProcessDetailPage() {
                                 ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB`
                                 : ""}
                               {item.uploadedAt
-                                ? ` · ${formatDate(item.uploadedAt)}`
+                                ? ` · ${formatDate(item.uploadedAt, language)}`
                                 : ""}
                             </p>
                           </div>
@@ -1254,7 +1808,7 @@ export default function ProcessDetailPage() {
                                   AI OCR sonucu
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-violet-100">
-                                  {item.ocr.documentType || "Belge"}
+                                  {item.ocr.documentType || copy.document}
                                 </p>
                               </div>
                               <button
@@ -1355,7 +1909,7 @@ export default function ProcessDetailPage() {
                                 : "inline-flex cursor-pointer items-center justify-center rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
                             }
                           >
-                            {isCompleted ? "Yeni dosya yükle" : "Dosya seç"}
+                            {isCompleted ? copy.uploadNew : copy.chooseFile}
 
                             <input
                               type="file"
@@ -1396,7 +1950,7 @@ export default function ProcessDetailPage() {
                                 className="inline-flex items-center justify-center rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {deletingDocumentKey === item.key
-                                  ? "Siliniyor..."
+                                  ? copy.deleting
                                   : "Sil"}
                               </button>
                             </>
@@ -1428,7 +1982,7 @@ export default function ProcessDetailPage() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Belge önizleme"
+          aria-label={copy.previewLabel}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           onClick={() => setPreviewDocument(null)}
         >
@@ -1459,7 +2013,7 @@ export default function ProcessDetailPage() {
                   onClick={() => setPreviewDocument(null)}
                   className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
                 >
-                  Kapat
+                  {copy.close}
                 </button>
               </div>
             </div>

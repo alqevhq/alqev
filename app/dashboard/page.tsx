@@ -20,6 +20,14 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { analyzeProcesses } from "@/lib/ai";
+import {
+  getLocalizedDocumentTitle,
+  getLocalizedProcessTitle,
+} from "@/lib/process-templates";
+import {
+  readStoredLanguage,
+  storeLanguage,
+} from "@/lib/i18n";
 
 type SupportedLanguage = "de" | "en" | "tr" | "ru" | "ar" | "fa";
 
@@ -59,7 +67,7 @@ const uiTranslations: Record<
     estimateByMissing: "Bu tahmin eksik belge sayısına göre oluşturuldu.", noRequiredMissing: "Mevcut belge listesinde zorunlu bir eksik görünmüyor.",
     documentUploaded: "Belge yüklendi.", optionalNotUploaded: "İsteğe bağlı belge henüz yüklenmedi.", requiredNotUploaded: "Zorunlu belge henüz yüklenmedi.", noDocumentList: "Bu süreç için henüz belge listesi oluşturulmamış.",
     criticalTopics: "{count} kritik konu öncelikli olarak ele alınmalı.", requiredDocumentsPending: "{count} zorunlu belge tamamlanmayı bekliyor.", noCriticalMissing: "Şu anda kritik bir eksik görünmüyor.",
-    noDeadline: "Hedef tarih yok", untitledDocument: "Başlıksız belge", untitledProcess: "Başlıksız Süreç", userFallback: "Kullanıcı",
+    noDeadline: "Hedef tarih yok", untitledDocument: "Başlıksız belge", untitledProcess: "Başlıksız Süreç", userFallback: "Kullanıcı", missingDocumentAi: "Eksik belge", uploadMissingDocumentAi: "“{document}” belgesini yüklemen gerekiyor.", deadlineExpiredAi: "Süre doldu", deadlineExpiredMessageAi: "Bu sürecin hedef tarihi geçmiş görünüyor.", deadlineApproachingAi: "Yaklaşan son tarih", deadlineApproachingMessageAi: "Son tarihe {count} gün kaldı.", allCompleteAi: "Harika!", allCompleteMessageAi: "Tüm zorunlu belgeler tamamlanmış görünüyor.", readinessScoreAi: "Hazırlık puanı", readinessScoreMessageAi: "Genel hazırlık puanın %{score}.",
 
     loading: "ALQEV hazırlanıyor...",
     signOut: "Çıkış yap",
@@ -126,7 +134,7 @@ const uiTranslations: Record<
     preparationControlled: "Deine Vorbereitung ist unter Kontrolle", preparationControlledText: "Derzeit gibt es keine kritischen Lücken. Halte die Angaben in deinem Vorgang aktuell.", createFirstProcessTitle: "Ersten Vorgang erstellen", createFirstProcessText: "Starte deinen ersten Vorgang für persönliche Empfehlungen und die Bereitschaftsanalyse.",
     riskHigh: "Hohes Risiko", riskHighText: "Es gibt eine kritische Lücke oder eine sehr nahe Frist.", riskMedium: "Mittleres Risiko", riskMediumText: "Ein Dokument oder eine nahende Frist erfordert Aufmerksamkeit.", riskLow: "Niedriges Risiko", riskLowText: "Derzeit ist kein dringender Handlungsbedarf erkennbar.",
     checkProcess: "Vorgang prüfen", uploadRequiredDocument: "Lade das Pflichtdokument im Vorgang {process} hoch.", checkAlerts: "Prüfe neue Hinweise oder fehlende Dokumente.", startRoadmap: "Starte einen Vorgang, um deinen persönlichen Fahrplan zu erstellen.", estimateByMissing: "Diese Schätzung basiert auf der Anzahl fehlender Dokumente.", noRequiredMissing: "In der aktuellen Dokumentenliste fehlen keine Pflichtdokumente.",
-    documentUploaded: "Dokument hochgeladen.", optionalNotUploaded: "Das optionale Dokument wurde noch nicht hochgeladen.", requiredNotUploaded: "Das Pflichtdokument wurde noch nicht hochgeladen.", noDocumentList: "Für diesen Vorgang wurde noch keine Dokumentenliste erstellt.", criticalTopics: "{count} kritische Punkte sollten zuerst bearbeitet werden.", requiredDocumentsPending: "{count} Pflichtdokumente warten auf Abschluss.", noCriticalMissing: "Derzeit gibt es keine kritische Lücke.", noDeadline: "Keine Frist", untitledDocument: "Unbenanntes Dokument", untitledProcess: "Unbenannter Vorgang", userFallback: "Benutzer",
+    documentUploaded: "Dokument hochgeladen.", optionalNotUploaded: "Das optionale Dokument wurde noch nicht hochgeladen.", requiredNotUploaded: "Das Pflichtdokument wurde noch nicht hochgeladen.", noDocumentList: "Für diesen Vorgang wurde noch keine Dokumentenliste erstellt.", criticalTopics: "{count} kritische Punkte sollten zuerst bearbeitet werden.", requiredDocumentsPending: "{count} Pflichtdokumente warten auf Abschluss.", noCriticalMissing: "Derzeit gibt es keine kritische Lücke.", noDeadline: "Keine Frist", untitledDocument: "Unbenanntes Dokument", untitledProcess: "Unbenannter Vorgang", userFallback: "Benutzer", missingDocumentAi: "Fehlendes Dokument", uploadMissingDocumentAi: "Das Dokument „{document}“ muss hochgeladen werden.", deadlineExpiredAi: "Frist abgelaufen", deadlineExpiredMessageAi: "Die Frist dieses Vorgangs ist offenbar abgelaufen.", deadlineApproachingAi: "Bevorstehende Frist", deadlineApproachingMessageAi: "Noch {count} Tage bis zur Frist.", allCompleteAi: "Sehr gut!", allCompleteMessageAi: "Alle Pflichtdokumente scheinen vollständig zu sein.", readinessScoreAi: "Bereitschaftswert", readinessScoreMessageAi: "Dein allgemeiner Bereitschaftswert beträgt %{score}.",
 
     loading: "ALQEV wird vorbereitet...",
     signOut: "Abmelden",
@@ -185,7 +193,7 @@ const uiTranslations: Record<
     daysRemaining: "Innerhalb von {count} Tagen abzuschließen.",
   },
   en: {
-    immigrationReadiness: "Immigration Readiness", readinessVeryClose: "You are very close to applying", readinessGood: "Your preparation is progressing well", readinessMissing: "Some important items are missing", readinessStarted: "You have just started preparing", readinessNoData: "No analysis data yet", readinessProgress: "{completed} / {total} documents completed. Required documents were weighted more heavily.", readinessEmpty: "Create a process and document list first to calculate readiness.", priorityCritical: "Critical", priorityWarning: "Important", priorityInfo: "Suggestion", prioritySuccess: "Ready", criticalAiAlert: "Critical AI alert", aiSuggestion: "AI suggestion", requiredDocumentMissing: "The required document in {process} has not been uploaded yet.", deadlineToday: "This process is due today.", deadlineInDays: "This process reaches its deadline in {count} days.", preparationControlled: "Your preparation is under control", preparationControlledText: "No critical gap is visible right now. Keep your process information up to date.", createFirstProcessTitle: "Create your first process", createFirstProcessText: "Start your first process for personalized recommendations and readiness analysis.", riskHigh: "High risk", riskHighText: "There is a critical gap or a very close deadline.", riskMedium: "Medium risk", riskMediumText: "A document or upcoming deadline needs attention.", riskLow: "Low risk", riskLowText: "Nothing currently appears to require urgent action.", checkProcess: "Check your process", uploadRequiredDocument: "Upload the required document in {process}.", checkAlerts: "Check for new alerts or missing documents.", startRoadmap: "Start a process to create your personal roadmap.", estimateByMissing: "This estimate is based on the number of missing documents.", noRequiredMissing: "No required document is missing from the current list.", documentUploaded: "Document uploaded.", optionalNotUploaded: "The optional document has not been uploaded yet.", requiredNotUploaded: "The required document has not been uploaded yet.", noDocumentList: "No document list has been created for this process yet.", criticalTopics: "{count} critical items should be handled first.", requiredDocumentsPending: "{count} required documents are waiting to be completed.", noCriticalMissing: "No critical gap is visible right now.", noDeadline: "No deadline", untitledDocument: "Untitled document", untitledProcess: "Untitled process", userFallback: "User",
+    immigrationReadiness: "Immigration Readiness", readinessVeryClose: "You are very close to applying", readinessGood: "Your preparation is progressing well", readinessMissing: "Some important items are missing", readinessStarted: "You have just started preparing", readinessNoData: "No analysis data yet", readinessProgress: "{completed} / {total} documents completed. Required documents were weighted more heavily.", readinessEmpty: "Create a process and document list first to calculate readiness.", priorityCritical: "Critical", priorityWarning: "Important", priorityInfo: "Suggestion", prioritySuccess: "Ready", criticalAiAlert: "Critical AI alert", aiSuggestion: "AI suggestion", requiredDocumentMissing: "The required document in {process} has not been uploaded yet.", deadlineToday: "This process is due today.", deadlineInDays: "This process reaches its deadline in {count} days.", preparationControlled: "Your preparation is under control", preparationControlledText: "No critical gap is visible right now. Keep your process information up to date.", createFirstProcessTitle: "Create your first process", createFirstProcessText: "Start your first process for personalized recommendations and readiness analysis.", riskHigh: "High risk", riskHighText: "There is a critical gap or a very close deadline.", riskMedium: "Medium risk", riskMediumText: "A document or upcoming deadline needs attention.", riskLow: "Low risk", riskLowText: "Nothing currently appears to require urgent action.", checkProcess: "Check your process", uploadRequiredDocument: "Upload the required document in {process}.", checkAlerts: "Check for new alerts or missing documents.", startRoadmap: "Start a process to create your personal roadmap.", estimateByMissing: "This estimate is based on the number of missing documents.", noRequiredMissing: "No required document is missing from the current list.", documentUploaded: "Document uploaded.", optionalNotUploaded: "The optional document has not been uploaded yet.", requiredNotUploaded: "The required document has not been uploaded yet.", noDocumentList: "No document list has been created for this process yet.", criticalTopics: "{count} critical items should be handled first.", requiredDocumentsPending: "{count} required documents are waiting to be completed.", noCriticalMissing: "No critical gap is visible right now.", noDeadline: "No deadline", untitledDocument: "Untitled document", untitledProcess: "Untitled process", userFallback: "User", missingDocumentAi: "Missing document", uploadMissingDocumentAi: "You need to upload “{document}”.", deadlineExpiredAi: "Deadline expired", deadlineExpiredMessageAi: "This process appears to be past its deadline.", deadlineApproachingAi: "Upcoming deadline", deadlineApproachingMessageAi: "{count} days remain until the deadline.", allCompleteAi: "Great!", allCompleteMessageAi: "All required documents appear to be complete.", readinessScoreAi: "Readiness score", readinessScoreMessageAi: "Your overall readiness score is %{score}.",
 
     loading: "Preparing ALQEV...",
     signOut: "Sign out",
@@ -244,7 +252,7 @@ const uiTranslations: Record<
     daysRemaining: "Must be completed within {count} days.",
   },
   ru: {
-    immigrationReadiness: "Готовность к иммиграции", readinessVeryClose: "Вы почти готовы к подаче заявления", readinessGood: "Подготовка идет хорошо", readinessMissing: "Не хватает нескольких важных пунктов", readinessStarted: "Вы только начали подготовку", readinessNoData: "Данных для анализа пока нет", readinessProgress: "Завершено документов: {completed} / {total}. Обязательные документы имеют больший вес.", readinessEmpty: "Сначала создайте процесс и список документов.", priorityCritical: "Критично", priorityWarning: "Важно", priorityInfo: "Рекомендация", prioritySuccess: "Готово", criticalAiAlert: "Критическое предупреждение ИИ", aiSuggestion: "Рекомендация ИИ", requiredDocumentMissing: "Обязательный документ в процессе «{process}» еще не загружен.", deadlineToday: "Срок этого процесса истекает сегодня.", deadlineInDays: "До срока этого процесса осталось {count} дней.", preparationControlled: "Подготовка под контролем", preparationControlledText: "Сейчас критических пробелов нет. Поддерживайте данные процесса в актуальном состоянии.", createFirstProcessTitle: "Создайте первый процесс", createFirstProcessText: "Запустите первый процесс для персональных рекомендаций и анализа готовности.", riskHigh: "Высокий риск", riskHighText: "Есть критический пробел или очень близкий срок.", riskMedium: "Средний риск", riskMediumText: "Документ или приближающийся срок требуют внимания.", riskLow: "Низкий риск", riskLowText: "Сейчас нет ситуации, требующей срочных действий.", checkProcess: "Проверить процесс", uploadRequiredDocument: "Загрузите обязательный документ в процессе «{process}».", checkAlerts: "Проверьте новые предупреждения и недостающие документы.", startRoadmap: "Начните процесс, чтобы создать личный план действий.", estimateByMissing: "Оценка основана на количестве недостающих документов.", noRequiredMissing: "В текущем списке нет недостающих обязательных документов.", documentUploaded: "Документ загружен.", optionalNotUploaded: "Необязательный документ еще не загружен.", requiredNotUploaded: "Обязательный документ еще не загружен.", noDocumentList: "Для этого процесса список документов еще не создан.", criticalTopics: "В первую очередь нужно решить критические вопросы: {count}.", requiredDocumentsPending: "Ожидают завершения обязательные документы: {count}.", noCriticalMissing: "Сейчас критических пробелов нет.", noDeadline: "Срок не указан", untitledDocument: "Документ без названия", untitledProcess: "Процесс без названия", userFallback: "Пользователь",
+    immigrationReadiness: "Готовность к иммиграции", readinessVeryClose: "Вы почти готовы к подаче заявления", readinessGood: "Подготовка идет хорошо", readinessMissing: "Не хватает нескольких важных пунктов", readinessStarted: "Вы только начали подготовку", readinessNoData: "Данных для анализа пока нет", readinessProgress: "Завершено документов: {completed} / {total}. Обязательные документы имеют больший вес.", readinessEmpty: "Сначала создайте процесс и список документов.", priorityCritical: "Критично", priorityWarning: "Важно", priorityInfo: "Рекомендация", prioritySuccess: "Готово", criticalAiAlert: "Критическое предупреждение ИИ", aiSuggestion: "Рекомендация ИИ", requiredDocumentMissing: "Обязательный документ в процессе «{process}» еще не загружен.", deadlineToday: "Срок этого процесса истекает сегодня.", deadlineInDays: "До срока этого процесса осталось {count} дней.", preparationControlled: "Подготовка под контролем", preparationControlledText: "Сейчас критических пробелов нет. Поддерживайте данные процесса в актуальном состоянии.", createFirstProcessTitle: "Создайте первый процесс", createFirstProcessText: "Запустите первый процесс для персональных рекомендаций и анализа готовности.", riskHigh: "Высокий риск", riskHighText: "Есть критический пробел или очень близкий срок.", riskMedium: "Средний риск", riskMediumText: "Документ или приближающийся срок требуют внимания.", riskLow: "Низкий риск", riskLowText: "Сейчас нет ситуации, требующей срочных действий.", checkProcess: "Проверить процесс", uploadRequiredDocument: "Загрузите обязательный документ в процессе «{process}».", checkAlerts: "Проверьте новые предупреждения и недостающие документы.", startRoadmap: "Начните процесс, чтобы создать личный план действий.", estimateByMissing: "Оценка основана на количестве недостающих документов.", noRequiredMissing: "В текущем списке нет недостающих обязательных документов.", documentUploaded: "Документ загружен.", optionalNotUploaded: "Необязательный документ еще не загружен.", requiredNotUploaded: "Обязательный документ еще не загружен.", noDocumentList: "Для этого процесса список документов еще не создан.", criticalTopics: "В первую очередь нужно решить критические вопросы: {count}.", requiredDocumentsPending: "Ожидают завершения обязательные документы: {count}.", noCriticalMissing: "Сейчас критических пробелов нет.", noDeadline: "Срок не указан", untitledDocument: "Документ без названия", untitledProcess: "Процесс без названия", userFallback: "Пользователь", missingDocumentAi: "Недостающий документ", uploadMissingDocumentAi: "Необходимо загрузить документ «{document}».", deadlineExpiredAi: "Срок истёк", deadlineExpiredMessageAi: "Срок этого процесса, по-видимому, уже истёк.", deadlineApproachingAi: "Приближается срок", deadlineApproachingMessageAi: "До окончания срока осталось {count} дней.", allCompleteAi: "Отлично!", allCompleteMessageAi: "Все обязательные документы, похоже, готовы.", readinessScoreAi: "Оценка готовности", readinessScoreMessageAi: "Ваша общая оценка готовности: %{score}.",
 
     loading: "ALQEV загружается...",
     signOut: "Выйти",
@@ -303,7 +311,7 @@ const uiTranslations: Record<
     daysRemaining: "Необходимо завершить в течение {count} дней.",
   },
   ar: {
-    immigrationReadiness: "الجاهزية للهجرة", readinessVeryClose: "أنت قريب جدًا من تقديم الطلب", readinessGood: "استعدادك يتقدم بشكل جيد", readinessMissing: "توجد بعض النواقص المهمة", readinessStarted: "لقد بدأت الاستعداد للتو", readinessNoData: "لا توجد بيانات تحليل بعد", readinessProgress: "تم إكمال {completed} من أصل {total} وثيقة. مُنحت الوثائق الإلزامية وزنًا أكبر.", readinessEmpty: "أنشئ إجراءً وقائمة وثائق أولًا لحساب الجاهزية.", priorityCritical: "حرج", priorityWarning: "مهم", priorityInfo: "اقتراح", prioritySuccess: "جاهز", criticalAiAlert: "تنبيه حرج من الذكاء الاصطناعي", aiSuggestion: "اقتراح الذكاء الاصطناعي", requiredDocumentMissing: "لم تُرفع الوثيقة الإلزامية في إجراء {process} بعد.", deadlineToday: "الموعد النهائي لهذا الإجراء اليوم.", deadlineInDays: "يتبقى {count} يوم على الموعد النهائي.", preparationControlled: "استعدادك تحت السيطرة", preparationControlledText: "لا تظهر نواقص حرجة حاليًا. حافظ على تحديث معلومات الإجراء.", createFirstProcessTitle: "أنشئ أول إجراء", createFirstProcessText: "ابدأ أول إجراء للحصول على توصيات شخصية وتحليل الجاهزية.", riskHigh: "مخاطر مرتفعة", riskHighText: "توجد مشكلة حرجة أو موعد نهائي قريب جدًا.", riskMedium: "مخاطر متوسطة", riskMediumText: "توجد وثيقة أو مهلة قريبة تحتاج إلى اهتمام.", riskLow: "مخاطر منخفضة", riskLowText: "لا توجد حاليًا حالة تتطلب تدخلاً عاجلًا.", checkProcess: "تحقق من الإجراء", uploadRequiredDocument: "ارفع الوثيقة الإلزامية في إجراء {process}.", checkAlerts: "تحقق من التنبيهات الجديدة أو الوثائق الناقصة.", startRoadmap: "ابدأ إجراءً لإنشاء خارطة طريقك الشخصية.", estimateByMissing: "يعتمد هذا التقدير على عدد الوثائق الناقصة.", noRequiredMissing: "لا توجد وثائق إلزامية ناقصة في القائمة الحالية.", documentUploaded: "تم رفع الوثيقة.", optionalNotUploaded: "لم تُرفع الوثيقة الاختيارية بعد.", requiredNotUploaded: "لم تُرفع الوثيقة الإلزامية بعد.", noDocumentList: "لم تُنشأ قائمة وثائق لهذا الإجراء بعد.", criticalTopics: "يجب معالجة {count} من المسائل الحرجة أولًا.", requiredDocumentsPending: "تنتظر {count} وثيقة إلزامية الإكمال.", noCriticalMissing: "لا تظهر نواقص حرجة حاليًا.", noDeadline: "لا يوجد موعد نهائي", untitledDocument: "وثيقة بلا عنوان", untitledProcess: "إجراء بلا عنوان", userFallback: "المستخدم",
+    immigrationReadiness: "الجاهزية للهجرة", readinessVeryClose: "أنت قريب جدًا من تقديم الطلب", readinessGood: "استعدادك يتقدم بشكل جيد", readinessMissing: "توجد بعض النواقص المهمة", readinessStarted: "لقد بدأت الاستعداد للتو", readinessNoData: "لا توجد بيانات تحليل بعد", readinessProgress: "تم إكمال {completed} من أصل {total} وثيقة. مُنحت الوثائق الإلزامية وزنًا أكبر.", readinessEmpty: "أنشئ إجراءً وقائمة وثائق أولًا لحساب الجاهزية.", priorityCritical: "حرج", priorityWarning: "مهم", priorityInfo: "اقتراح", prioritySuccess: "جاهز", criticalAiAlert: "تنبيه حرج من الذكاء الاصطناعي", aiSuggestion: "اقتراح الذكاء الاصطناعي", requiredDocumentMissing: "لم تُرفع الوثيقة الإلزامية في إجراء {process} بعد.", deadlineToday: "الموعد النهائي لهذا الإجراء اليوم.", deadlineInDays: "يتبقى {count} يوم على الموعد النهائي.", preparationControlled: "استعدادك تحت السيطرة", preparationControlledText: "لا تظهر نواقص حرجة حاليًا. حافظ على تحديث معلومات الإجراء.", createFirstProcessTitle: "أنشئ أول إجراء", createFirstProcessText: "ابدأ أول إجراء للحصول على توصيات شخصية وتحليل الجاهزية.", riskHigh: "مخاطر مرتفعة", riskHighText: "توجد مشكلة حرجة أو موعد نهائي قريب جدًا.", riskMedium: "مخاطر متوسطة", riskMediumText: "توجد وثيقة أو مهلة قريبة تحتاج إلى اهتمام.", riskLow: "مخاطر منخفضة", riskLowText: "لا توجد حاليًا حالة تتطلب تدخلاً عاجلًا.", checkProcess: "تحقق من الإجراء", uploadRequiredDocument: "ارفع الوثيقة الإلزامية في إجراء {process}.", checkAlerts: "تحقق من التنبيهات الجديدة أو الوثائق الناقصة.", startRoadmap: "ابدأ إجراءً لإنشاء خارطة طريقك الشخصية.", estimateByMissing: "يعتمد هذا التقدير على عدد الوثائق الناقصة.", noRequiredMissing: "لا توجد وثائق إلزامية ناقصة في القائمة الحالية.", documentUploaded: "تم رفع الوثيقة.", optionalNotUploaded: "لم تُرفع الوثيقة الاختيارية بعد.", requiredNotUploaded: "لم تُرفع الوثيقة الإلزامية بعد.", noDocumentList: "لم تُنشأ قائمة وثائق لهذا الإجراء بعد.", criticalTopics: "يجب معالجة {count} من المسائل الحرجة أولًا.", requiredDocumentsPending: "تنتظر {count} وثيقة إلزامية الإكمال.", noCriticalMissing: "لا تظهر نواقص حرجة حاليًا.", noDeadline: "لا يوجد موعد نهائي", untitledDocument: "وثيقة بلا عنوان", untitledProcess: "إجراء بلا عنوان", userFallback: "المستخدم", missingDocumentAi: "وثيقة ناقصة", uploadMissingDocumentAi: "يجب رفع الوثيقة «{document}».", deadlineExpiredAi: "انتهت المهلة", deadlineExpiredMessageAi: "يبدو أن الموعد النهائي لهذا الإجراء قد انقضى.", deadlineApproachingAi: "موعد نهائي قريب", deadlineApproachingMessageAi: "تبقى {count} يوم على الموعد النهائي.", allCompleteAi: "رائع!", allCompleteMessageAi: "يبدو أن جميع الوثائق الإلزامية مكتملة.", readinessScoreAi: "درجة الجاهزية", readinessScoreMessageAi: "درجة جاهزيتك العامة هي %{score}.",
 
     loading: "جارٍ تجهيز ALQEV...",
     signOut: "تسجيل الخروج",
@@ -362,7 +370,7 @@ const uiTranslations: Record<
     daysRemaining: "يجب إكماله خلال {count} يوم.",
   },
   fa: {
-    immigrationReadiness: "آمادگی مهاجرت", readinessVeryClose: "تقریباً آماده ارسال درخواست هستید", readinessGood: "آمادگی شما به‌خوبی پیش می‌رود", readinessMissing: "چند مورد مهم ناقص است", readinessStarted: "تازه آماده‌سازی را شروع کرده‌اید", readinessNoData: "هنوز داده‌ای برای تحلیل وجود ندارد", readinessProgress: "{completed} از {total} مدرک تکمیل شده است. به مدارک الزامی وزن بیشتری داده شد.", readinessEmpty: "برای محاسبه آمادگی ابتدا یک فرایند و فهرست مدارک ایجاد کنید.", priorityCritical: "بحرانی", priorityWarning: "مهم", priorityInfo: "پیشنهاد", prioritySuccess: "آماده", criticalAiAlert: "هشدار بحرانی هوش مصنوعی", aiSuggestion: "پیشنهاد هوش مصنوعی", requiredDocumentMissing: "مدرک الزامی در فرایند {process} هنوز بارگذاری نشده است.", deadlineToday: "مهلت این فرایند امروز است.", deadlineInDays: "تا مهلت این فرایند {count} روز باقی مانده است.", preparationControlled: "آمادگی شما تحت کنترل است", preparationControlledText: "در حال حاضر نقص بحرانی دیده نمی‌شود. اطلاعات فرایند را به‌روز نگه دارید.", createFirstProcessTitle: "اولین فرایند را ایجاد کنید", createFirstProcessText: "برای دریافت پیشنهادهای شخصی و تحلیل آمادگی، اولین فرایند را شروع کنید.", riskHigh: "ریسک بالا", riskHighText: "یک نقص بحرانی یا مهلت بسیار نزدیک وجود دارد.", riskMedium: "ریسک متوسط", riskMediumText: "یک مدرک یا مهلت نزدیک نیاز به توجه دارد.", riskLow: "ریسک پایین", riskLowText: "در حال حاضر موردی که نیازمند اقدام فوری باشد دیده نمی‌شود.", checkProcess: "فرایند را بررسی کنید", uploadRequiredDocument: "مدرک الزامی فرایند {process} را بارگذاری کنید.", checkAlerts: "هشدارهای جدید یا مدارک ناقص را بررسی کنید.", startRoadmap: "برای ساخت نقشه راه شخصی خود یک فرایند شروع کنید.", estimateByMissing: "این برآورد بر اساس تعداد مدارک ناقص محاسبه شده است.", noRequiredMissing: "در فهرست فعلی هیچ مدرک الزامی ناقصی وجود ندارد.", documentUploaded: "مدرک بارگذاری شد.", optionalNotUploaded: "مدرک اختیاری هنوز بارگذاری نشده است.", requiredNotUploaded: "مدرک الزامی هنوز بارگذاری نشده است.", noDocumentList: "هنوز برای این فرایند فهرست مدارک ایجاد نشده است.", criticalTopics: "ابتدا باید {count} مورد بحرانی بررسی شود.", requiredDocumentsPending: "{count} مدرک الزامی در انتظار تکمیل است.", noCriticalMissing: "در حال حاضر نقص بحرانی دیده نمی‌شود.", noDeadline: "بدون مهلت", untitledDocument: "مدرک بدون عنوان", untitledProcess: "فرایند بدون عنوان", userFallback: "کاربر",
+    immigrationReadiness: "آمادگی مهاجرت", readinessVeryClose: "تقریباً آماده ارسال درخواست هستید", readinessGood: "آمادگی شما به‌خوبی پیش می‌رود", readinessMissing: "چند مورد مهم ناقص است", readinessStarted: "تازه آماده‌سازی را شروع کرده‌اید", readinessNoData: "هنوز داده‌ای برای تحلیل وجود ندارد", readinessProgress: "{completed} از {total} مدرک تکمیل شده است. به مدارک الزامی وزن بیشتری داده شد.", readinessEmpty: "برای محاسبه آمادگی ابتدا یک فرایند و فهرست مدارک ایجاد کنید.", priorityCritical: "بحرانی", priorityWarning: "مهم", priorityInfo: "پیشنهاد", prioritySuccess: "آماده", criticalAiAlert: "هشدار بحرانی هوش مصنوعی", aiSuggestion: "پیشنهاد هوش مصنوعی", requiredDocumentMissing: "مدرک الزامی در فرایند {process} هنوز بارگذاری نشده است.", deadlineToday: "مهلت این فرایند امروز است.", deadlineInDays: "تا مهلت این فرایند {count} روز باقی مانده است.", preparationControlled: "آمادگی شما تحت کنترل است", preparationControlledText: "در حال حاضر نقص بحرانی دیده نمی‌شود. اطلاعات فرایند را به‌روز نگه دارید.", createFirstProcessTitle: "اولین فرایند را ایجاد کنید", createFirstProcessText: "برای دریافت پیشنهادهای شخصی و تحلیل آمادگی، اولین فرایند را شروع کنید.", riskHigh: "ریسک بالا", riskHighText: "یک نقص بحرانی یا مهلت بسیار نزدیک وجود دارد.", riskMedium: "ریسک متوسط", riskMediumText: "یک مدرک یا مهلت نزدیک نیاز به توجه دارد.", riskLow: "ریسک پایین", riskLowText: "در حال حاضر موردی که نیازمند اقدام فوری باشد دیده نمی‌شود.", checkProcess: "فرایند را بررسی کنید", uploadRequiredDocument: "مدرک الزامی فرایند {process} را بارگذاری کنید.", checkAlerts: "هشدارهای جدید یا مدارک ناقص را بررسی کنید.", startRoadmap: "برای ساخت نقشه راه شخصی خود یک فرایند شروع کنید.", estimateByMissing: "این برآورد بر اساس تعداد مدارک ناقص محاسبه شده است.", noRequiredMissing: "در فهرست فعلی هیچ مدرک الزامی ناقصی وجود ندارد.", documentUploaded: "مدرک بارگذاری شد.", optionalNotUploaded: "مدرک اختیاری هنوز بارگذاری نشده است.", requiredNotUploaded: "مدرک الزامی هنوز بارگذاری نشده است.", noDocumentList: "هنوز برای این فرایند فهرست مدارک ایجاد نشده است.", criticalTopics: "ابتدا باید {count} مورد بحرانی بررسی شود.", requiredDocumentsPending: "{count} مدرک الزامی در انتظار تکمیل است.", noCriticalMissing: "در حال حاضر نقص بحرانی دیده نمی‌شود.", noDeadline: "بدون مهلت", untitledDocument: "مدرک بدون عنوان", untitledProcess: "فرایند بدون عنوان", userFallback: "کاربر", missingDocumentAi: "مدرک ناقص", uploadMissingDocumentAi: "باید مدرک «{document}» را بارگذاری کنید.", deadlineExpiredAi: "مهلت پایان یافته", deadlineExpiredMessageAi: "به نظر می‌رسد مهلت این فرایند گذشته است.", deadlineApproachingAi: "مهلت نزدیک", deadlineApproachingMessageAi: "{count} روز تا پایان مهلت باقی مانده است.", allCompleteAi: "عالی!", allCompleteMessageAi: "به نظر می‌رسد همه مدارک الزامی کامل هستند.", readinessScoreAi: "امتیاز آمادگی", readinessScoreMessageAi: "امتیاز کلی آمادگی شما %{score} است.",
 
     loading: "ALQEV در حال آماده‌سازی است...",
     signOut: "خروج",
@@ -461,6 +469,7 @@ type RequiredDocument = {
 
 type Process = {
   id: string;
+  templateKey?: string;
   title: string;
   description: string;
   country: string;
@@ -793,6 +802,58 @@ function getRiskLevel(
   };
 }
 
+
+function getRecommendationText(
+  recommendation: {
+    title: string;
+    message: string;
+    titleKey?: string;
+    messageKey?: string;
+    variables?: Record<string, string | number>;
+  },
+  copy: Record<string, string>,
+): { title: string; message: string } {
+  const titleKeyMap: Record<string, string> = {
+    missingDocument: "missingDocumentAi",
+    deadlineExpired: "deadlineExpiredAi",
+    deadlineApproaching: "deadlineApproachingAi",
+    allComplete: "allCompleteAi",
+    readinessScore: "readinessScoreAi",
+  };
+
+  const messageKeyMap: Record<string, string> = {
+    uploadMissingDocument: "uploadMissingDocumentAi",
+    deadlineExpiredMessage: "deadlineExpiredMessageAi",
+    deadlineApproachingMessage: "deadlineApproachingMessageAi",
+    allCompleteMessage: "allCompleteMessageAi",
+    readinessScoreMessage: "readinessScoreMessageAi",
+  };
+
+  const translatedTitleKey = recommendation.titleKey
+    ? titleKeyMap[recommendation.titleKey]
+    : undefined;
+
+  const translatedMessageKey = recommendation.messageKey
+    ? messageKeyMap[recommendation.messageKey]
+    : undefined;
+
+  const title =
+    (translatedTitleKey && copy[translatedTitleKey]) ||
+    recommendation.title;
+
+  const messageTemplate =
+    (translatedMessageKey && copy[translatedMessageKey]) ||
+    recommendation.message;
+
+  return {
+    title,
+    message: fillTemplate(
+      messageTemplate,
+      recommendation.variables || {},
+    ),
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -816,6 +877,11 @@ export default function DashboardPage() {
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguage>("tr");
+
+  useEffect(() => {
+    const storedLanguage = readStoredLanguage("tr");
+    setSelectedLanguage(storedLanguage);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -872,10 +938,14 @@ export default function DashboardPage() {
             const data =
               userDocumentSnapshot.data();
 
-            const savedLanguage = normalizeLanguage(
+            const profileLanguage = normalizeLanguage(
               typeof data.language === "string"
                 ? data.language
                 : "tr",
+            );
+
+            const savedLanguage = readStoredLanguage(
+              profileLanguage,
             );
 
             setSelectedLanguage(savedLanguage);
@@ -913,10 +983,14 @@ export default function DashboardPage() {
               ),
             });
           } else {
-            setSelectedLanguage("tr");
-            setProfile(
-              createFallbackProfile(currentUser),
-            );
+            const fallbackLanguage =
+              readStoredLanguage("tr");
+
+            setSelectedLanguage(fallbackLanguage);
+            setProfile({
+              ...createFallbackProfile(currentUser),
+              language: fallbackLanguage,
+            });
 
             setErrorMessage(
               "Kullanıcı profil belgesi bulunamadı. Geçici bilgiler gösteriliyor.",
@@ -962,6 +1036,10 @@ export default function DashboardPage() {
 
                 return {
                   id: processDocument.id,
+                  templateKey:
+                    typeof data.templateKey === "string"
+                      ? data.templateKey
+                      : undefined,
                   title:
                     typeof data.title === "string" &&
                     data.title.trim()
@@ -1188,13 +1266,50 @@ export default function DashboardPage() {
       ...criticalRecommendations,
       ...warningRecommendations,
     ].slice(0, 3)) {
+      const recommendationProcess = processes.find(
+        (processItem) =>
+          processItem.id === recommendation.processId,
+      );
+
+      const recommendationDocument =
+        recommendationProcess?.requiredDocuments.find(
+          (documentItem) =>
+            documentItem.key === recommendation.documentKey,
+        );
+
+      const recommendationForDisplay = {
+        ...recommendation,
+        variables: {
+          ...(recommendation.variables || {}),
+          ...(recommendationDocument
+            ? {
+                document: getLocalizedDocumentTitle(
+                  {
+                    templateKey:
+                      recommendationProcess?.templateKey,
+                    processTitle:
+                      recommendationProcess?.title,
+                    documentKey:
+                      recommendationDocument.key,
+                    documentTitle:
+                      recommendationDocument.title,
+                  },
+                  selectedLanguage,
+                ),
+              }
+            : {}),
+        },
+      };
+
+      const recommendationText = getRecommendationText(
+        recommendationForDisplay,
+        copy,
+      );
+
       priorities.push({
         id: `recommendation-${priorities.length}`,
-        title:
-          recommendation.severity === "critical"
-            ? copy.criticalAiAlert
-            : copy.aiSuggestion,
-        description: recommendation.message,
+        title: recommendationText.title,
+        description: recommendationText.message,
         href: dashboardData.primaryProcess
           ? `/processes/${dashboardData.primaryProcess.id}`
           : "/processes/new",
@@ -1212,8 +1327,23 @@ export default function DashboardPage() {
 
       priorities.push({
         id: `missing-${item.processId}-${item.document.key}`,
-        title: item.document.title,
-        description: fillTemplate(copy.requiredDocumentMissing, { process: item.processTitle }),
+        title: getLocalizedDocumentTitle(
+          {
+            processTitle: item.processTitle,
+            documentKey: item.document.key,
+            documentTitle: item.document.title,
+          },
+          selectedLanguage,
+        ),
+        description: fillTemplate(
+          copy.requiredDocumentMissing,
+          {
+            process: getLocalizedProcessTitle(
+              { title: item.processTitle },
+              selectedLanguage,
+            ),
+          },
+        ),
         href: `/processes/${item.processId}`,
         severity: "warning",
       });
@@ -1314,6 +1444,7 @@ export default function DashboardPage() {
     language: SupportedLanguage,
   ) {
     setSelectedLanguage(language);
+    storeLanguage(language);
     setProfile((currentProfile) =>
       currentProfile
         ? { ...currentProfile, language }
@@ -1827,8 +1958,20 @@ export default function DashboardPage() {
 
             <p className="mt-3 text-xl font-bold">
               {dashboardIntelligence.nextAction
-                ? dashboardIntelligence.nextAction
-                    .document.title
+                ? getLocalizedDocumentTitle(
+                    {
+                      processTitle:
+                        dashboardIntelligence.nextAction
+                          .processTitle,
+                      documentKey:
+                        dashboardIntelligence.nextAction
+                          .document.key,
+                      documentTitle:
+                        dashboardIntelligence.nextAction
+                          .document.title,
+                    },
+                    selectedLanguage,
+                  )
                 : primaryProcess
                   ? copy.checkProcess
                   : copy.createFirstProcessTitle}
@@ -1836,7 +1979,19 @@ export default function DashboardPage() {
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
               {dashboardIntelligence.nextAction
-                ? fillTemplate(copy.uploadRequiredDocument, { process: dashboardIntelligence.nextAction.processTitle })
+                ? fillTemplate(
+                    copy.uploadRequiredDocument,
+                    {
+                      process: getLocalizedProcessTitle(
+                        {
+                          title:
+                            dashboardIntelligence.nextAction
+                              .processTitle,
+                        },
+                        selectedLanguage,
+                      ),
+                    },
+                  )
                 : primaryProcess
                   ? copy.checkAlerts
                   : copy.startRoadmap}
@@ -1888,7 +2043,14 @@ export default function DashboardPage() {
                     </p>
 
                     <h2 className="mt-2 text-2xl font-bold">
-                      {primaryProcess.title}
+                      {getLocalizedProcessTitle(
+                        {
+                          templateKey:
+                            primaryProcess.templateKey,
+                          title: primaryProcess.title,
+                        },
+                        selectedLanguage,
+                      )}
                     </h2>
                   </div>
 
@@ -1947,9 +2109,19 @@ export default function DashboardPage() {
 
                               <div className="min-w-0">
                                 <p className="font-semibold text-slate-200">
-                                  {
-                                    documentItem.title
-                                  }
+                                  {getLocalizedDocumentTitle(
+                                    {
+                                      templateKey:
+                                        primaryProcess.templateKey,
+                                      processTitle:
+                                        primaryProcess.title,
+                                      documentKey:
+                                        documentItem.key,
+                                      documentTitle:
+                                        documentItem.title,
+                                    },
+                                    selectedLanguage,
+                                  )}
                                 </p>
 
                                 <p
