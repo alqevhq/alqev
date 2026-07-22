@@ -14,7 +14,7 @@ export default function HeroContent() {
       </h1>
 
       <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-300">
-        HUMANITY OS; belgelerini, başvurularını, terminlerini ve resmî
+        ALQEV; belgelerini, başvurularını, terminlerini ve resmî
         işlemlerini güvenli biçimde yönetmene yardımcı olan kişisel yaşam
         işletim sistemidir.
       </p>

@@ -84,7 +84,7 @@ function buildPrompt({
   conversation: CopilotMessage[];
 }): string {
   return `
-Sen Humanity OS uygulamasındaki "Humanity Copilot" adlı yapay zekâ asistanısın.
+Sen ALQEV uygulamasındaki "ALQEV Capilot" adlı yapay zekâ asistanısın.
 
 Görevin:
 - Kullanıcının vatandaşlık, göçmenlik, vize ve resmî süreç hazırlığını anlamasına yardımcı olmak.
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
       getErrorMessage(error);
 
     console.error(
-      "Humanity Copilot API hatası:",
+      "ALQEV Capilot API hatası:",
       error,
     );
 

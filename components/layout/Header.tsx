@@ -1,19 +1,22 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Header() {
   return (
     <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
-      <Link href="/" className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 text-xl font-bold">
-          H
-        </div>
-
-        <div>
-          <p className="text-lg font-bold">HUMANITY OS</p>
-          <p className="text-xs text-slate-400">
-            The Operating System for Real Life
-          </p>
-        </div>
+      <Link
+        href="/"
+        aria-label="ALQEV ana sayfa"
+        className="flex items-center"
+      >
+        <Image
+          src="/logo.png"
+          alt="ALQEV"
+          width={160}
+          height={90}
+          priority
+          className="h-[72px] w-auto object-contain"
+        />
       </Link>
 
       <div className="flex items-center gap-3">

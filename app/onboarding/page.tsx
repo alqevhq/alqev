@@ -291,7 +291,7 @@ export default function OnboardingPage() {
         <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-indigo-950/20 backdrop-blur-xl sm:p-10">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
-              HUMANITY OS kurulumu
+              ALQEV kurulumu
             </p>
 
             <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">

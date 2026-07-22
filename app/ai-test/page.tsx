@@ -155,7 +155,7 @@ export default function AiTestPage() {
         <header style={styles.header}>
           <div>
             <p style={styles.eyebrow}>
-              HUMANITY OS
+              ALQEV
             </p>
 
             <h1 style={styles.title}>

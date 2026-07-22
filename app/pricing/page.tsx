@@ -159,7 +159,7 @@ export default function PricingPage() {
 
             <span>
               <span className="block font-bold">
-                HUMANITY OS
+                ALQEV
               </span>
               <span className="block text-xs text-slate-500">
                 Premium
@@ -177,7 +177,7 @@ export default function PricingPage() {
 
         <section className="mx-auto mt-16 max-w-3xl text-center">
           <div className="inline-flex rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm font-semibold text-indigo-200">
-            HUMANITY OS PREMIUM
+            ALQEV PREMIUM
           </div>
 
           <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-6xl">
@@ -229,7 +229,7 @@ export default function PricingPage() {
             </div>
 
             <p className="mt-5 text-sm leading-6 text-slate-400">
-              HUMANITY OS&apos;u denemek ve temel sürecini
+              ALQEV&apos;u denemek ve temel sürecini
               yönetmek için.
             </p>
 
@@ -280,7 +280,7 @@ export default function PricingPage() {
             </div>
 
             <p className="mt-5 text-sm leading-6 text-slate-300">
-              Süreçlerini sınırsız yönetmek ve HUMANITY AI&apos;ın
+              Süreçlerini sınırsız yönetmek ve ALQEV AI&apos;ın
               gelişmiş özelliklerini kullanmak için.
             </p>
 
@@ -334,7 +334,7 @@ export default function PricingPage() {
 
         <section className="mt-12 rounded-3xl border border-white/10 bg-white/[0.03] p-7 text-center sm:p-9">
           <h2 className="text-2xl font-bold">
-            HUMANITY OS neden Premium?
+            ALQEV neden Premium?
           </h2>
 
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-400">

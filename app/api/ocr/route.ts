@@ -298,7 +298,7 @@ function buildOcrPrompt(input: {
   fileName?: string;
 }): string {
   return `
-Sen HUMANITY OS belge analiz sistemisin.
+Sen ALQEV belge analiz sistemisin.
 
 Belge başlığı: ${input.documentTitle}
 Dosya adı: ${input.fileName || "Belirtilmedi"}

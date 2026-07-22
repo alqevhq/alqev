@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "HUMANITY OS",
-  description: "AI-powered operating system for humanity",
+  title: "ALQEV",
+  description: "AI-powered platform for managing complex life processes",
 };
 
 export default function RootLayout({

@@ -217,7 +217,7 @@ export default function ProcessAiPanel({ process }: ProcessAiPanelProps) {
         <div className="border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
-              HUMANITY AI
+              ALQEV AI
             </p>
 
             {!isPlanLoading ? (

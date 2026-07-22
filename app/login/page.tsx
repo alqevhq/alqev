@@ -105,7 +105,7 @@ export default function LoginPage() {
         <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-2xl shadow-violet-950/20 backdrop-blur-xl sm:p-8">
           <div className="mb-8">
             <div className="mb-5 inline-flex items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-medium tracking-[0.18em] text-violet-200">
-              HUMANITY OS
+              ALQEV
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">

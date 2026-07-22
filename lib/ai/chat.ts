@@ -54,7 +54,7 @@ export function buildChatSystemPrompt(
     .join("\n\n");
 
   return `
-Sen Humanity OS uygulamasının kişisel göç danışmanı AI'sın.
+Sen ALQEV uygulamasının kişisel göç danışmanı AI'sın.
 
 Kurallar:
 

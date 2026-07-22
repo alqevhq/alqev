@@ -183,7 +183,7 @@ export default function SignupPage() {
         <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-2xl shadow-violet-950/20 backdrop-blur-xl sm:p-8">
           <div className="mb-8">
             <div className="mb-5 inline-flex items-center rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-medium tracking-[0.18em] text-violet-200">
-              HUMANITY OS
+              ALQEV
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
@@ -191,7 +191,7 @@ export default function SignupPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              HUMANITY OS deneyimine başlamak için bilgilerini gir.
+              ALQEV deneyimine başlamak için bilgilerini gir.
             </p>
           </div>
 
@@ -325,7 +325,7 @@ export default function SignupPage() {
           </p>
 
           <p className="mt-5 text-center text-xs leading-5 text-zinc-600">
-            Hesap oluşturarak HUMANITY OS kullanım koşullarını ve gizlilik
+            Hesap oluşturarak ALQEV kullanım koşullarını ve gizlilik
             politikasını kabul etmiş olursun.
           </p>
         </div>

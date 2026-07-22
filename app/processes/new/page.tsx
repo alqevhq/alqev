@@ -286,7 +286,7 @@ export default function NewProcessPage() {
           </h1>
 
           <p className="mt-4 max-w-3xl leading-7 text-slate-400">
-            Süreç türünü seç. HUMANITY OS gerekli belge
+            Süreç türünü seç. ALQEV gerekli belge
             listesini otomatik oluştursun ve ilerlemeyi
             takip etsin.
           </p>

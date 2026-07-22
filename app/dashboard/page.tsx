@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -918,7 +918,7 @@ export default function DashboardPage() {
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
 
           <p className="mt-4 text-sm text-slate-400">
-            HUMANITY OS hazırlanıyor...
+            ALQEV hazırlanıyor...
           </p>
         </div>
       </main>
@@ -990,19 +990,16 @@ export default function DashboardPage() {
             href="/dashboard"
             className="flex items-center gap-3"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 text-xl font-bold">
-              H
-            </div>
+            
 
-            <div>
-              <p className="font-bold">
-                HUMANITY OS
-              </p>
-
-              <p className="text-xs text-slate-500">
-                Personal Dashboard
-              </p>
-            </div>
+            <Image
+  src="/logo.png"
+  alt="ALQEV Logo"
+  width={180}
+  height={60}
+  priority
+  className="h-20 w-auto"
+ />
           </Link>
 
           <div className="flex items-center gap-4">
@@ -1135,7 +1132,7 @@ export default function DashboardPage() {
 
               <p className="mt-2 text-sm leading-6 text-amber-100/70">
                 Ülke, dil ve kişisel ihtiyaç
-                bilgilerini eklediğinde HUMANITY OS
+                bilgilerini eklediğinde ALQEV
                 daha doğru öneriler oluşturabilir.
               </p>
             </div>
@@ -1273,7 +1270,7 @@ export default function DashboardPage() {
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">
-                  HUMANITY AI
+                  ALQEV AI
                 </p>
 
                 <h2 className="mt-3 text-2xl font-bold">

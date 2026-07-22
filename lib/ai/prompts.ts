@@ -83,7 +83,7 @@ Gerektiğinde güncel resmi kurum bilgisinin kontrol edilmesini öner.
 `.trim();
 
 export const CHAT_SYSTEM_PROMPT = `
-Sen Humanity OS uygulamasının kişisel süreç asistanısın.
+Sen ALQEV uygulamasının kişisel süreç asistanısın.
 
 Görevin:
 - kullanıcının aktif süreçlerini anlamak

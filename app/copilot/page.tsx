@@ -373,7 +373,7 @@ export default function CopilotPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <p className="text-sm text-slate-400">HUMANITY AI hazırlanıyor...</p>
+        <p className="text-sm text-slate-400">ALQEV AI hazırlanıyor...</p>
       </main>
     );
   }
@@ -387,7 +387,7 @@ export default function CopilotPage() {
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 text-xl font-bold">H</div>
             <div>
-              <p className="font-bold">HUMANITY OS</p>
+              <p className="font-bold">ALQEV</p>
               <p className="text-xs text-slate-500">AI Copilot</p>
             </div>
           </Link>
@@ -402,7 +402,7 @@ export default function CopilotPage() {
 
         <section className="grid min-h-[700px] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] lg:grid-cols-[0.32fr_0.68fr]">
           <aside className="border-b border-white/10 bg-black/15 p-6 lg:border-b-0 lg:border-r">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">HUMANITY AI</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">ALQEV AI</p>
             <h1 className="mt-4 text-3xl font-bold">Kişisel Copilot</h1>
             <p className="mt-3 text-sm leading-6 text-slate-400">Süreçlerini, belgelerini ve yaklaşan tarihlerini anlayan kişisel asistanın.</p>
 
@@ -424,7 +424,7 @@ export default function CopilotPage() {
 
           <div className="flex min-h-[700px] flex-col">
             <div className="border-b border-white/10 px-6 py-5">
-              <p className="font-semibold">Humanity Copilot</p>
+              <p className="font-semibold">ALQEV Capilot</p>
               <p className="mt-1 text-xs text-emerald-300">● Süreç verilerinle hazır</p>
             </div>
 

@@ -57,7 +57,7 @@ export default function ProcessPreview() {
 
       <div className="mt-6 rounded-2xl bg-indigo-500/10 p-5">
         <p className="text-sm font-semibold text-indigo-300">
-          HUMANITY AI önerisi
+          ALQEV AI önerisi
         </p>
 
         <p className="mt-2 leading-7 text-slate-300">
