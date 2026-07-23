@@ -26,8 +26,12 @@ import {
 } from "firebase/storage";
 import { auth, db, storage } from "@/lib/firebase";
 import ProcessAiPanel from "@/components/process/ProcessAiPanel";
+import DocumentIntelligenceCard, {
+  type DocumentIntelligenceResult,
+} from "@/components/process/DocumentIntelligenceCard";
 import {
   getLocalizedCountryLabel,
+  getLocalizedDocumentDescription,
   getLocalizedDocumentTitle,
   getLocalizedProcessTitle,
 } from "@/lib/process-templates";
@@ -37,14 +41,7 @@ import {
   type Language,
 } from "@/lib/i18n";
 
-type OcrFieldValue = string | number | boolean | null;
-
-type OcrResult = {
-  rawText: string;
-  documentType: string;
-  extracted: Record<string, OcrFieldValue>;
-  analyzedAt: string;
-};
+type OcrResult = DocumentIntelligenceResult;
 
 type RequiredDocument = {
   key: string;
@@ -707,54 +704,200 @@ function formatDeadline(
   ).format(date);
 }
 
-function getOcrFieldLabel(key: string) {
-  const labels: Record<string, string> = {
-    surname: "Soyadı",
-    givenNames: "Adı / Adları",
-    passportNumber: "Pasaport numarası",
-    nationality: "Uyruğu",
-    birthDate: "Doğum tarihi",
-    expiryDate: "Geçerlilik tarihi",
-    issueDate: "Düzenlenme tarihi",
-    issuingCountry: "Düzenleyen ülke",
-    sex: "Cinsiyet",
-  };
-
-  return (
-    labels[key] ||
-    key
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/[_-]+/g, " ")
-      .replace(/^./, (character) => character.toLocaleUpperCase("tr-TR"))
-  );
-}
-
-function normalizeOcrResponse(value: unknown): Omit<OcrResult, "analyzedAt"> {
+function normalizeOcrResponse(
+  value: unknown,
+): Omit<OcrResult, "analyzedAt"> {
   if (!value || typeof value !== "object") {
-    throw new Error("OCR servisi geçersiz bir yanıt döndürdü.");
+    throw new Error(
+      "OCR servisi geçersiz bir yanıt döndürdü.",
+    );
   }
 
-  const response = value as Record<string, unknown>;
-  const rawText = typeof response.rawText === "string" ? response.rawText : "";
+  const root = value as Record<string, unknown>;
+  const response =
+    root.data &&
+    typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : root;
+
+  const rawText =
+    typeof response.rawText === "string"
+      ? response.rawText
+      : "";
+
   const documentType =
-    typeof response.documentType === "string" && response.documentType.trim()
+    typeof response.documentType === "string" &&
+    response.documentType.trim()
       ? response.documentType.trim()
-      : "Belge";
+      : "unknown";
 
-  const extractedSource =
-    response.extracted && typeof response.extracted === "object"
-      ? (response.extracted as Record<string, unknown>)
-      : {};
+  const fields = Array.isArray(response.fields)
+    ? response.fields
+        .filter(
+          (
+            item,
+          ): item is Record<string, unknown> =>
+            Boolean(item) &&
+            typeof item === "object",
+        )
+        .map((item) => ({
+          key:
+            typeof item.key === "string"
+              ? item.key.trim()
+              : "",
+          label:
+            typeof item.label === "string"
+              ? item.label.trim()
+              : "",
+          value:
+            typeof item.value === "string"
+              ? item.value.trim()
+              : "",
+          confidence:
+            typeof item.confidence === "number"
+              ? Math.min(
+                  1,
+                  Math.max(0, item.confidence),
+                )
+              : 0.5,
+        }))
+        .filter(
+          (item) =>
+            item.key &&
+            item.label &&
+            item.value,
+        )
+    : [];
 
-  const extracted = Object.fromEntries(
-    Object.entries(extractedSource)
-      .filter(([, fieldValue]) =>
-        ["string", "number", "boolean"].includes(typeof fieldValue),
+  const intelligenceSource =
+    response.intelligence &&
+    typeof response.intelligence === "object"
+      ? (response.intelligence as Record<
+          string,
+          unknown
+        >)
+      : null;
+
+  const normalizeIssues = (
+    issues: unknown,
+  ): NonNullable<
+    DocumentIntelligenceResult["intelligence"]
+  >["warnings"] => {
+    if (!Array.isArray(issues)) {
+      return [];
+    }
+
+    return issues
+      .filter(
+        (
+          item,
+        ): item is Record<string, unknown> =>
+          Boolean(item) &&
+          typeof item === "object",
       )
-      .map(([key, fieldValue]) => [key, fieldValue as OcrFieldValue]),
-  );
+      .map((item) => {
+        const severity:
+          | "info"
+          | "warning"
+          | "critical" =
+          item.severity === "critical" ||
+          item.severity === "warning" ||
+          item.severity === "info"
+            ? item.severity
+            : "warning";
 
-  return { rawText, documentType, extracted };
+        return {
+          code:
+            typeof item.code === "string"
+              ? item.code
+              : "GENERAL",
+          severity,
+          message:
+            typeof item.message === "string"
+              ? item.message
+              : "",
+        };
+      })
+      .filter((item) => item.message);
+  };
+
+  const intelligence: DocumentIntelligenceResult["intelligence"] = intelligenceSource
+    ? {
+        documentType:
+          typeof intelligenceSource.documentType ===
+          "string"
+            ? intelligenceSource.documentType
+            : documentType,
+        documentMatch:
+          intelligenceSource.documentMatch ===
+            "match" ||
+          intelligenceSource.documentMatch ===
+            "possible_match" ||
+          intelligenceSource.documentMatch ===
+            "mismatch" ||
+          intelligenceSource.documentMatch ===
+            "unknown"
+            ? intelligenceSource.documentMatch
+            : ("unknown" as const),
+        qualityScore:
+          typeof intelligenceSource.qualityScore ===
+          "number"
+            ? Math.min(
+                100,
+                Math.max(
+                  0,
+                  intelligenceSource.qualityScore,
+                ),
+              )
+            : 0,
+        isReadable:
+          typeof intelligenceSource.isReadable ===
+          "boolean"
+            ? intelligenceSource.isReadable
+            : Boolean(rawText),
+        mrzDetected:
+          typeof intelligenceSource.mrzDetected ===
+          "boolean"
+            ? intelligenceSource.mrzDetected
+            : false,
+        expiryStatus:
+          intelligenceSource.expiryStatus ===
+            "valid" ||
+          intelligenceSource.expiryStatus ===
+            "expiring_soon" ||
+          intelligenceSource.expiryStatus ===
+            "expired" ||
+          intelligenceSource.expiryStatus ===
+            "not_applicable" ||
+          intelligenceSource.expiryStatus ===
+            "unknown"
+            ? intelligenceSource.expiryStatus
+            : ("unknown" as const),
+        summary:
+          typeof intelligenceSource.summary ===
+          "string"
+            ? intelligenceSource.summary
+            : "",
+        nextAction:
+          typeof intelligenceSource.nextAction ===
+          "string"
+            ? intelligenceSource.nextAction
+            : "",
+        warnings: normalizeIssues(
+          intelligenceSource.warnings,
+        ),
+        risks: normalizeIssues(
+          intelligenceSource.risks,
+        ),
+      }
+    : undefined;
+
+  return {
+    rawText,
+    documentType,
+    fields,
+    intelligence,
+  };
 }
 
 export default function ProcessDetailPage() {
@@ -951,7 +1094,18 @@ export default function ProcessDetailPage() {
       const response = await fetch("/api/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileUrl, fileName, contentType }),
+        body: JSON.stringify({
+          processId,
+          documentKey,
+          documentTitle:
+            activeProcess.requiredDocuments.find(
+              (item) => item.key === documentKey,
+            )?.title || fileName,
+          fileUrl,
+          fileName,
+          contentType,
+          language,
+        }),
       });
 
       const payload = (await response.json().catch(() => null)) as
@@ -1640,13 +1794,30 @@ export default function ProcessDetailPage() {
 
                 const isUploading = uploadState?.documentKey === item.key;
                 const isAnalyzing = ocrState?.documentKey === item.key;
-                const ocrEntries = Object.entries(item.ocr?.extracted || {}).filter(
-                  ([, value]) => value !== null && String(value).trim() !== "",
-                );
+                const localizedDocumentTitle =
+                  getLocalizedDocumentTitle(
+                    {
+                      templateKey: process.templateKey,
+                      processTitle: process.title,
+                      documentKey: item.key,
+                      documentTitle: item.title,
+                    },
+                    language,
+                  ) || item.title;
+                const localizedDocumentDescription =
+                  getLocalizedDocumentDescription(
+                    {
+                      templateKey: process.templateKey,
+                      processTitle: process.title,
+                      documentKey: item.key,
+                      documentDescription: item.description,
+                    },
+                    language,
+                  );
 
                 return (
                   <article
-                    key={item.key || `${item.title}-${index}`}
+                    key={item.key || `${localizedDocumentTitle}-${index}`}
                     onDragOver={(event) => {
                       event.preventDefault();
                       setDraggedDocumentKey(item.key);
@@ -1668,7 +1839,7 @@ export default function ProcessDetailPage() {
                           )
                         }
                         className="mt-3 h-4 w-4 accent-indigo-500 disabled:opacity-30"
-                        aria-label={`${item.title} belgesini seç`}
+                        aria-label={`${localizedDocumentTitle} belgesini seç`}
                       />
                       <div
                         className={
@@ -1684,13 +1855,13 @@ export default function ProcessDetailPage() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <h3 className="font-semibold text-slate-100">
-                              {item.title}
+                              {localizedDocumentTitle}
                             </h3>
 
                             <p className="mt-1 text-xs text-slate-500">
                               {item.required === false
-                                ? "Duruma göre gerekli"
-                                : "Zorunlu belge"}
+                                ? copy.conditional
+                                : copy.required}
                             </p>
                           </div>
 
@@ -1705,9 +1876,9 @@ export default function ProcessDetailPage() {
                           </span>
                         </div>
 
-                        {item.description ? (
+                        {localizedDocumentDescription ? (
                           <p className="mt-3 text-sm leading-6 text-slate-400">
-                            {item.description}
+                            {localizedDocumentDescription}
                           </p>
                         ) : null}
 
@@ -1769,7 +1940,7 @@ export default function ProcessDetailPage() {
                         {isUploading ? (
                           <div className="mt-4">
                             <div className="flex items-center justify-between text-xs text-slate-400">
-                              <span>Yükleniyor...</span>
+                              <span>{copy.uploading}</span>
                               <span>%{uploadState.progress}</span>
                             </div>
 
@@ -1791,72 +1962,29 @@ export default function ProcessDetailPage() {
                               <div>
                                 <p className="text-sm font-semibold text-violet-100">
                                   {ocrState.mode === "saving"
-                                    ? "AI sonucu kaydediliyor..."
-                                    : "AI belgeyi analiz ediyor..."}
+                                    ? copy.aiSaving
+                                    : copy.aiAnalyzing}
                                 </p>
                                 <p className="mt-1 text-xs text-violet-200/60">
-                                  Metin ve belge alanları çıkarılıyor.
+                                  {copy.extracting}
                                 </p>
                               </div>
                             </div>
                           </div>
                         ) : item.ocr ? (
-                          <div className="mt-4 rounded-xl border border-violet-400/20 bg-violet-400/[0.06] p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
-                                  AI OCR sonucu
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-violet-100">
-                                  {item.ocr.documentType || copy.document}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void analyzeDocumentWithOcr(
-                                    item.key,
-                                    item.fileUrl || "",
-                                    item.fileName || item.title,
-                                    item.contentType || "application/pdf",
-                                  )
-                                }
-                                disabled={Boolean(uploadState || ocrState || !item.fileUrl)}
-                                className="rounded-lg border border-violet-300/20 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Yeniden analiz et
-                              </button>
-                            </div>
-
-                            {ocrEntries.length > 0 ? (
-                              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                                {ocrEntries.map(([key, value]) => (
-                                  <div
-                                    key={key}
-                                    className="rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2"
-                                  >
-                                    <dt className="text-[11px] text-slate-500">
-                                      {getOcrFieldLabel(key)}
-                                    </dt>
-                                    <dd className="mt-1 break-words text-sm text-slate-200">
-                                      {String(value)}
-                                    </dd>
-                                  </div>
-                                ))}
-                              </dl>
-                            ) : null}
-
-                            {item.ocr.rawText ? (
-                              <details className="mt-4">
-                                <summary className="cursor-pointer text-xs font-semibold text-violet-200">
-                                  Okunan tam metni göster
-                                </summary>
-                                <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-slate-950/60 p-3 text-xs leading-5 text-slate-300">
-                                  {item.ocr.rawText}
-                                </pre>
-                              </details>
-                            ) : null}
-                          </div>
+                          <DocumentIntelligenceCard
+                            result={item.ocr}
+                            language={language}
+                            isBusy={Boolean(uploadState || ocrState)}
+                            onReanalyze={() =>
+                              void analyzeDocumentWithOcr(
+                                item.key,
+                                item.fileUrl || "",
+                                item.fileName || localizedDocumentTitle,
+                                item.contentType || "application/pdf",
+                              )
+                            }
+                          />
                         ) : item.ocrError ? (
                           <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
                             <p className="text-sm font-semibold text-amber-100">
@@ -1872,7 +2000,7 @@ export default function ProcessDetailPage() {
                                   void analyzeDocumentWithOcr(
                                     item.key,
                                     item.fileUrl || "",
-                                    item.fileName || item.title,
+                                    item.fileName || localizedDocumentTitle,
                                     item.contentType || "application/pdf",
                                   )
                                 }
@@ -1890,7 +2018,7 @@ export default function ProcessDetailPage() {
                               void analyzeDocumentWithOcr(
                                 item.key,
                                 item.fileUrl || "",
-                                item.fileName || item.title,
+                                item.fileName || localizedDocumentTitle,
                                 item.contentType || "application/pdf",
                               )
                             }
@@ -1951,7 +2079,7 @@ export default function ProcessDetailPage() {
                               >
                                 {deletingDocumentKey === item.key
                                   ? copy.deleting
-                                  : "Sil"}
+                                  : copy.delete}
                               </button>
                             </>
                           ) : null}
@@ -1996,7 +2124,7 @@ export default function ProcessDetailPage() {
                   {previewDocument.fileName || previewDocument.title}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {previewDocument.contentType || "Belge"}
+                  {previewDocument.contentType || copy.document}
                 </p>
               </div>
               <div className="flex gap-2">

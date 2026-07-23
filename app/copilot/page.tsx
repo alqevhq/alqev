@@ -3,10 +3,24 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { analyzeProcesses } from "@/lib/ai";
+import {
+  getTranslations,
+  isRtlLanguage,
+  readStoredLanguage,
+  type Language,
+} from "@/lib/i18n";
 
 type RequiredDocument = {
   key: string;
@@ -34,7 +48,12 @@ type Message = {
   content: string;
 };
 
-function normalizeDocuments(value: unknown): RequiredDocument[] {
+const MAX_STORED_MESSAGES = 40;
+
+function normalizeDocuments(
+  value: unknown,
+  unnamedDocument: string,
+): RequiredDocument[] {
   if (!Array.isArray(value)) return [];
 
   return value
@@ -50,7 +69,7 @@ function normalizeDocuments(value: unknown): RequiredDocument[] {
       title:
         typeof item.title === "string" && item.title.trim()
           ? item.title
-          : "Başlıksız belge",
+          : unnamedDocument,
       required:
         typeof item.required === "boolean" ? item.required : undefined,
       status:
@@ -82,18 +101,83 @@ function includesAny(value: string, words: string[]): boolean {
   return words.some((word) => value.includes(word));
 }
 
+function formatText(
+  template: string,
+  values: Record<string, string | number>,
+): string {
+  return Object.entries(values).reduce(
+    (result, [key, value]) =>
+      result.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+
+function normalizeStoredMessages(
+  documents: Array<{
+    id: string;
+    data: () => Record<string, unknown>;
+  }>,
+): Message[] {
+  return documents
+    .map((documentItem) => {
+      const data = documentItem.data();
+      const role =
+        data.role === "user" || data.role === "assistant"
+          ? data.role
+          : null;
+      const content =
+        typeof data.content === "string"
+          ? data.content.trim().slice(0, 4000)
+          : "";
+
+      if (!role || !content) {
+        return null;
+      }
+
+      return {
+        id: documentItem.id,
+        role,
+        content,
+      } satisfies Message;
+    })
+    .filter((item): item is Message => item !== null);
+}
+
+async function saveCopilotMessage(
+  userId: string,
+  message: Pick<Message, "role" | "content">,
+  language: Language,
+): Promise<void> {
+  const content = message.content.trim().slice(0, 4000);
+
+  if (!content) {
+    return;
+  }
+
+  await addDoc(
+    collection(
+      db,
+      "users",
+      userId,
+      "copilotMessages",
+    ),
+    {
+      role: message.role,
+      content,
+      language,
+      createdAt: serverTimestamp(),
+    },
+  );
+}
+
 export default function CopilotPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Merhaba! Süreçlerin, belgelerin ve yaklaşan tarihler hakkında bana soru sorabilirsin.",
-    },
-  ]);
+  const [language] = useState<Language>(() => readStoredLanguage("tr"));
+  const copy = getTranslations(language).copilot;
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [replying, setReplying] = useState(false);
@@ -123,12 +207,44 @@ export default function CopilotPage() {
           query(reference, orderBy("createdAt", "desc")),
         ).catch(() => getDocs(reference));
 
+        const messagesReference = collection(
+          db,
+          "users",
+          currentUser.uid,
+          "copilotMessages",
+        );
+
+        const messagesSnapshot = await getDocs(
+          query(
+            messagesReference,
+            orderBy("createdAt", "desc"),
+            limit(MAX_STORED_MESSAGES),
+          ),
+        ).catch(() => getDocs(messagesReference));
+
         if (!mounted) return;
+
+        const storedMessages = normalizeStoredMessages(
+          [...messagesSnapshot.docs].reverse(),
+        );
+
+        setMessages(
+          storedMessages.length > 0
+            ? storedMessages
+            : [
+                {
+                  id: "welcome",
+                  role: "assistant",
+                  content: copy.welcomeMessage,
+                },
+              ],
+        );
 
         const list: Process[] = snapshot.docs.map((processDocument) => {
           const data = processDocument.data();
           const requiredDocuments = normalizeDocuments(
             data.requiredDocuments,
+            copy.unnamedDocument,
           );
           const completed = requiredDocuments.filter(isCompleted).length;
           const total = requiredDocuments.length;
@@ -138,13 +254,13 @@ export default function CopilotPage() {
             title:
               typeof data.title === "string" && data.title.trim()
                 ? data.title
-                : "Başlıksız Süreç",
+                : copy.unnamedProcess,
             description:
               typeof data.description === "string" ? data.description : "",
             country:
               typeof data.country === "string"
                 ? data.country
-                : "Belirtilmedi",
+                : copy.unspecified,
             status:
               typeof data.status === "string" ? data.status : "active",
             progress:
@@ -170,7 +286,7 @@ export default function CopilotPage() {
         setProcesses(list);
       } catch (loadError) {
         console.error("Copilot verileri yüklenemedi:", loadError);
-        if (mounted) setError("Copilot verileri yüklenemedi.");
+        if (mounted) setError(copy.dataLoadError);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -180,7 +296,7 @@ export default function CopilotPage() {
       mounted = false;
       unsubscribe();
     };
-  }, [router]);
+  }, [router, language]);
 
   const analysis = useMemo(() => analyzeProcesses(processes), [processes]);
 
@@ -212,13 +328,124 @@ export default function CopilotPage() {
   }, [processes]);
 
   function createReply(question: string): string {
-    const text = question.trim().toLocaleLowerCase("tr-TR");
+    const text = question.trim().toLocaleLowerCase(language);
 
-    if (includesAny(text, ["eksik", "belge", "evrak", "doküman"])) {
+    const keywordGroups: Record<
+      Language,
+      {
+        documents: string[];
+        deadlines: string[];
+        readiness: string[];
+        priority: string[];
+        passport: string[];
+        outOfScope: string[];
+      }
+    > = {
+      tr: {
+        documents: ["eksik", "belge", "evrak", "doküman"],
+        deadlines: ["deadline", "tarih", "kaç gün", "ne kadar kaldı"],
+        readiness: ["hazırlık puanı", "hazırlık", "ilerleme", "kaç puan"],
+        priority: ["bugün", "ne yapmalıyım", "sonraki", "öncelik"],
+        passport: ["pasaport", "geçerlilik", "süresi"],
+        outOfScope: [
+          "hava durumu",
+          "maç",
+          "borsa",
+          "kripto",
+          "yemek tarifi",
+          "film",
+          "müzik",
+        ],
+      },
+      de: {
+        documents: ["fehlend", "dokument", "unterlage"],
+        deadlines: ["frist", "termin", "datum", "tage"],
+        readiness: ["bereitschaftswert", "bereitschaft", "fortschritt", "punktzahl"],
+        priority: ["heute", "was soll ich", "nächste", "priorität"],
+        passport: ["pass", "reisepass", "gültigkeit"],
+        outOfScope: [
+          "wetter",
+          "fußball",
+          "börse",
+          "krypto",
+          "rezept",
+          "film",
+          "musik",
+        ],
+      },
+      en: {
+        documents: ["missing", "document", "paper"],
+        deadlines: ["deadline", "date", "days left"],
+        readiness: ["readiness score", "readiness", "progress", "score"],
+        priority: ["today", "what should", "next", "priority"],
+        passport: ["passport", "validity", "expiry"],
+        outOfScope: [
+          "weather",
+          "football",
+          "stock market",
+          "crypto",
+          "recipe",
+          "movie",
+          "music",
+        ],
+      },
+      ru: {
+        documents: ["отсутств", "документ", "бумаг"],
+        deadlines: ["срок", "дата", "дней"],
+        readiness: ["оценка готовности", "готовность", "прогресс"],
+        priority: ["сегодня", "что делать", "следующ", "приоритет"],
+        passport: ["паспорт", "срок действия"],
+        outOfScope: [
+          "погода",
+          "футбол",
+          "биржа",
+          "крипто",
+          "рецепт",
+          "фильм",
+          "музыка",
+        ],
+      },
+      ar: {
+        documents: ["ناقص", "مستند", "وثيقة"],
+        deadlines: ["موعد", "تاريخ", "أيام"],
+        readiness: ["درجة الجاهزية", "الجاهزية", "التقدم"],
+        priority: ["اليوم", "ماذا أفعل", "التالي", "أولوية"],
+        passport: ["جواز", "صلاحية"],
+        outOfScope: [
+          "الطقس",
+          "كرة القدم",
+          "البورصة",
+          "العملات الرقمية",
+          "وصفة",
+          "فيلم",
+          "موسيقى",
+        ],
+      },
+      fa: {
+        documents: ["ناقص", "مدرک", "سند"],
+        deadlines: ["مهلت", "تاریخ", "روز"],
+        readiness: ["امتیاز آمادگی", "آمادگی", "پیشرفت"],
+        priority: ["امروز", "چه کار", "بعدی", "اولویت"],
+        passport: ["گذرنامه", "اعتبار"],
+        outOfScope: [
+          "هوا",
+          "فوتبال",
+          "بورس",
+          "رمزارز",
+          "دستور غذا",
+          "فیلم",
+          "موسیقی",
+        ],
+      },
+    };
+
+    const keywords = keywordGroups[language];
+
+    if (includesAny(text, keywords.documents)) {
       if (summary.missing.length === 0) {
         return processes.length === 0
-          ? "Henüz bir sürecin yok. Önce yeni bir süreç oluşturmalısın."
-          : "Şu anda tamamlanmayı bekleyen zorunlu bir belge görünmüyor.";
+          ? copy.noProcesses
+          : copy.noMissingDocuments;
       }
 
       const list = summary.missing
@@ -229,51 +456,89 @@ export default function CopilotPage() {
         )
         .join("\n");
 
-      return `Şu anda ${summary.missing.length} zorunlu belge eksik görünüyor:\n\n${list}`;
+      return `${formatText(copy.missingDocumentsIntro, {
+        count: summary.missing.length,
+      })}\n\n${list}`;
     }
 
-    if (
-      includesAny(text, ["deadline", "tarih", "kaç gün", "ne kadar kaldı"])
-    ) {
+    if (includesAny(text, keywords.deadlines)) {
       const nearest = summary.deadlines[0];
-      if (!nearest) return "Kayıtlı bir hedef tarih görünmüyor.";
+
+      if (!nearest) {
+        return copy.noDeadline;
+      }
+
       if (nearest.days < 0) {
-        return `${nearest.processItem.title} hedef tarihi ${Math.abs(nearest.days)} gün geçmiş görünüyor.`;
+        return formatText(copy.deadlinePassed, {
+          process: nearest.processItem.title,
+          days: Math.abs(nearest.days),
+        });
       }
+
       if (nearest.days === 0) {
-        return `${nearest.processItem.title} hedef tarihi bugün.`;
+        return formatText(copy.deadlineToday, {
+          process: nearest.processItem.title,
+        });
       }
-      return `${nearest.processItem.title} hedef tarihine ${nearest.days} gün kaldı.`;
+
+      return formatText(copy.deadlineRemaining, {
+        process: nearest.processItem.title,
+        days: nearest.days,
+      });
     }
 
-    if (includesAny(text, ["puan", "hazır", "durum", "ilerleme"])) {
-      return `Hazırlık puanın ${analysis.readiness.score}/100. ${analysis.readiness.completedItems} / ${analysis.readiness.totalItems} belge tamamlandı.`;
+    if (includesAny(text, keywords.outOfScope)) {
+      const outOfScopeReplies: Record<Language, string> = {
+        tr: "Bu konu ALQEV Copilot’un süreç yönetimi kapsamı dışında. Vatandaşlık, oturum, vize, belgeler, hazırlık puanı veya yaklaşan tarihler hakkında yardımcı olabilirim.",
+        de: "Dieses Thema liegt außerhalb des Bereichs des ALQEV Copilot. Ich kann dir bei Staatsangehörigkeit, Aufenthalt, Visa, Dokumenten, Bereitschaft und Fristen helfen.",
+        en: "This topic is outside the scope of ALQEV Copilot. I can help with citizenship, residence, visas, documents, readiness and deadlines.",
+        ru: "Эта тема находится вне области ALQEV Copilot. Я могу помочь с гражданством, ВНЖ, визами, документами, готовностью и сроками.",
+        ar: "هذا الموضوع خارج نطاق ALQEV Copilot. يمكنني مساعدتك في شؤون الجنسية والإقامة والتأشيرات والمستندات والجاهزية والمواعيد.",
+        fa: "این موضوع خارج از حوزه ALQEV Copilot است. می‌توانم درباره تابعیت، اقامت، ویزا، مدارک، آمادگی و مهلت‌ها کمک کنم.",
+      };
+
+      return outOfScopeReplies[language];
     }
 
-    if (
-      includesAny(text, ["bugün", "ne yapmalıyım", "sonraki", "öncelik"])
-    ) {
+    if (includesAny(text, keywords.readiness)) {
+      return formatText(copy.readinessReply, {
+        score: analysis.readiness.score,
+        completed: analysis.readiness.completedItems,
+        total: analysis.readiness.totalItems,
+      });
+    }
+
+    if (includesAny(text, keywords.priority)) {
       if (summary.missing[0]) {
-        return `Bugünkü ilk adımın: ${summary.missing[0].documentTitle} belgesini ${summary.missing[0].processTitle} sürecine yüklemek.`;
+        return formatText(copy.todayFirstStep, {
+          document: summary.missing[0].documentTitle,
+          process: summary.missing[0].processTitle,
+        });
       }
+
       if (summary.deadlines[0]) {
-        return `${summary.deadlines[0].processItem.title} sürecini kontrol et. Hedef tarihe ${summary.deadlines[0].days} gün kaldı.`;
+        return formatText(copy.checkProcess, {
+          process: summary.deadlines[0].processItem.title,
+          days: summary.deadlines[0].days,
+        });
       }
+
       return processes.length > 0
-        ? "Süreç bilgilerini ve yüklenen belgeleri güncel tut."
-        : "İlk adım olarak yeni bir süreç oluştur.";
+        ? copy.keepUpdated
+        : copy.createFirstProcess;
     }
 
-    if (includesAny(text, ["pasaport", "geçerlilik", "süresi"])) {
-      return "Pasaport geçerlilik şartı ülkeye ve başvuru türüne göre değişir. Kesin işlem yapmadan önce ilgili resmî kurumun güncel şartlarını doğrula.";
+    if (includesAny(text, keywords.passport)) {
+      return copy.passportNotice;
     }
 
     const recommendation = analysis.recommendations[0];
+
     if (recommendation) {
-      return `${recommendation.message}\n\nBana “Eksik belgelerim neler?”, “Hazırlık puanım kaç?” veya “Bugün ne yapmalıyım?” diye sorabilirsin.`;
+      return `${recommendation.message}\n\n${copy.suggestedQuestions}`;
     }
 
-    return "Süreç durumun, eksik belgelerin, hazırlık puanın veya yaklaşan tarihler hakkında soru sorabilirsin.";
+    return copy.defaultReply;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -296,6 +561,22 @@ export default function CopilotPage() {
     userMessage,
   ]);
 
+  if (user) {
+    void saveCopilotMessage(
+      user.uid,
+      {
+        role: userMessage.role,
+        content: userMessage.content,
+      },
+      language,
+    ).catch((saveError) => {
+      console.error(
+        "Kullanıcı Copilot mesajı kaydedilemedi:",
+        saveError,
+      );
+    });
+  }
+
   setInput("");
   setReplying(true);
   setError("");
@@ -310,6 +591,7 @@ export default function CopilotPage() {
         question,
         processes,
         readiness: analysis.readiness,
+        language,
         conversation: previousMessages.map(
           ({ role, content }) => ({
             role,
@@ -327,24 +609,42 @@ export default function CopilotPage() {
     if (!response.ok) {
       throw new Error(
         data.error ||
-          "Copilot API isteği başarısız oldu.",
+          copy.apiRequestFailed,
       );
     }
 
     if (!data.answer?.trim()) {
       throw new Error(
-        "Copilot geçerli bir cevap döndürmedi.",
+        copy.invalidAnswer,
       );
     }
 
+    const assistantMessage: Message = {
+      id: `assistant-${Date.now()}`,
+      role: "assistant",
+      content: data.answer.trim(),
+    };
+
     setMessages((current) => [
       ...current,
-      {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: data.answer!.trim(),
-      },
+      assistantMessage,
     ]);
+
+    if (user) {
+      void saveCopilotMessage(
+        user.uid,
+        {
+          role: assistantMessage.role,
+          content: assistantMessage.content,
+        },
+        language,
+      ).catch((saveError) => {
+        console.error(
+          "Copilot cevabı kaydedilemedi:",
+          saveError,
+        );
+      });
+    }
   } catch (requestError) {
     console.error(
       "Gemini Copilot hatası:",
@@ -353,18 +653,36 @@ export default function CopilotPage() {
 
     setError(
       requestError instanceof Error
-        ? `${requestError.message} Yerel Copilot yanıtı kullanıldı.`
-        : "Gemini bağlantısı kurulamadı. Yerel Copilot yanıtı kullanıldı.",
+        ? `${requestError.message} ${copy.localReplyUsed}`
+        : copy.connectionFailed,
     );
+
+    const fallbackMessage: Message = {
+      id: `assistant-${Date.now()}`,
+      role: "assistant",
+      content: createReply(question),
+    };
 
     setMessages((current) => [
       ...current,
-      {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: createReply(question),
-      },
+      fallbackMessage,
     ]);
+
+    if (user) {
+      void saveCopilotMessage(
+        user.uid,
+        {
+          role: fallbackMessage.role,
+          content: fallbackMessage.content,
+        },
+        language,
+      ).catch((saveError) => {
+        console.error(
+          "Yerel Copilot cevabı kaydedilemedi:",
+          saveError,
+        );
+      });
+    }
   } finally {
     setReplying(false);
   }
@@ -372,8 +690,8 @@ export default function CopilotPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <p className="text-sm text-slate-400">ALQEV AI hazırlanıyor...</p>
+      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <p className="text-sm text-slate-400">{copy.loading}</p>
       </main>
     );
   }
@@ -381,7 +699,7 @@ export default function CopilotPage() {
   if (!user) return null;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/dashboard" className="flex items-center gap-3">
@@ -391,7 +709,7 @@ export default function CopilotPage() {
               <p className="text-xs text-slate-500">AI Copilot</p>
             </div>
           </Link>
-          <Link href="/dashboard" className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-800">Dashboard</Link>
+          <Link href="/dashboard" className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-800">{copy.dashboard}</Link>
         </nav>
       </header>
 
@@ -403,20 +721,20 @@ export default function CopilotPage() {
         <section className="grid min-h-[700px] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] lg:grid-cols-[0.32fr_0.68fr]">
           <aside className="border-b border-white/10 bg-black/15 p-6 lg:border-b-0 lg:border-r">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">ALQEV AI</p>
-            <h1 className="mt-4 text-3xl font-bold">Kişisel Copilot</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-400">Süreçlerini, belgelerini ve yaklaşan tarihlerini anlayan kişisel asistanın.</p>
+            <h1 className="mt-4 text-3xl font-bold">{copy.title}</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-400">{copy.subtitle}</p>
 
             <div className="mt-7 grid gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs text-slate-500">Hazırlık puanı</p>
+                <p className="text-xs text-slate-500">{copy.readinessScore}</p>
                 <p className="mt-2 text-2xl font-bold">{analysis.readiness.score}/100</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs text-slate-500">Aktif süreç</p>
+                <p className="text-xs text-slate-500">{copy.activeProcesses}</p>
                 <p className="mt-2 text-2xl font-bold">{summary.active.length}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs text-slate-500">Zorunlu eksik</p>
+                <p className="text-xs text-slate-500">{copy.missingRequired}</p>
                 <p className="mt-2 text-2xl font-bold text-amber-200">{summary.missing.length}</p>
               </div>
             </div>
@@ -424,8 +742,8 @@ export default function CopilotPage() {
 
           <div className="flex min-h-[700px] flex-col">
             <div className="border-b border-white/10 px-6 py-5">
-              <p className="font-semibold">ALQEV Capilot</p>
-              <p className="mt-1 text-xs text-emerald-300">● Süreç verilerinle hazır</p>
+              <p className="font-semibold">ALQEV Copilot</p>
+              <p className="mt-1 text-xs text-emerald-300">● {copy.readyWithProcessData}</p>
             </div>
 
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6 sm:px-7">
@@ -436,7 +754,7 @@ export default function CopilotPage() {
                   </div>
                 </div>
               ))}
-              {replying ? <p className="text-sm text-slate-500">Copilot düşünüyor...</p> : null}
+              {replying ? <p className="text-sm text-slate-500">{copy.thinking}</p> : null}
             </div>
 
             <form onSubmit={handleSubmit} className="border-t border-white/10 p-5 sm:p-6">
@@ -451,12 +769,12 @@ export default function CopilotPage() {
                     }
                   }}
                   rows={1}
-                  placeholder="Sürecin hakkında bir şey sor..."
+                  placeholder={copy.placeholder}
                   className="min-h-12 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
                 />
-                <button type="submit" disabled={!input.trim() || replying} className="self-end rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50">Gönder</button>
+                <button type="submit" disabled={!input.trim() || replying} className="self-end rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50">{copy.send}</button>
               </div>
-              <p className="mt-3 text-center text-xs text-slate-600">Copilot yönlendirici bilgi sunar. Resmî şartları ilgili kurumdan doğrula.</p>
+              <p className="mt-3 text-center text-xs text-slate-600">{copy.disclaimer}</p>
             </form>
           </div>
         </section>

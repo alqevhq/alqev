@@ -285,3 +285,36 @@ export function getLocalizedDocumentTitle(
     ""
   );
 }
+
+export function getLocalizedDocumentDescription(
+  input: {
+    templateKey?: string | null;
+    processTitle?: string | null;
+    documentKey?: string | null;
+    documentDescription?: string | null;
+  },
+  language: string,
+): string {
+  const normalizedLanguage =
+    normalizeProcessLanguage(language);
+
+  const template =
+    localizedProcessTemplates.find(
+      (item) => item.key === input.templateKey,
+    ) ??
+    (input.processTitle
+      ? findTemplateByStoredTitle(
+          input.processTitle,
+        )
+      : undefined);
+
+  const document = template?.documents.find(
+    (item) => item.key === input.documentKey,
+  );
+
+  return (
+    document?.description[normalizedLanguage] ??
+    input.documentDescription ??
+    ""
+  );
+}

@@ -5,12 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-import { analyzeProcesses } from "@/lib/ai";
-import type {
-  AiProcess,
-  AiRecommendation,
-  AiSeverity,
-} from "@/lib/ai";
+import {
+  analyzeProcess,
+  type AdvisorProcess,
+  type AdvisorRecommendation,
+  type AdvisorSeverity,
+} from "@/lib/ai/process-advisor";
 import { auth, db } from "@/lib/firebase";
 import { normalizeSubscriptionPlan } from "@/lib/subscription";
 import {
@@ -21,7 +21,7 @@ import {
   type Language,
 } from "@/lib/i18n";
 
-type ProcessWithTemplate = AiProcess & {
+type ProcessWithTemplate = AdvisorProcess & {
   templateKey?: string;
 };
 
@@ -31,7 +31,7 @@ type ProcessAiPanelProps = {
 
 type SubscriptionPlan = "free" | "premium";
 
-const severityStyles: Record<AiSeverity, string> = {
+const severityStyles: Record<AdvisorSeverity, string> = {
   success:
     "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-100",
   info:
@@ -42,7 +42,7 @@ const severityStyles: Record<AiSeverity, string> = {
     "border-red-400/20 bg-red-400/[0.07] text-red-100",
 };
 
-const severityIcons: Record<AiSeverity, string> = {
+const severityIcons: Record<AdvisorSeverity, string> = {
   success: "✓",
   info: "i",
   warning: "!",
@@ -381,10 +381,6 @@ function fillTemplate(
   );
 }
 
-function isCompleted(status?: string) {
-  return status === "uploaded" ||
-    status === "approved";
-}
 
 function getDaysUntil(deadline?: string | null) {
   if (!deadline) return null;
@@ -428,46 +424,8 @@ function getReadinessLabel(
   return currentCopy.readinessLow;
 }
 
-function getEstimatedPreparationText(
-  process: AiProcess,
-  language: Language,
-): string {
-  const currentCopy = copy[language];
-
-  const missingRequired =
-    process.requiredDocuments.filter(
-      (item) =>
-        item.required !== false &&
-        !isCompleted(item.status),
-    ).length;
-
-  const missingOptional =
-    process.requiredDocuments.filter(
-      (item) =>
-        item.required === false &&
-        !isCompleted(item.status),
-    ).length;
-
-  if (
-    missingRequired === 0 &&
-    missingOptional === 0
-  ) {
-    return currentCopy.complete;
-  }
-
-  const estimatedDays = Math.max(
-    1,
-    missingRequired * 2 + missingOptional,
-  );
-
-  return fillTemplate(
-    currentCopy.estimatedDays,
-    { count: estimatedDays },
-  );
-}
-
 function getRecommendationText(
-  item: AiRecommendation,
+  item: AdvisorRecommendation,
   process: ProcessWithTemplate,
   language: Language,
 ): { title: string; message: string } {
@@ -545,7 +503,7 @@ function RecommendationCard({
   process,
   language,
 }: {
-  item: AiRecommendation;
+  item: AdvisorRecommendation;
   process: ProcessWithTemplate;
   language: Language;
 }) {
@@ -661,7 +619,7 @@ export default function ProcessAiPanel({
   }, []);
 
   const analysis = useMemo(
-    () => analyzeProcesses([process]),
+    () => analyzeProcess(process),
     [process],
   );
 
@@ -844,10 +802,15 @@ export default function ProcessAiPanel({
                 </p>
 
                 <p className="mt-2 font-semibold text-slate-100">
-                  {getEstimatedPreparationText(
-                    process,
-                    language,
-                  )}
+                  {analysis.estimatedPreparationDays === 0
+                    ? currentCopy.complete
+                    : fillTemplate(
+                        currentCopy.estimatedDays,
+                        {
+                          count:
+                            analysis.estimatedPreparationDays,
+                        },
+                      )}
                 </p>
               </div>
 
