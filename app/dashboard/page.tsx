@@ -19,7 +19,8 @@ import {
   type User,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { analyzeProcesses } from "@/lib/ai";
+import { analyzeDashboard } from "@/lib/ai/dashboard-advisor";
+import type { AdvisorProcess } from "@/lib/ai/process-advisor";
 import {
   getLocalizedDocumentTitle,
   getLocalizedProcessTitle,
@@ -1237,35 +1238,20 @@ export default function DashboardPage() {
     };
   }, [processes]);
 
-  const aiAnalysis = useMemo(
-    () => analyzeProcesses(processes),
+  const dashboardAdvisor = useMemo(
+    () =>
+      analyzeDashboard(
+        processes as unknown as AdvisorProcess[],
+      ),
     [processes],
   );
 
   const dashboardIntelligence = useMemo(() => {
     const copy = uiTranslations[selectedLanguage];
-    const criticalRecommendations =
-      aiAnalysis.recommendations.filter(
-        (item) =>
-          item.severity === "critical",
-      );
-
-    const warningRecommendations =
-      aiAnalysis.recommendations.filter(
-        (item) =>
-          item.severity === "warning",
-      );
-
-    const nearestDeadline =
-      dashboardData.upcomingProcesses[0] ??
-      null;
-
     const priorities: PriorityItem[] = [];
 
-    for (const recommendation of [
-      ...criticalRecommendations,
-      ...warningRecommendations,
-    ].slice(0, 3)) {
+    for (const recommendation of
+      dashboardAdvisor.priorityQueue.slice(0, 3)) {
       const recommendationProcess = processes.find(
         (processItem) =>
           processItem.id === recommendation.processId,
@@ -1281,6 +1267,18 @@ export default function DashboardPage() {
         ...recommendation,
         variables: {
           ...(recommendation.variables || {}),
+          ...(recommendationProcess
+            ? {
+                process: getLocalizedProcessTitle(
+                  {
+                    templateKey:
+                      recommendationProcess.templateKey,
+                    title: recommendationProcess.title,
+                  },
+                  selectedLanguage,
+                ),
+              }
+            : {}),
           ...(recommendationDocument
             ? {
                 document: getLocalizedDocumentTitle(
@@ -1307,138 +1305,89 @@ export default function DashboardPage() {
       );
 
       priorities.push({
-        id: `recommendation-${priorities.length}`,
+        id: recommendation.id,
         title: recommendationText.title,
         description: recommendationText.message,
-        href: dashboardData.primaryProcess
-          ? `/processes/${dashboardData.primaryProcess.id}`
-          : "/processes/new",
-        severity:
-          recommendation.severity === "critical"
-            ? "critical"
-            : "warning",
-      });
-    }
-
-    for (const item of dashboardData.requiredMissingDocuments) {
-      if (priorities.length >= 3) {
-        break;
-      }
-
-      priorities.push({
-        id: `missing-${item.processId}-${item.document.key}`,
-        title: getLocalizedDocumentTitle(
-          {
-            processTitle: item.processTitle,
-            documentKey: item.document.key,
-            documentTitle: item.document.title,
-          },
-          selectedLanguage,
-        ),
-        description: fillTemplate(
-          copy.requiredDocumentMissing,
-          {
-            process: getLocalizedProcessTitle(
-              { title: item.processTitle },
-              selectedLanguage,
-            ),
-          },
-        ),
-        href: `/processes/${item.processId}`,
-        severity: "warning",
-      });
-    }
-
-    if (
-      priorities.length < 3 &&
-      nearestDeadline
-    ) {
-      priorities.push({
-        id: `deadline-${nearestDeadline.id}`,
-        title: nearestDeadline.title,
-        description:
-          nearestDeadline.daysUntil === 0
-            ? copy.deadlineToday
-            : fillTemplate(copy.deadlineInDays, { count: nearestDeadline.daysUntil }),
-        href: `/processes/${nearestDeadline.id}`,
-        severity:
-          nearestDeadline.daysUntil <= 3
-            ? "critical"
-            : nearestDeadline.daysUntil <= 14
-              ? "warning"
-              : "info",
-      });
-    }
-
-    if (
-      priorities.length === 0 &&
-      dashboardData.primaryProcess
-    ) {
-      priorities.push({
-        id: "ready-primary-process",
-        title: copy.preparationControlled,
-        description: copy.preparationControlledText,
-        href: `/processes/${dashboardData.primaryProcess.id}`,
-        severity: "success",
+        href: recommendation.processId
+          ? `/processes/${recommendation.processId}`
+          : dashboardData.primaryProcess
+            ? `/processes/${dashboardData.primaryProcess.id}`
+            : "/processes/new",
+        severity: recommendation.severity,
       });
     }
 
     if (priorities.length === 0) {
       priorities.push({
         id: "create-first-process",
-        title: copy.createFirstProcessTitle,
-        description: copy.createFirstProcessText,
-        href: "/processes/new",
-        severity: "info",
+        title: processes.length > 0
+          ? copy.preparationControlled
+          : copy.createFirstProcessTitle,
+        description: processes.length > 0
+          ? copy.preparationControlledText
+          : copy.createFirstProcessText,
+        href: dashboardData.primaryProcess
+          ? `/processes/${dashboardData.primaryProcess.id}`
+          : "/processes/new",
+        severity: processes.length > 0
+          ? "success"
+          : "info",
       });
     }
 
-    const risk = getRiskLevel({
-      criticalCount:
-        criticalRecommendations.length +
-        dashboardData.overdueProcesses.length,
-      requiredMissingCount:
-        dashboardData.requiredMissingDocuments
-          .length,
-      nearestDeadlineDays:
-        nearestDeadline?.daysUntil ?? null,
-    }, copy);
+    const risk = getRiskLevel(
+      {
+        criticalCount:
+          dashboardAdvisor.metrics.criticalIssues,
+        requiredMissingCount:
+          dashboardAdvisor.metrics
+            .missingRequiredDocuments,
+        nearestDeadlineDays:
+          dashboardAdvisor.metrics
+            .nearestDeadlineDays,
+      },
+      copy,
+    );
 
-    const estimatedDays =
-      dashboardData.requiredMissingDocuments
-        .length > 0
-        ? Math.max(
-            1,
-            dashboardData.requiredMissingDocuments
-              .length * 2,
+    const advisorNextAction =
+      dashboardAdvisor.nextBestAction;
+
+    const nextActionProcess = advisorNextAction?.processId
+      ? processes.find(
+          (processItem) =>
+            processItem.id === advisorNextAction.processId,
+        )
+      : undefined;
+
+    const nextActionDocument =
+      advisorNextAction?.documentKey
+        ? nextActionProcess?.requiredDocuments.find(
+            (documentItem) =>
+              documentItem.key ===
+              advisorNextAction.documentKey,
           )
-        : dashboardData.optionalMissingDocuments
-              .length > 0
-          ? Math.max(
-              1,
-              dashboardData.optionalMissingDocuments
-                .length,
-            )
-          : 0;
-
-    const nextAction =
-      dashboardData.requiredMissingDocuments[0];
+        : undefined;
 
     return {
       priorities,
       criticalCount:
-        criticalRecommendations.length +
-        dashboardData.overdueProcesses.length,
+        dashboardAdvisor.metrics.criticalIssues,
       warningCount:
-        warningRecommendations.length +
-        dashboardData.requiredMissingDocuments
-          .length,
+        dashboardAdvisor.metrics.warnings,
       risk,
-      estimatedDays,
-      nextAction,
+      estimatedDays:
+        dashboardAdvisor.metrics
+          .totalEstimatedPreparationDays,
+      nextAction: advisorNextAction,
+      nextActionProcess,
+      nextActionDocument,
     };
-  }, [aiAnalysis, dashboardData, selectedLanguage]);
-
+  }, [
+    dashboardAdvisor,
+    dashboardData.primaryProcess,
+    processes,
+    selectedLanguage,
+  ]);
 
   async function handleLanguageChange(
     language: SupportedLanguage,
@@ -1551,7 +1500,7 @@ export default function DashboardPage() {
     null;
 
   const readinessScore =
-    aiAnalysis.readiness.score;
+    dashboardAdvisor.metrics.averageReadinessScore;
 
   const completedPercentage =
     dashboardData.totalDocuments > 0
@@ -1833,8 +1782,8 @@ export default function DashboardPage() {
             </p>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              {aiAnalysis.readiness.totalItems > 0
-                ? fillTemplate(copy.readinessProgress, { completed: aiAnalysis.readiness.completedItems, total: aiAnalysis.readiness.totalItems })
+              {dashboardAdvisor.metrics.totalDocuments > 0
+                ? fillTemplate(copy.readinessProgress, { completed: dashboardAdvisor.metrics.completedDocuments, total: dashboardAdvisor.metrics.totalDocuments })
                 : copy.readinessEmpty}
             </p>
 
@@ -1958,20 +1907,10 @@ export default function DashboardPage() {
 
             <p className="mt-3 text-xl font-bold">
               {dashboardIntelligence.nextAction
-                ? getLocalizedDocumentTitle(
-                    {
-                      processTitle:
-                        dashboardIntelligence.nextAction
-                          .processTitle,
-                      documentKey:
-                        dashboardIntelligence.nextAction
-                          .document.key,
-                      documentTitle:
-                        dashboardIntelligence.nextAction
-                          .document.title,
-                    },
-                    selectedLanguage,
-                  )
+                ? getRecommendationText(
+                    dashboardIntelligence.nextAction,
+                    copy,
+                  ).title
                 : primaryProcess
                   ? copy.checkProcess
                   : copy.createFirstProcessTitle}
@@ -1979,19 +1918,45 @@ export default function DashboardPage() {
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
               {dashboardIntelligence.nextAction
-                ? fillTemplate(
-                    copy.uploadRequiredDocument,
+                ? getRecommendationText(
                     {
-                      process: getLocalizedProcessTitle(
-                        {
-                          title:
-                            dashboardIntelligence.nextAction
-                              .processTitle,
-                        },
-                        selectedLanguage,
-                      ),
+                      ...dashboardIntelligence.nextAction,
+                      variables: {
+                        ...(dashboardIntelligence.nextAction.variables || {}),
+                        ...(dashboardIntelligence.nextActionProcess
+                          ? {
+                              process: getLocalizedProcessTitle(
+                                {
+                                  templateKey:
+                                    dashboardIntelligence.nextActionProcess.templateKey,
+                                  title:
+                                    dashboardIntelligence.nextActionProcess.title,
+                                },
+                                selectedLanguage,
+                              ),
+                            }
+                          : {}),
+                        ...(dashboardIntelligence.nextActionDocument
+                          ? {
+                              document: getLocalizedDocumentTitle(
+                                {
+                                  templateKey:
+                                    dashboardIntelligence.nextActionProcess?.templateKey,
+                                  processTitle:
+                                    dashboardIntelligence.nextActionProcess?.title,
+                                  documentKey:
+                                    dashboardIntelligence.nextActionDocument.key,
+                                  documentTitle:
+                                    dashboardIntelligence.nextActionDocument.title,
+                                },
+                                selectedLanguage,
+                              ),
+                            }
+                          : {}),
+                      },
                     },
-                  )
+                    copy,
+                  ).message
                 : primaryProcess
                   ? copy.checkAlerts
                   : copy.startRoadmap}
@@ -1999,7 +1964,7 @@ export default function DashboardPage() {
 
             <Link
               href={
-                dashboardIntelligence.nextAction
+                dashboardIntelligence.nextAction?.processId
                   ? `/processes/${dashboardIntelligence.nextAction.processId}`
                   : primaryProcess
                     ? `/processes/${primaryProcess.id}`
