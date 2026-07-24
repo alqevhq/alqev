@@ -24,44 +24,44 @@ const copy = {
   tr: {
     backDashboard: "Dashboard'a dön",
     login: "Giriş yap",
-    heroTitle: "{currentCopy.heroTitle}",
+    heroTitle: "Süreçlerini sınırsız yönet.",
     heroText:
       "Belgelerini, resmî işlemlerini ve yapay zekâ destekli hazırlık planını tek yerde yönet. Premium ile tüm limitleri kaldır.",
-    loadingPlan: "{currentCopy.loadingPlan}",
-    premiumActive: "{currentCopy.premiumActive}",
-    starter: "{currentCopy.starter}",
-    currentPlan: "{currentCopy.currentPlan}",
-    perMonth: "{currentCopy.perMonth}",
+    loadingPlan: "Plan bilgileri yükleniyor...",
+    premiumActive: "Premium planın aktif.",
+    starter: "Başlangıç",
+    currentPlan: "Mevcut plan",
+    perMonth: "/ ay",
     freeDescription:
-      "ALQEV'u denemek ve temel sürecini yönetmek için.",
-    useFree: "Free planı kullan",
+      "ALQEV'i denemek ve temel sürecini yönetmek için.",
+    useFree: "Ücretsiz planı kullan",
     startFree: "Ücretsiz başla",
-    recommended: "{currentCopy.recommended}",
-    professional: "{currentCopy.professional}",
+    recommended: "ÖNERİLEN",
+    professional: "Profesyonel",
     premiumDescription:
       "Süreçlerini sınırsız yönetmek ve ALQEV AI'ın gelişmiş özelliklerini kullanmak için.",
-    premiumActiveShort: "{currentCopy.premiumActiveShort}",
-    earlyAccessRequest: "{currentCopy.earlyAccessRequest}",
-    createForPremium: "{currentCopy.createForPremium}",
+    premiumActiveShort: "Premium aktif",
+    earlyAccessRequest: "Premium erken erişim talebi oluştur",
+    createForPremium: "Premium için hesap oluştur",
     earlyAccessHint:
       "Güvenli ödeme sistemi açıldığında erken erişim kullanıcılarına öncelik verilecek.",
-    whyPremium: "{currentCopy.whyPremium}",
+    whyPremium: "Neden ALQEV Premium?",
     whyPremiumText:
       "Premium yalnızca daha yüksek kullanım limiti sunmaz. Belgelerini daha ayrıntılı analiz eder, eksiklerini önceliklendirir ve süreçlerin için kişiselleştirilmiş bir yol haritası oluşturur.",
     modalLabel: "Premium erken erişim",
-    requestReceived: "{currentCopy.requestReceived}",
+    requestReceived: "Talebin alındı",
     requestReceivedText:
       "Premium ödeme sistemi aktif olduğunda sana öncelikli olarak haber vereceğiz.",
-    okay: "{currentCopy.okay}",
-    joinWaitlist: "{currentCopy.joinWaitlist}",
+    okay: "Tamam",
+    joinWaitlist: "Bekleme listesine katıl",
     waitlistText:
       "Ödeme sistemi aktif olduğunda ilk bilgilendirilen kullanıcılardan biri ol. Talep şu hesap adına kaydedilecek:",
     emailMissing: "E-posta bilgisi bulunamadı",
-    cancel: "{currentCopy.cancel}",
+    cancel: "İptal",
     saving: "Kaydediliyor...",
     sendRequest: "Erken erişim talebi gönder",
     loginRequired:
-      "{currentCopy.earlyAccessRequest} için önce hesabına giriş yapmalısın.",
+      "Premium erken erişim talebi oluşturmak için önce hesabına giriş yapmalısın.",
     requestError: "Talebin kaydedilemedi. Lütfen tekrar dene.",
     freeFeatures: [
       "1 aktif süreç",
@@ -458,7 +458,7 @@ export default function PricingPage() {
 
     if (!user) {
       setRequestError(
-        "{currentCopy.earlyAccessRequest} için önce hesabına giriş yapmalısın.",
+        currentCopy.loginRequired,
       );
       return;
     }
@@ -741,7 +741,7 @@ export default function PricingPage() {
             ) : (
               <>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
-                  Premium erken erişim
+                  {currentCopy.modalLabel}
                 </p>
 
                 <h2 className="mt-3 text-2xl font-bold">
@@ -781,8 +781,8 @@ export default function PricingPage() {
                     className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-indigo-500 px-5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isRequesting
-                      ? "Kaydediliyor..."
-                      : "Erken erişim talebi gönder"}
+                      ? currentCopy.saving
+                      : currentCopy.sendRequest}
                   </button>
                 </form>
               </>
