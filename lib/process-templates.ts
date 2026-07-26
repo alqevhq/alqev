@@ -256,6 +256,31 @@ export function getLocalizedProcessTitle(
   );
 }
 
+export function getLocalizedProcessDescription(
+  input: {
+    templateKey?: string | null;
+    processTitle?: string | null;
+    processDescription?: string | null;
+  },
+  language: string,
+): string {
+  const normalizedLanguage = normalizeProcessLanguage(language);
+
+  const template =
+    localizedProcessTemplates.find(
+      (item) => item.key === input.templateKey,
+    ) ??
+    (input.processTitle
+      ? findTemplateByStoredTitle(input.processTitle)
+      : undefined);
+
+  return (
+    template?.description[normalizedLanguage] ??
+    input.processDescription ??
+    ""
+  );
+}
+
 export function getLocalizedDocumentTitle(
   input: {
     templateKey?: string | null;

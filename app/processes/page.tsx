@@ -15,6 +15,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import {
   getLocalizedCountryLabel,
+  getLocalizedProcessDescription,
   getLocalizedProcessTitle,
   normalizeProcessLanguage,
 } from "@/lib/process-templates";
@@ -494,6 +495,15 @@ export default function ProcessesPage() {
             },
             language,
           ) || process.title,
+        localizedDescription:
+          getLocalizedProcessDescription(
+            {
+              templateKey: process.templateKey,
+              processTitle: process.title,
+              processDescription: process.description,
+            },
+            language,
+          ) || process.description,
       })),
     [processes, language],
   );
@@ -669,10 +679,10 @@ export default function ProcessesPage() {
                         </span>
                       </div>
 
-                      {process.description ? (
+                      {process.localizedDescription ? (
                         <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
                           {
-                            process.description
+                            process.localizedDescription
                           }
                         </p>
                       ) : null}
