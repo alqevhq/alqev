@@ -3,6 +3,7 @@
 import {
   FormEvent,
   KeyboardEvent,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -312,7 +313,7 @@ function createMessage(
   };
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollAnchorRef =
@@ -1153,5 +1154,20 @@ export default function ChatPage() {
         </section>
       </div>
     </main>
+  );
+}export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#060b1b] px-6 text-white">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-indigo-400" />
+            <span className="text-sm text-slate-300">ALQEV...</span>
+          </div>
+        </main>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
   );
 }

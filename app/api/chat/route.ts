@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildAlSystemPrompt } from "@/lib/ai/system-prompt";
-import { detectChatCategory } from "@/lib/ai/router";
-import { getKnowledgeForCategory } from "@/lib/ai/knowledge";
+
 const MAX_RETRIES = 4;
 const MAX_MESSAGE_LENGTH = 4_000;
 const MAX_HISTORY_ITEMS = 20;
@@ -165,9 +163,8 @@ export async function POST(request: NextRequest) {
     const profile = normalizeObject(body.profile, 20);
     const processes = normalizeObjectArray(body.processes, 10);
     const documents = normalizeObjectArray(body.documents, 30);
-    const detectedCategory = detectChatCategory(message);
-const domainKnowledge =
-  getKnowledgeForCategory(detectedCategory);
+    const detectedCategory = detectCategory(message);
+
     const model =
       process.env.GEMINI_CHAT_MODEL?.trim() ||
       process.env.GEMINI_MODEL?.trim() ||
@@ -183,7 +180,6 @@ const domainKnowledge =
       processes,
       documents,
       detectedCategory,
-      domainKnowledge,
     });
 
     const responseText =
@@ -233,7 +229,6 @@ async function callGeminiWithRetry(input: {
   processes: Array<Record<string, unknown>>;
   documents: Array<Record<string, unknown>>;
   detectedCategory: ChatCategory;
-  domainKnowledge: string;
 }): Promise<GeminiResponse> {
   let lastError = "";
 
@@ -250,7 +245,7 @@ async function callGeminiWithRetry(input: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: buildAlSystemPrompt(input.language) }],
+            parts: [{ text: buildSystemInstruction(input.language) }],
           },
           contents: [
             ...input.history.map((item) => ({
@@ -337,7 +332,6 @@ function buildUserPrompt(input: {
   processes: Array<Record<string, unknown>>;
   documents: Array<Record<string, unknown>>;
   detectedCategory: ChatCategory;
-  domainKnowledge: string;
 }): string {
   const context = JSON.stringify(
     {
@@ -351,8 +345,6 @@ function buildUserPrompt(input: {
 
   return `
 Detected category hint: ${input.detectedCategory}
-Knowledge base:
-${input.domainKnowledge}
 Output language: ${languageNames[input.language]}
 
 Available ALQEV context:
