@@ -299,7 +299,7 @@ const severityStyles: Record<
 function normalizeLanguage(value: string | undefined): SupportedLanguage {
   return value === "de" || value === "en" || value === "tr" || value === "ru" || value === "ar" || value === "fa"
     ? value
-    : "de";
+    : "tr";
 }
 
 function getAdvisorLanguage(language: SupportedLanguage): "de" | "en" | "tr" {
@@ -370,7 +370,7 @@ function getSeverityLabel(
 export default function NotificationCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [language, setLanguage] = useState<SupportedLanguage>("de");
+  const [language, setLanguage] = useState<SupportedLanguage>("tr");
   const [processes, setProcesses] = useState<NotificationProcess[]>([]);
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -382,7 +382,7 @@ export default function NotificationCenterPage() {
   const isRtl = language === "ar" || language === "fa";
 
   useEffect(() => {
-    setLanguage(normalizeLanguage(readStoredLanguage("de")));
+    setLanguage(normalizeLanguage(readStoredLanguage("tr")));
   }, []);
 
   useEffect(() => {
@@ -741,7 +741,7 @@ function NotificationCard({
       className={[
         "relative overflow-hidden rounded-3xl border p-5 shadow-xl shadow-black/10 transition sm:p-6",
         styles.wrapper,
-        isUnread ? "opacity-100" : "opacity-70",
+        isUnread ? "opacity-100" : "opacity-100",
       ].join(" ")}
     >
       {isUnread && (
@@ -785,7 +785,13 @@ function NotificationCard({
   <Link
     href={notification.action.href}
     onClick={() => onMarkRead(notification.id)}
-    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 transition hover:bg-indigo-400"
+    className="relative z-10 inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-indigo-300/40 px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-950/20 transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-indigo-400/20"
+    style={{
+      backgroundColor: "#6366f1",
+      color: "#ffffff",
+      opacity: 1,
+      pointerEvents: "auto",
+    }}
   >
     {notification.action.label?.trim() || copy.open}
   </Link>

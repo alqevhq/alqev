@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -125,6 +125,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "Süreçlerine hedef tarih eklediğinde en yakın tarih burada görünecek.",
     targetToday: "Hedef tarih bugün.",
     daysRemaining: "{count} gün içinde tamamlanmalı.",
+    alAssistant: "AL Yaşam Asistanı",
+    alWelcome: "Hoş geldin {name}",
+    alQuestion: "Bugün bana ne sormak istersin?",
+    alDescription: "Almanya'daki resmî işlemler, sosyal haklar, vergi, sağlık, iş, konut ve günlük yaşam hakkında sorunu kendi dilinde yaz.",
+    alPlaceholder: "Örn. Ev sahibim depozitomu geri vermiyor, ne yapmalıyım?",
+    alSend: "AL'e sor",
+    alPrivacy: "AL kişisel durumunu ve kayıtlı süreçlerini dikkate alarak yönlendirir. Önemli kararlarda resmî kaynakları ve uzman desteğini de kontrol et.",
+    alPopularTopics: "Sık sorulan konular",
+    alExplore: "Bir konu seç veya doğrudan sorunu yaz",
+    alEmptyQuestion: "Lütfen önce bir soru yaz.",
+    topicImmigration: "Oturum ve vatandaşlık",
+    topicFamily: "Aile ve çocuk",
+    topicBenefits: "Sosyal yardımlar",
+    topicTax: "Vergi",
+    topicHousing: "Konut ve kiracı hakları",
+    topicHealth: "Sağlık ve Krankenkasse",
+    topicWork: "İş ve çalışma hakları",
+    topicEducation: "Eğitim ve diploma",
+    topicInsurance: "Sigortalar",
+    topicBanking: "Banka ve SCHUFA",
+    topicMobility: "Araç ve ehliyet",
+    topicAuthorities: "Resmî kurumlar",
+    promptKindergeld: "Kindergeld başvurusu için neler gerekiyor ve nereye başvurmalıyım?",
+    promptTax: "Steuererklärung için hangi belgeleri hazırlamam gerekiyor?",
+    promptDental: "Krankenkasse diş protezimin ne kadarını karşılar?",
+    promptDeposit: "Ev sahibim Kaution'u geri vermiyor. Haklarım nelerdir?",
+    promptWohngeld: "Wohngeld alabilir miyim ve hangi belgeler gerekiyor?",
+    promptResidence: "Oturum iznimi uzatmak için hangi adımları izlemeliyim?",
   },
   de: {
     immigrationReadiness: "Einwanderungsbereitschaft",
@@ -192,6 +220,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "Sobald du einem Vorgang eine Frist hinzufügst, erscheint sie hier.",
     targetToday: "Die Frist ist heute.",
     daysRemaining: "Innerhalb von {count} Tagen abzuschließen.",
+    alAssistant: "AL Lebensassistent",
+    alWelcome: "Willkommen, {name}",
+    alQuestion: "Was möchtest du mich heute fragen?",
+    alDescription: "Stelle deine Frage zu Behörden, Sozialleistungen, Steuern, Gesundheit, Arbeit, Wohnen und Alltag in deiner Sprache.",
+    alPlaceholder: "Zum Beispiel: Mein Vermieter zahlt die Kaution nicht zurück. Was kann ich tun?",
+    alSend: "AL fragen",
+    alPrivacy: "AL berücksichtigt deine persönliche Situation und gespeicherten Vorgänge. Prüfe bei wichtigen Entscheidungen zusätzlich offizielle Quellen oder fachlichen Rat.",
+    alPopularTopics: "Häufige Themen",
+    alExplore: "Wähle ein Thema oder stelle direkt deine Frage",
+    alEmptyQuestion: "Bitte gib zuerst eine Frage ein.",
+    topicImmigration: "Aufenthalt und Einbürgerung",
+    topicFamily: "Familie und Kinder",
+    topicBenefits: "Sozialleistungen",
+    topicTax: "Steuern",
+    topicHousing: "Wohnen und Mieterrechte",
+    topicHealth: "Gesundheit und Krankenkasse",
+    topicWork: "Arbeit und Arbeitsrechte",
+    topicEducation: "Bildung und Anerkennung",
+    topicInsurance: "Versicherungen",
+    topicBanking: "Bank und SCHUFA",
+    topicMobility: "Auto und Führerschein",
+    topicAuthorities: "Behörden",
+    promptKindergeld: "Was brauche ich für den Kindergeldantrag und wo stelle ich ihn?",
+    promptTax: "Welche Unterlagen brauche ich für meine Steuererklärung?",
+    promptDental: "Wie viel übernimmt meine Krankenkasse für Zahnersatz?",
+    promptDeposit: "Mein Vermieter zahlt die Kaution nicht zurück. Welche Rechte habe ich?",
+    promptWohngeld: "Habe ich Anspruch auf Wohngeld und welche Unterlagen brauche ich?",
+    promptResidence: "Welche Schritte brauche ich für die Verlängerung meines Aufenthaltstitels?",
   },
   en: {
     immigrationReadiness: "Immigration Readiness", readinessVeryClose: "You are very close to applying", readinessGood: "Your preparation is progressing well", readinessMissing: "Some important items are missing", readinessStarted: "You have just started preparing", readinessNoData: "No analysis data yet", readinessProgress: "{completed} / {total} documents completed. Required documents were weighted more heavily.", readinessEmpty: "Create a process and document list first to calculate readiness.", priorityCritical: "Critical", priorityWarning: "Important", priorityInfo: "Suggestion", prioritySuccess: "Ready", criticalAiAlert: "Critical AI alert", aiSuggestion: "AI suggestion", requiredDocumentMissing: "The required document in {process} has not been uploaded yet.", deadlineToday: "This process is due today.", deadlineInDays: "This process reaches its deadline in {count} days.", preparationControlled: "Your preparation is under control", preparationControlledText: "No critical gap is visible right now. Keep your process information up to date.", createFirstProcessTitle: "Create your first process", createFirstProcessText: "Start your first process for personalized recommendations and readiness analysis.", riskHigh: "High risk", riskHighText: "There is a critical gap or a very close deadline.", riskMedium: "Medium risk", riskMediumText: "A document or upcoming deadline needs attention.", riskLow: "Low risk", riskLowText: "Nothing currently appears to require urgent action.", checkProcess: "Check your process", uploadRequiredDocument: "Upload the required document in {process}.", checkAlerts: "Check for new alerts or missing documents.", startRoadmap: "Start a process to create your personal roadmap.", estimateByMissing: "This estimate is based on the number of missing documents.", noRequiredMissing: "No required document is missing from the current list.", documentUploaded: "Document uploaded.", optionalNotUploaded: "The optional document has not been uploaded yet.", requiredNotUploaded: "The required document has not been uploaded yet.", noDocumentList: "No document list has been created for this process yet.", criticalTopics: "{count} critical items should be handled first.", requiredDocumentsPending: "{count} required documents are waiting to be completed.", noCriticalMissing: "No critical gap is visible right now.", noDeadline: "No deadline", untitledDocument: "Untitled document", untitledProcess: "Untitled process", userFallback: "User", missingDocumentAi: "Missing document", uploadMissingDocumentAi: "You need to upload “{document}”.", deadlineExpiredAi: "Deadline expired", deadlineExpiredMessageAi: "This process appears to be past its deadline.", deadlineApproachingAi: "Upcoming deadline", deadlineApproachingMessageAi: "{count} days remain until the deadline.", allCompleteAi: "Great!", allCompleteMessageAi: "All required documents appear to be complete.", readinessScoreAi: "Readiness score", readinessScoreMessageAi: "Your overall readiness score is %{score}.",
@@ -251,6 +307,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "When you add a deadline to a process, the nearest date will appear here.",
     targetToday: "The deadline is today.",
     daysRemaining: "Must be completed within {count} days.",
+    alAssistant: "AL Life Assistant",
+    alWelcome: "Welcome, {name}",
+    alQuestion: "What would you like to ask me today?",
+    alDescription: "Ask in your own language about public services, benefits, taxes, health, work, housing, and daily life in Germany.",
+    alPlaceholder: "For example: My landlord has not returned my deposit. What can I do?",
+    alSend: "Ask AL",
+    alPrivacy: "AL considers your personal situation and saved processes. For important decisions, also verify official sources or seek professional advice.",
+    alPopularTopics: "Popular topics",
+    alExplore: "Choose a topic or ask your question directly",
+    alEmptyQuestion: "Please enter a question first.",
+    topicImmigration: "Residence and citizenship",
+    topicFamily: "Family and children",
+    topicBenefits: "Social benefits",
+    topicTax: "Taxes",
+    topicHousing: "Housing and tenant rights",
+    topicHealth: "Health and insurance",
+    topicWork: "Work and employment rights",
+    topicEducation: "Education and recognition",
+    topicInsurance: "Insurance",
+    topicBanking: "Banking and SCHUFA",
+    topicMobility: "Cars and driving licences",
+    topicAuthorities: "Public authorities",
+    promptKindergeld: "What do I need for a Kindergeld application and where do I apply?",
+    promptTax: "Which documents do I need for my tax return?",
+    promptDental: "How much will my health insurer pay toward dental prosthetics?",
+    promptDeposit: "My landlord has not returned my deposit. What are my rights?",
+    promptWohngeld: "Am I eligible for Wohngeld and which documents do I need?",
+    promptResidence: "What steps are required to extend my residence permit?",
   },
   ru: {
     immigrationReadiness: "Готовность к иммиграции", readinessVeryClose: "Вы почти готовы к подаче заявления", readinessGood: "Подготовка идет хорошо", readinessMissing: "Не хватает нескольких важных пунктов", readinessStarted: "Вы только начали подготовку", readinessNoData: "Данных для анализа пока нет", readinessProgress: "Завершено документов: {completed} / {total}. Обязательные документы имеют больший вес.", readinessEmpty: "Сначала создайте процесс и список документов.", priorityCritical: "Критично", priorityWarning: "Важно", priorityInfo: "Рекомендация", prioritySuccess: "Готово", criticalAiAlert: "Критическое предупреждение ИИ", aiSuggestion: "Рекомендация ИИ", requiredDocumentMissing: "Обязательный документ в процессе «{process}» еще не загружен.", deadlineToday: "Срок этого процесса истекает сегодня.", deadlineInDays: "До срока этого процесса осталось {count} дней.", preparationControlled: "Подготовка под контролем", preparationControlledText: "Сейчас критических пробелов нет. Поддерживайте данные процесса в актуальном состоянии.", createFirstProcessTitle: "Создайте первый процесс", createFirstProcessText: "Запустите первый процесс для персональных рекомендаций и анализа готовности.", riskHigh: "Высокий риск", riskHighText: "Есть критический пробел или очень близкий срок.", riskMedium: "Средний риск", riskMediumText: "Документ или приближающийся срок требуют внимания.", riskLow: "Низкий риск", riskLowText: "Сейчас нет ситуации, требующей срочных действий.", checkProcess: "Проверить процесс", uploadRequiredDocument: "Загрузите обязательный документ в процессе «{process}».", checkAlerts: "Проверьте новые предупреждения и недостающие документы.", startRoadmap: "Начните процесс, чтобы создать личный план действий.", estimateByMissing: "Оценка основана на количестве недостающих документов.", noRequiredMissing: "В текущем списке нет недостающих обязательных документов.", documentUploaded: "Документ загружен.", optionalNotUploaded: "Необязательный документ еще не загружен.", requiredNotUploaded: "Обязательный документ еще не загружен.", noDocumentList: "Для этого процесса список документов еще не создан.", criticalTopics: "В первую очередь нужно решить критические вопросы: {count}.", requiredDocumentsPending: "Ожидают завершения обязательные документы: {count}.", noCriticalMissing: "Сейчас критических пробелов нет.", noDeadline: "Срок не указан", untitledDocument: "Документ без названия", untitledProcess: "Процесс без названия", userFallback: "Пользователь", missingDocumentAi: "Недостающий документ", uploadMissingDocumentAi: "Необходимо загрузить документ «{document}».", deadlineExpiredAi: "Срок истёк", deadlineExpiredMessageAi: "Срок этого процесса, по-видимому, уже истёк.", deadlineApproachingAi: "Приближается срок", deadlineApproachingMessageAi: "До окончания срока осталось {count} дней.", allCompleteAi: "Отлично!", allCompleteMessageAi: "Все обязательные документы, похоже, готовы.", readinessScoreAi: "Оценка готовности", readinessScoreMessageAi: "Ваша общая оценка готовности: %{score}.",
@@ -310,6 +394,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "После добавления срока к процессу ближайшая дата появится здесь.",
     targetToday: "Срок истекает сегодня.",
     daysRemaining: "Необходимо завершить в течение {count} дней.",
+    alAssistant: "AL — помощник по жизни",
+    alWelcome: "Добро пожаловать, {name}",
+    alQuestion: "О чём вы хотите спросить меня сегодня?",
+    alDescription: "Задайте на своём языке вопрос о ведомствах, пособиях, налогах, здоровье, работе, жилье и повседневной жизни в Германии.",
+    alPlaceholder: "Например: арендодатель не возвращает залог. Что мне делать?",
+    alSend: "Спросить AL",
+    alPrivacy: "AL учитывает вашу личную ситуацию и сохранённые процессы. Для важных решений также проверяйте официальные источники или обращайтесь к специалисту.",
+    alPopularTopics: "Популярные темы",
+    alExplore: "Выберите тему или задайте вопрос напрямую",
+    alEmptyQuestion: "Сначала введите вопрос.",
+    topicImmigration: "ВНЖ и гражданство",
+    topicFamily: "Семья и дети",
+    topicBenefits: "Социальные выплаты",
+    topicTax: "Налоги",
+    topicHousing: "Жильё и права арендаторов",
+    topicHealth: "Здоровье и Krankenkasse",
+    topicWork: "Работа и трудовые права",
+    topicEducation: "Образование и признание",
+    topicInsurance: "Страхование",
+    topicBanking: "Банки и SCHUFA",
+    topicMobility: "Автомобиль и водительские права",
+    topicAuthorities: "Государственные учреждения",
+    promptKindergeld: "Что нужно для подачи на Kindergeld и куда обращаться?",
+    promptTax: "Какие документы нужны для налоговой декларации?",
+    promptDental: "Какую часть стоимости зубного протеза оплатит Krankenkasse?",
+    promptDeposit: "Арендодатель не возвращает залог. Какие у меня права?",
+    promptWohngeld: "Имею ли я право на Wohngeld и какие документы нужны?",
+    promptResidence: "Какие шаги нужны для продления вида на жительство?",
   },
   ar: {
     immigrationReadiness: "الجاهزية للهجرة", readinessVeryClose: "أنت قريب جدًا من تقديم الطلب", readinessGood: "استعدادك يتقدم بشكل جيد", readinessMissing: "توجد بعض النواقص المهمة", readinessStarted: "لقد بدأت الاستعداد للتو", readinessNoData: "لا توجد بيانات تحليل بعد", readinessProgress: "تم إكمال {completed} من أصل {total} وثيقة. مُنحت الوثائق الإلزامية وزنًا أكبر.", readinessEmpty: "أنشئ إجراءً وقائمة وثائق أولًا لحساب الجاهزية.", priorityCritical: "حرج", priorityWarning: "مهم", priorityInfo: "اقتراح", prioritySuccess: "جاهز", criticalAiAlert: "تنبيه حرج من الذكاء الاصطناعي", aiSuggestion: "اقتراح الذكاء الاصطناعي", requiredDocumentMissing: "لم تُرفع الوثيقة الإلزامية في إجراء {process} بعد.", deadlineToday: "الموعد النهائي لهذا الإجراء اليوم.", deadlineInDays: "يتبقى {count} يوم على الموعد النهائي.", preparationControlled: "استعدادك تحت السيطرة", preparationControlledText: "لا تظهر نواقص حرجة حاليًا. حافظ على تحديث معلومات الإجراء.", createFirstProcessTitle: "أنشئ أول إجراء", createFirstProcessText: "ابدأ أول إجراء للحصول على توصيات شخصية وتحليل الجاهزية.", riskHigh: "مخاطر مرتفعة", riskHighText: "توجد مشكلة حرجة أو موعد نهائي قريب جدًا.", riskMedium: "مخاطر متوسطة", riskMediumText: "توجد وثيقة أو مهلة قريبة تحتاج إلى اهتمام.", riskLow: "مخاطر منخفضة", riskLowText: "لا توجد حاليًا حالة تتطلب تدخلاً عاجلًا.", checkProcess: "تحقق من الإجراء", uploadRequiredDocument: "ارفع الوثيقة الإلزامية في إجراء {process}.", checkAlerts: "تحقق من التنبيهات الجديدة أو الوثائق الناقصة.", startRoadmap: "ابدأ إجراءً لإنشاء خارطة طريقك الشخصية.", estimateByMissing: "يعتمد هذا التقدير على عدد الوثائق الناقصة.", noRequiredMissing: "لا توجد وثائق إلزامية ناقصة في القائمة الحالية.", documentUploaded: "تم رفع الوثيقة.", optionalNotUploaded: "لم تُرفع الوثيقة الاختيارية بعد.", requiredNotUploaded: "لم تُرفع الوثيقة الإلزامية بعد.", noDocumentList: "لم تُنشأ قائمة وثائق لهذا الإجراء بعد.", criticalTopics: "يجب معالجة {count} من المسائل الحرجة أولًا.", requiredDocumentsPending: "تنتظر {count} وثيقة إلزامية الإكمال.", noCriticalMissing: "لا تظهر نواقص حرجة حاليًا.", noDeadline: "لا يوجد موعد نهائي", untitledDocument: "وثيقة بلا عنوان", untitledProcess: "إجراء بلا عنوان", userFallback: "المستخدم", missingDocumentAi: "وثيقة ناقصة", uploadMissingDocumentAi: "يجب رفع الوثيقة «{document}».", deadlineExpiredAi: "انتهت المهلة", deadlineExpiredMessageAi: "يبدو أن الموعد النهائي لهذا الإجراء قد انقضى.", deadlineApproachingAi: "موعد نهائي قريب", deadlineApproachingMessageAi: "تبقى {count} يوم على الموعد النهائي.", allCompleteAi: "رائع!", allCompleteMessageAi: "يبدو أن جميع الوثائق الإلزامية مكتملة.", readinessScoreAi: "درجة الجاهزية", readinessScoreMessageAi: "درجة جاهزيتك العامة هي %{score}.",
@@ -369,6 +481,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "عند إضافة موعد نهائي إلى إجراء سيظهر أقرب موعد هنا.",
     targetToday: "الموعد النهائي اليوم.",
     daysRemaining: "يجب إكماله خلال {count} يوم.",
+    alAssistant: "مساعد AL للحياة",
+    alWelcome: "مرحبًا {name}",
+    alQuestion: "ماذا تريد أن تسألني اليوم؟",
+    alDescription: "اكتب بلغتك سؤالك عن الدوائر الرسمية والمساعدات والضرائب والصحة والعمل والسكن والحياة اليومية في ألمانيا.",
+    alPlaceholder: "مثال: المؤجر لم يُعد مبلغ التأمين. ماذا أفعل؟",
+    alSend: "اسأل AL",
+    alPrivacy: "يراعي AL وضعك الشخصي وإجراءاتك المحفوظة. في القرارات المهمة تحقّق أيضًا من المصادر الرسمية أو استشر مختصًا.",
+    alPopularTopics: "مواضيع شائعة",
+    alExplore: "اختر موضوعًا أو اكتب سؤالك مباشرة",
+    alEmptyQuestion: "يرجى كتابة سؤال أولًا.",
+    topicImmigration: "الإقامة والجنسية",
+    topicFamily: "الأسرة والأطفال",
+    topicBenefits: "المساعدات الاجتماعية",
+    topicTax: "الضرائب",
+    topicHousing: "السكن وحقوق المستأجر",
+    topicHealth: "الصحة والتأمين الصحي",
+    topicWork: "العمل وحقوق الموظف",
+    topicEducation: "التعليم ومعادلة الشهادات",
+    topicInsurance: "التأمينات",
+    topicBanking: "البنوك وSCHUFA",
+    topicMobility: "السيارة ورخصة القيادة",
+    topicAuthorities: "الدوائر الرسمية",
+    promptKindergeld: "ما المطلوب للتقديم على Kindergeld وأين أقدّم الطلب؟",
+    promptTax: "ما الوثائق المطلوبة للإقرار الضريبي؟",
+    promptDental: "كم يدفع التأمين الصحي لتكاليف تعويض الأسنان؟",
+    promptDeposit: "المؤجر لم يُعد مبلغ التأمين. ما حقوقي؟",
+    promptWohngeld: "هل يحق لي Wohngeld وما الوثائق المطلوبة؟",
+    promptResidence: "ما الخطوات المطلوبة لتمديد تصريح الإقامة؟",
   },
   fa: {
     immigrationReadiness: "آمادگی مهاجرت", readinessVeryClose: "تقریباً آماده ارسال درخواست هستید", readinessGood: "آمادگی شما به‌خوبی پیش می‌رود", readinessMissing: "چند مورد مهم ناقص است", readinessStarted: "تازه آماده‌سازی را شروع کرده‌اید", readinessNoData: "هنوز داده‌ای برای تحلیل وجود ندارد", readinessProgress: "{completed} از {total} مدرک تکمیل شده است. به مدارک الزامی وزن بیشتری داده شد.", readinessEmpty: "برای محاسبه آمادگی ابتدا یک فرایند و فهرست مدارک ایجاد کنید.", priorityCritical: "بحرانی", priorityWarning: "مهم", priorityInfo: "پیشنهاد", prioritySuccess: "آماده", criticalAiAlert: "هشدار بحرانی هوش مصنوعی", aiSuggestion: "پیشنهاد هوش مصنوعی", requiredDocumentMissing: "مدرک الزامی در فرایند {process} هنوز بارگذاری نشده است.", deadlineToday: "مهلت این فرایند امروز است.", deadlineInDays: "تا مهلت این فرایند {count} روز باقی مانده است.", preparationControlled: "آمادگی شما تحت کنترل است", preparationControlledText: "در حال حاضر نقص بحرانی دیده نمی‌شود. اطلاعات فرایند را به‌روز نگه دارید.", createFirstProcessTitle: "اولین فرایند را ایجاد کنید", createFirstProcessText: "برای دریافت پیشنهادهای شخصی و تحلیل آمادگی، اولین فرایند را شروع کنید.", riskHigh: "ریسک بالا", riskHighText: "یک نقص بحرانی یا مهلت بسیار نزدیک وجود دارد.", riskMedium: "ریسک متوسط", riskMediumText: "یک مدرک یا مهلت نزدیک نیاز به توجه دارد.", riskLow: "ریسک پایین", riskLowText: "در حال حاضر موردی که نیازمند اقدام فوری باشد دیده نمی‌شود.", checkProcess: "فرایند را بررسی کنید", uploadRequiredDocument: "مدرک الزامی فرایند {process} را بارگذاری کنید.", checkAlerts: "هشدارهای جدید یا مدارک ناقص را بررسی کنید.", startRoadmap: "برای ساخت نقشه راه شخصی خود یک فرایند شروع کنید.", estimateByMissing: "این برآورد بر اساس تعداد مدارک ناقص محاسبه شده است.", noRequiredMissing: "در فهرست فعلی هیچ مدرک الزامی ناقصی وجود ندارد.", documentUploaded: "مدرک بارگذاری شد.", optionalNotUploaded: "مدرک اختیاری هنوز بارگذاری نشده است.", requiredNotUploaded: "مدرک الزامی هنوز بارگذاری نشده است.", noDocumentList: "هنوز برای این فرایند فهرست مدارک ایجاد نشده است.", criticalTopics: "ابتدا باید {count} مورد بحرانی بررسی شود.", requiredDocumentsPending: "{count} مدرک الزامی در انتظار تکمیل است.", noCriticalMissing: "در حال حاضر نقص بحرانی دیده نمی‌شود.", noDeadline: "بدون مهلت", untitledDocument: "مدرک بدون عنوان", untitledProcess: "فرایند بدون عنوان", userFallback: "کاربر", missingDocumentAi: "مدرک ناقص", uploadMissingDocumentAi: "باید مدرک «{document}» را بارگذاری کنید.", deadlineExpiredAi: "مهلت پایان یافته", deadlineExpiredMessageAi: "به نظر می‌رسد مهلت این فرایند گذشته است.", deadlineApproachingAi: "مهلت نزدیک", deadlineApproachingMessageAi: "{count} روز تا پایان مهلت باقی مانده است.", allCompleteAi: "عالی!", allCompleteMessageAi: "به نظر می‌رسد همه مدارک الزامی کامل هستند.", readinessScoreAi: "امتیاز آمادگی", readinessScoreMessageAi: "امتیاز کلی آمادگی شما %{score} است.",
@@ -428,6 +568,34 @@ const uiTranslations: Record<
     noUpcomingDateText: "با افزودن مهلت به یک فرایند، نزدیک‌ترین تاریخ اینجا نمایش داده می‌شود.",
     targetToday: "مهلت امروز است.",
     daysRemaining: "باید ظرف {count} روز تکمیل شود.",
+    alAssistant: "دستیار زندگی AL",
+    alWelcome: "خوش آمدید {name}",
+    alQuestion: "امروز چه چیزی می‌خواهید از من بپرسید؟",
+    alDescription: "پرسش خود درباره اداره‌ها، کمک‌های اجتماعی، مالیات، سلامت، کار، مسکن و زندگی روزمره در آلمان را به زبان خود بنویسید.",
+    alPlaceholder: "برای مثال: صاحبخانه ودیعه را پس نمی‌دهد. چه کار کنم؟",
+    alSend: "از AL بپرس",
+    alPrivacy: "AL شرایط شخصی و فرایندهای ذخیره‌شده شما را در نظر می‌گیرد. برای تصمیم‌های مهم منابع رسمی یا نظر متخصص را نیز بررسی کنید.",
+    alPopularTopics: "موضوعات پرکاربرد",
+    alExplore: "یک موضوع انتخاب کنید یا مستقیماً سؤال خود را بنویسید",
+    alEmptyQuestion: "لطفاً ابتدا یک سؤال بنویسید.",
+    topicImmigration: "اقامت و تابعیت",
+    topicFamily: "خانواده و فرزندان",
+    topicBenefits: "کمک‌های اجتماعی",
+    topicTax: "مالیات",
+    topicHousing: "مسکن و حقوق مستأجر",
+    topicHealth: "سلامت و بیمه درمانی",
+    topicWork: "کار و حقوق کاری",
+    topicEducation: "تحصیل و ارزیابی مدارک",
+    topicInsurance: "بیمه‌ها",
+    topicBanking: "بانک و SCHUFA",
+    topicMobility: "خودرو و گواهینامه",
+    topicAuthorities: "اداره‌های دولتی",
+    promptKindergeld: "برای درخواست Kindergeld چه مدارکی لازم است و کجا باید اقدام کنم؟",
+    promptTax: "برای اظهارنامه مالیاتی چه مدارکی لازم دارم؟",
+    promptDental: "بیمه درمانی چه مقدار از هزینه پروتز دندان را می‌پردازد؟",
+    promptDeposit: "صاحبخانه ودیعه را پس نمی‌دهد. حقوق من چیست؟",
+    promptWohngeld: "آیا شامل Wohngeld می‌شوم و چه مدارکی لازم است؟",
+    promptResidence: "برای تمدید اجازه اقامت چه مراحلی لازم است؟",
   },
 };
 
@@ -878,6 +1046,9 @@ export default function DashboardPage() {
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguage>("tr");
+
+  const [alQuestion, setAlQuestion] = useState("");
+  const [alQuestionError, setAlQuestionError] = useState("");
 
   useEffect(() => {
     const storedLanguage = readStoredLanguage("tr");
@@ -1416,6 +1587,25 @@ export default function DashboardPage() {
     }
   }
 
+  function handleAlSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const question = alQuestion.trim();
+
+    if (!question) {
+      setAlQuestionError(uiTranslations[selectedLanguage].alEmptyQuestion);
+      return;
+    }
+
+    setAlQuestionError("");
+    router.push(`/dashboard/chat?question=${encodeURIComponent(question)}`);
+  }
+
+  function handleSuggestedQuestion(question: string) {
+    setAlQuestion(question);
+    setAlQuestionError("");
+  }
+
   async function handleSignOut() {
     try {
       setIsSigningOut(true);
@@ -1511,6 +1701,30 @@ export default function DashboardPage() {
         )
       : 0;
 
+  const alTopics = [
+    "topicImmigration",
+    "topicFamily",
+    "topicBenefits",
+    "topicTax",
+    "topicHousing",
+    "topicHealth",
+    "topicWork",
+    "topicEducation",
+    "topicInsurance",
+    "topicBanking",
+    "topicMobility",
+    "topicAuthorities",
+  ] as const;
+
+  const alSuggestedQuestions = [
+    "promptKindergeld",
+    "promptTax",
+    "promptDental",
+    "promptDeposit",
+    "promptWohngeld",
+    "promptResidence",
+  ] as const;
+
   return (
     <main dir={direction} className="min-h-screen bg-slate-950 text-white">
       <div
@@ -1591,87 +1805,148 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/15 via-white/[0.035] to-transparent p-7 sm:p-10">
-          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-start">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+        <section className="overflow-hidden rounded-[2rem] border border-indigo-300/20 bg-gradient-to-br from-indigo-500/20 via-slate-900/95 to-blue-500/10 shadow-2xl shadow-indigo-950/30">
+          <div className="grid lg:grid-cols-[1fr_320px]">
+            <div className="p-7 sm:p-10 lg:p-12">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/15 text-xl shadow-lg shadow-indigo-950/30">
+                  AL
+                </span>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                    {copy.alAssistant}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">ALQEV</p>
+                </div>
+              </div>
+
+              <h1 className="mt-7 text-3xl font-bold tracking-tight sm:text-5xl">
+                {fillTemplate(copy.alWelcome, { name: firstName })} 👋
+              </h1>
+
+              <p className="mt-3 text-xl font-semibold text-slate-200 sm:text-2xl">
+                {copy.alQuestion}
+              </p>
+
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+                {copy.alDescription}
+              </p>
+
+              <form onSubmit={handleAlSubmit} className="mt-8">
+                <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-xl shadow-black/20 transition focus-within:border-indigo-400/50 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                  <textarea
+                    value={alQuestion}
+                    onChange={(event) => {
+                      setAlQuestion(event.target.value);
+                      if (alQuestionError) setAlQuestionError("");
+                    }}
+                    placeholder={copy.alPlaceholder}
+                    rows={3}
+                    className="w-full resize-none bg-transparent px-3 py-3 text-base leading-7 text-white outline-none placeholder:text-slate-600"
+                  />
+
+                  <div className="flex flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs leading-5 text-slate-500">
+                      {copy.alPrivacy}
+                    </p>
+
+                    <button
+                      type="submit"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:-translate-y-0.5 hover:bg-indigo-400"
+                    >
+                      {copy.alSend}
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                </div>
+
+                {alQuestionError ? (
+                  <p role="alert" className="mt-3 text-sm font-medium text-rose-300">
+                    {alQuestionError}
+                  </p>
+                ) : null}
+              </form>
+
+              <div className="mt-7">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="text-sm font-semibold text-slate-200">{copy.alPopularTopics}</p>
+                  <p className="text-xs text-slate-500">{copy.alExplore}</p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {alTopics.map((topicKey) => (
+                    <button
+                      key={topicKey}
+                      type="button"
+                      onClick={() => handleSuggestedQuestion(copy[topicKey])}
+                      className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-indigo-400/30 hover:bg-indigo-400/10 hover:text-indigo-200"
+                    >
+                      {copy[topicKey]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                {alSuggestedQuestions.map((questionKey) => (
+                  <button
+                    key={questionKey}
+                    type="button"
+                    onClick={() => handleSuggestedQuestion(copy[questionKey])}
+                    className="group flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-start transition hover:border-indigo-400/30 hover:bg-white/[0.06]"
+                  >
+                    <span className="text-sm leading-6 text-slate-300 group-hover:text-white">
+                      {copy[questionKey]}
+                    </span>
+                    <span className="mt-0.5 text-indigo-400 transition group-hover:translate-x-1">→</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <aside className="border-t border-white/10 bg-black/20 p-7 lg:border-l lg:border-t-0 lg:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 {copy.dailyCenter}
               </p>
 
-              <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                {getGreeting(language)}, {firstName}. 👋
-              </h1>
+              <p className="mt-3 text-lg font-bold text-white">
+                {getGreeting(language)}, {firstName}.
+              </p>
 
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-slate-400">
                 {copy.intro}
               </p>
-            </div>
 
-            <div className="grid min-w-64 gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 text-sm">
-              <div className="flex items-center justify-between gap-6">
-                <span className="text-slate-500">
-                  {copy.plan}
-                </span>
-
-                <span className="font-semibold text-slate-200">
-                  {subscriptionLabel}
-                </span>
+              <div className="mt-7 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 text-sm">
+                <div className="flex items-center justify-between gap-6">
+                  <span className="text-slate-500">{copy.plan}</span>
+                  <span className="font-semibold text-slate-200">{subscriptionLabel}</span>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <span className="text-slate-500">{copy.language}</span>
+                  <span className="font-semibold text-slate-200">{languageLabel}</span>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <span className="text-slate-500">{copy.country}</span>
+                  <span className="font-semibold text-slate-200">{countryLabel}</span>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <span className="text-slate-500">{copy.profile}</span>
+                  <span className={profile.onboardingCompleted ? "font-semibold text-emerald-300" : "font-semibold text-amber-300"}>
+                    {profile.onboardingCompleted ? copy.completed : copy.incomplete}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between gap-6">
-                <span className="text-slate-500">
-                  {copy.language}
-                </span>
-
-                <span className="font-semibold text-slate-200">
-                  {languageLabel}
-                </span>
+              <div className="mt-6 grid gap-3">
+                <Link href="/processes/new" className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
+                  {copy.startProcess}
+                </Link>
+                <Link href="/processes" className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800">
+                  {copy.viewProcesses}
+                </Link>
               </div>
-
-              <div className="flex items-center justify-between gap-6">
-                <span className="text-slate-500">
-                  {copy.country}
-                </span>
-
-                <span className="font-semibold text-slate-200">
-                  {countryLabel}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-6">
-                <span className="text-slate-500">
-                  {copy.profile}
-                </span>
-
-                <span
-                  className={
-                    profile.onboardingCompleted
-                      ? "font-semibold text-emerald-300"
-                      : "font-semibold text-amber-300"
-                  }
-                >
-                  {profile.onboardingCompleted
-                    ? copy.completed
-                    : copy.incomplete}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/processes/new"
-              className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
-            >
-              {copy.startProcess}
-            </Link>
-
-            <Link
-              href="/processes"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-            >
-              {copy.viewProcesses}
-            </Link>
+            </aside>
           </div>
         </section>
 

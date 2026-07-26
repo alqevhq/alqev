@@ -90,11 +90,11 @@ type OcrState = {
 
 const pageCopy = {
   tr: {
-    loading: "{pageCopy[language].loading}",
-    loadFailed: "{pageCopy[language].loadFailed}",
+    loading: "Süreç bilgileri yükleniyor...",
+    loadFailed: "Süreç görüntülenemedi",
     noProcessInfo: "Süreç bilgileri bulunamadı.",
-    back: "{pageCopy[language].back}",
-    detail: "{copy.detail}",
+    back: "Süreçlere dön",
+    detail: "Süreç detayları",
     overallProgress: "Genel ilerleme",
     documentsWord: "belge",
     country: "Ülke",

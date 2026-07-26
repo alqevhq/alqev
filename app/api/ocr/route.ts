@@ -5,7 +5,7 @@ import {
 
 const MAX_FILE_SIZE =
   10 * 1024 * 1024;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 4;
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "application/pdf",
@@ -344,9 +344,17 @@ export async function POST(
         ? error.message
         : "OCR işlemi sırasında bilinmeyen bir hata oluştu.";
 
+    const isTemporaryProviderError =
+      isTemporaryGeminiError(message);
+
     return NextResponse.json(
-      { error: message },
-      { status: 400 },
+      {
+        error: isTemporaryProviderError
+          ? "AI analiz servisi şu anda yoğun. Belgen yüklendi; lütfen kısa süre sonra yeniden analiz et."
+          : message,
+        retryable: isTemporaryProviderError,
+      },
+      { status: isTemporaryProviderError ? 503 : 400 },
     );
   }
 }
@@ -366,8 +374,9 @@ async function callGeminiWithRetry(input: {
     attempt += 1
   ) {
     if (attempt > 0) {
+      const retryDelays = [0, 1200, 2500, 5000];
       await sleep(
-        attempt === 1 ? 900 : 1800,
+        retryDelays[attempt] ?? 5000,
       );
     }
 
@@ -436,12 +445,20 @@ async function callGeminiWithRetry(input: {
       response.status === 500 ||
       response.status === 502 ||
       response.status === 503 ||
-      response.status === 504;
+      response.status === 504 ||
+      (response.status === 400 &&
+        isTemporaryGeminiError(lastError));
 
     if (
       !retryable ||
       attempt === MAX_RETRIES - 1
     ) {
+      if (isTemporaryGeminiError(lastError)) {
+        throw new Error(
+          "AI analiz servisi şu anda yoğun. Lütfen kısa süre sonra yeniden dene.",
+        );
+      }
+
       throw new Error(lastError);
     }
 
@@ -987,6 +1004,25 @@ function inferContentTypeFromUrl(
     decodeURIComponent(
       fileUrl.pathname,
     ),
+  );
+}
+
+function isTemporaryGeminiError(
+  message: string,
+): boolean {
+  const normalizedMessage =
+    message.trim().toLowerCase();
+
+  return (
+    normalizedMessage.includes("high demand") ||
+    normalizedMessage.includes("spikes in demand") ||
+    normalizedMessage.includes("try again later") ||
+    normalizedMessage.includes("temporarily unavailable") ||
+    normalizedMessage.includes("resource exhausted") ||
+    normalizedMessage.includes("overloaded") ||
+    normalizedMessage.includes("capacity") ||
+    normalizedMessage.includes("şu anda yoğun") ||
+    normalizedMessage.includes("kısa süre sonra yeniden dene")
   );
 }
 
