@@ -658,6 +658,12 @@ function ChatPageContent() {
     setIsSending(true);
 
     try {
+      if (!user) {
+        throw new Error(t.error);
+      }
+
+      const idToken = await user.getIdToken();
+
       const response = await fetch(
         "/api/chat",
         {
@@ -665,6 +671,7 @@ function ChatPageContent() {
           headers: {
             "Content-Type":
               "application/json",
+            Authorization: `Bearer ${idToken}`,
           },
           body: JSON.stringify({
             message,
@@ -1155,14 +1162,18 @@ function ChatPageContent() {
       </div>
     </main>
   );
-}export default function ChatPage() {
+}
+
+export default function ChatPage() {
   return (
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#060b1b] px-6 text-white">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
             <span className="h-3 w-3 animate-pulse rounded-full bg-indigo-400" />
-            <span className="text-sm text-slate-300">ALQEV...</span>
+            <span className="text-sm text-slate-300">
+              ALQEV...
+            </span>
           </div>
         </main>
       }
