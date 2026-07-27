@@ -296,7 +296,15 @@ export default function CopilotPage() {
       mounted = false;
       unsubscribe();
     };
-  }, [router, language]);
+  }, [
+    router,
+    language,
+    copy.dataLoadError,
+    copy.unnamedDocument,
+    copy.unnamedProcess,
+    copy.unspecified,
+    copy.welcomeMessage,
+  ]);
 
   const analysis = useMemo(() => analyzeProcesses(processes), [processes]);
 

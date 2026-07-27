@@ -3,17 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  updateDoc,
-} from "firebase/firestore";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 type UserRecord = {
   id: string;
@@ -25,13 +16,11 @@ type UserRecord = {
   onboardingCompleted?: boolean;
   country?: string;
   language?: string;
-  createdAt?: {
-    toDate?: () => Date;
-  };
+  createdAt?: string | null;
 };
 
 function formatDate(value: UserRecord["createdAt"]) {
-  if (!value?.toDate) {
+  if (!value) {
     return "—";
   }
 
@@ -40,11 +29,24 @@ function formatDate(value: UserRecord["createdAt"]) {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    }).format(value.toDate());
+    }).format(new Date(value));
   } catch {
     return "—";
   }
 }
+
+type AdminUsersResponse = {
+  success?: boolean;
+  error?: string;
+  data?: {
+    users?: UserRecord[];
+  };
+};
+
+type AdminUpdateResponse = {
+  success?: boolean;
+  error?: string;
+};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -65,43 +67,41 @@ export default function AdminPage() {
       }
 
       setCurrentUser(user);
+      setIsLoading(true);
+      setErrorMessage("");
 
       try {
-        const adminDocument = await getDoc(doc(db, "users", user.uid));
+        const idToken = await user.getIdToken();
 
-        if (!adminDocument.exists()) {
-          setErrorMessage("Kullanıcı profili bulunamadı.");
-          setIsLoading(false);
-          return;
-        }
+        const response = await fetch("/api/admin/users", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+          cache: "no-store",
+        });
 
-        const adminData = adminDocument.data();
+        const payload = (await response.json()) as AdminUsersResponse;
 
-        if (adminData.role !== "admin") {
+        if (!response.ok || !payload.success || !payload.data?.users) {
+          if (response.status === 401) {
+            router.replace("/login");
+            return;
+          }
+
+          setIsAuthorized(false);
           setErrorMessage(
-            "Bu sayfaya erişim yetkin yok. Hesabının role alanı admin olmalıdır."
+            payload.error || "Bu sayfaya erişim yetkin bulunmuyor.",
           );
-          setIsLoading(false);
           return;
         }
 
+        setUsers(payload.data.users);
         setIsAuthorized(true);
-
-        const usersReference = collection(db, "users");
-        const usersQuery = query(usersReference, orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(usersQuery);
-
-        const loadedUsers: UserRecord[] = snapshot.docs.map((userDocument) => ({
-          id: userDocument.id,
-          ...(userDocument.data() as Omit<UserRecord, "id">),
-        }));
-
-        setUsers(loadedUsers);
       } catch (error) {
         console.error("Admin paneli yüklenemedi:", error);
-        setErrorMessage(
-          "Admin verileri yüklenemedi. Firestore yetkilerini kontrol et."
-        );
+        setIsAuthorized(false);
+        setErrorMessage("Admin verileri güvenli sunucudan yüklenemedi.");
       } finally {
         setIsLoading(false);
       }
@@ -137,26 +137,62 @@ export default function AdminPage() {
     (user) => user.onboardingCompleted === true
   ).length;
 
+  async function runAdminUpdate(input: {
+    action: "change_subscription" | "change_account_status";
+    userId: string;
+    value: "free" | "premium" | "active" | "disabled";
+  }) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      router.replace("/login");
+      throw new Error("Oturum bulunamadı.");
+    }
+
+    const idToken = await user.getIdToken();
+
+    const response = await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(input),
+    });
+
+    const payload = (await response.json()) as AdminUpdateResponse;
+
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.error || "Admin işlemi tamamlanamadı.");
+    }
+  }
+
   async function changeSubscription(
     userId: string,
-    subscription: "free" | "premium"
+    subscription: "free" | "premium",
   ) {
     try {
       setWorkingUserId(userId);
       setErrorMessage("");
 
-      await updateDoc(doc(db, "users", userId), {
-        subscription,
+      await runAdminUpdate({
+        action: "change_subscription",
+        userId,
+        value: subscription,
       });
 
       setUsers((currentUsers) =>
         currentUsers.map((user) =>
-          user.id === userId ? { ...user, subscription } : user
-        )
+          user.id === userId ? { ...user, subscription } : user,
+        ),
       );
     } catch (error) {
       console.error("Abonelik değiştirilemedi:", error);
-      setErrorMessage("Kullanıcının abonelik planı değiştirilemedi.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Kullanıcının abonelik planı değiştirilemedi.",
+      );
     } finally {
       setWorkingUserId(null);
     }
@@ -164,33 +200,44 @@ export default function AdminPage() {
 
   async function changeAccountStatus(
     userId: string,
-    accountStatus: "active" | "disabled"
+    accountStatus: "active" | "disabled",
   ) {
     try {
       setWorkingUserId(userId);
       setErrorMessage("");
 
-      await updateDoc(doc(db, "users", userId), {
-        accountStatus,
+      await runAdminUpdate({
+        action: "change_account_status",
+        userId,
+        value: accountStatus,
       });
 
       setUsers((currentUsers) =>
         currentUsers.map((user) =>
-          user.id === userId ? { ...user, accountStatus } : user
-        )
+          user.id === userId ? { ...user, accountStatus } : user,
+        ),
       );
     } catch (error) {
       console.error("Hesap durumu değiştirilemedi:", error);
-      setErrorMessage("Kullanıcının hesap durumu değiştirilemedi.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Kullanıcının hesap durumu değiştirilemedi.",
+      );
     } finally {
       setWorkingUserId(null);
     }
   }
 
   async function handleSignOut() {
+  try {
     await signOut(auth);
-    router.replace("/login");
+    window.location.replace("/login");
+  } catch (error) {
+    console.error("Logout failed:", error);
   }
+}
+  
 
   if (isLoading) {
     return (

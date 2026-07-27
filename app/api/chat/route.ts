@@ -1,8 +1,16 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 const MAX_RETRIES = 4;
 const MAX_MESSAGE_LENGTH = 4_000;
 const MAX_HISTORY_ITEMS = 20;
+const MAX_REQUEST_BYTES = 100_000;
+const USER_REQUESTS_PER_MINUTE = 10;
+const IP_REQUESTS_PER_MINUTE = 30;
+const FREE_DAILY_CHAT_LIMIT = 20;
+const PREMIUM_DAILY_CHAT_LIMIT = 200;
+const GEMINI_TIMEOUT_MS = 45_000;
 
 type Language = "tr" | "de" | "en" | "ru" | "ar" | "fa";
 type ChatRole = "user" | "assistant";
@@ -73,7 +81,10 @@ const messages: Record<Language, Record<string, string>> = {
   tr: {
     missing: "Lütfen AL'e sormak istediğin soruyu yaz.",
     long: "Sorun çok uzun. Lütfen daha kısa bir soru yaz.",
-    api: "GEMINI_API_KEY tanımlı değil. .env.local dosyasını kontrol et.",
+    api: "AL servisine şu anda ulaşılamıyor. Lütfen daha sonra tekrar dene.",
+    unauthorized: "Oturumun geçersiz veya süresi dolmuş. Lütfen yeniden giriş yap.",
+    rateLimit: "Çok kısa sürede fazla istek gönderdin. Lütfen biraz bekleyip tekrar dene.",
+    dailyLimit: "Bugünkü AL kullanım limitine ulaştın.",
     empty: "AL şu anda cevap oluşturamadı. Lütfen tekrar dene.",
     busy: "AL şu anda yoğun. Lütfen kısa süre sonra yeniden dene.",
     unknown: "Sorun cevaplanırken beklenmeyen bir hata oluştu.",
@@ -81,7 +92,10 @@ const messages: Record<Language, Record<string, string>> = {
   de: {
     missing: "Bitte schreibe deine Frage an AL.",
     long: "Deine Frage ist zu lang. Bitte formuliere sie kürzer.",
-    api: "GEMINI_API_KEY ist nicht definiert. Bitte prüfe .env.local.",
+    api: "Der AL-Dienst ist derzeit nicht erreichbar. Bitte versuche es später erneut.",
+    unauthorized: "Deine Sitzung ist ungültig oder abgelaufen. Bitte melde dich erneut an.",
+    rateLimit: "Du hast in kurzer Zeit zu viele Anfragen gesendet. Bitte warte kurz.",
+    dailyLimit: "Du hast dein heutiges AL-Nutzungslimit erreicht.",
     empty: "AL konnte gerade keine Antwort erstellen. Bitte versuche es erneut.",
     busy: "AL ist momentan ausgelastet. Bitte versuche es später erneut.",
     unknown: "Beim Beantworten ist ein unerwarteter Fehler aufgetreten.",
@@ -89,7 +103,10 @@ const messages: Record<Language, Record<string, string>> = {
   en: {
     missing: "Please write your question for AL.",
     long: "Your question is too long. Please shorten it.",
-    api: "GEMINI_API_KEY is not defined. Check .env.local.",
+    api: "The AL service is currently unavailable. Please try again later.",
+    unauthorized: "Your session is invalid or expired. Please sign in again.",
+    rateLimit: "You sent too many requests in a short time. Please wait and try again.",
+    dailyLimit: "You have reached today’s AL usage limit.",
     empty: "AL could not create an answer. Please try again.",
     busy: "AL is currently busy. Please try again shortly.",
     unknown: "An unexpected error occurred while answering.",
@@ -97,7 +114,10 @@ const messages: Record<Language, Record<string, string>> = {
   ru: {
     missing: "Пожалуйста, напишите вопрос для AL.",
     long: "Ваш вопрос слишком длинный. Пожалуйста, сократите его.",
-    api: "GEMINI_API_KEY не задан. Проверьте .env.local.",
+    api: "Сервис AL сейчас недоступен. Попробуйте позже.",
+    unauthorized: "Сеанс недействителен или истёк. Войдите снова.",
+    rateLimit: "Слишком много запросов за короткое время. Пожалуйста, подождите.",
+    dailyLimit: "Вы достигли дневного лимита использования AL.",
     empty: "AL не смог подготовить ответ. Попробуйте снова.",
     busy: "AL сейчас перегружен. Попробуйте немного позже.",
     unknown: "При подготовке ответа произошла ошибка.",
@@ -105,7 +125,10 @@ const messages: Record<Language, Record<string, string>> = {
   ar: {
     missing: "يرجى كتابة السؤال الذي تريد طرحه على AL.",
     long: "سؤالك طويل جدًا. يرجى اختصاره.",
-    api: "لم يتم تعريف GEMINI_API_KEY. تحقق من ملف .env.local.",
+    api: "خدمة AL غير متاحة حاليًا. يرجى المحاولة لاحقًا.",
+    unauthorized: "جلستك غير صالحة أو انتهت. يرجى تسجيل الدخول مرة أخرى.",
+    rateLimit: "أرسلت طلبات كثيرة خلال وقت قصير. يرجى الانتظار قليلًا.",
+    dailyLimit: "لقد وصلت إلى الحد اليومي لاستخدام AL.",
     empty: "لم يتمكن AL من إعداد إجابة. حاول مرة أخرى.",
     busy: "AL مشغول حاليًا. يرجى المحاولة بعد قليل.",
     unknown: "حدث خطأ غير متوقع أثناء إعداد الإجابة.",
@@ -113,7 +136,10 @@ const messages: Record<Language, Record<string, string>> = {
   fa: {
     missing: "لطفاً پرسش خود را برای AL بنویسید.",
     long: "پرسش شما بیش از حد طولانی است. لطفاً آن را کوتاه‌تر کنید.",
-    api: "GEMINI_API_KEY تعریف نشده است. فایل .env.local را بررسی کنید.",
+    api: "سرویس AL در حال حاضر در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.",
+    unauthorized: "نشست شما نامعتبر یا منقضی شده است. لطفاً دوباره وارد شوید.",
+    rateLimit: "در مدت کوتاهی درخواست‌های زیادی فرستادید. کمی صبر کنید.",
+    dailyLimit: "به سقف استفاده روزانه از AL رسیده‌اید.",
     empty: "AL نتوانست پاسخ ایجاد کند. لطفاً دوباره تلاش کنید.",
     busy: "AL در حال حاضر شلوغ است. لطفاً کمی بعد دوباره تلاش کنید.",
     unknown: "هنگام آماده‌سازی پاسخ خطایی رخ داد.",
@@ -142,13 +168,40 @@ export async function POST(request: NextRequest) {
   let language: Language = "tr";
 
   try {
+    const contentLength = Number(request.headers.get("content-length") || "0");
+    if (contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json(
+        { error: messages[language].long },
+        { status: 413 },
+      );
+    }
+
+    const token = readBearerToken(request);
+    if (!token) {
+      return NextResponse.json(
+        { error: messages[language].unauthorized },
+        { status: 401 },
+      );
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(token, true);
+    } catch {
+      return NextResponse.json(
+        { error: messages[language].unauthorized },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as ChatRequestBody;
     language = normalizeLanguage(body.language);
     const copy = messages[language];
 
     const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
-      return NextResponse.json({ error: copy.api }, { status: 500 });
+      console.error("GEMINI_API_KEY sunucu ortamında tanımlı değil.");
+      return NextResponse.json({ error: copy.api }, { status: 503 });
     }
 
     const message = readString(body.message);
@@ -157,6 +210,33 @@ export async function POST(request: NextRequest) {
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json({ error: copy.long }, { status: 413 });
+    }
+
+    const rateLimit = await consumeChatQuota({
+      uid: decodedToken.uid,
+      ipAddress: getClientIp(request),
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            rateLimit.reason === "daily"
+              ? copy.dailyLimit
+              : copy.rateLimit,
+          retryable: rateLimit.reason !== "daily",
+          limit: rateLimit.limit,
+          remaining: 0,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+            "X-RateLimit-Limit": String(rateLimit.limit),
+            "X-RateLimit-Remaining": "0",
+          },
+        },
+      );
     }
 
     const history = normalizeHistory(body.history);
@@ -194,29 +274,202 @@ export async function POST(request: NextRequest) {
 
     const result = parseGeminiResult(responseText);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...result,
-        language,
-        createdAt: new Date().toISOString(),
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          ...result,
+          language,
+          createdAt: new Date().toISOString(),
+        },
+        usage: {
+          dailyLimit: rateLimit.dailyLimit,
+          dailyRemaining: rateLimit.dailyRemaining,
+        },
       },
-    });
+      {
+        headers: {
+          "X-RateLimit-Limit": String(rateLimit.limit),
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
+        },
+      },
+    );
   } catch (error) {
     console.error("AL Chat API hatası:", error);
 
     const copy = messages[language];
-    const message = error instanceof Error ? error.message : copy.unknown;
-    const temporary = isTemporaryGeminiError(message);
+    const errorMessage = error instanceof Error ? error.message : copy.unknown;
+    const temporary = isTemporaryGeminiError(errorMessage);
 
     return NextResponse.json(
       {
-        error: temporary ? copy.busy : message || copy.unknown,
+        error: temporary ? copy.busy : copy.unknown,
         retryable: temporary,
       },
-      { status: temporary ? 503 : 400 },
+      { status: temporary ? 503 : 500 },
     );
   }
+}
+
+function readBearerToken(request: NextRequest): string {
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || "";
+}
+
+function getClientIp(request: NextRequest): string {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0]?.trim() || "unknown";
+
+  return (
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("cf-connecting-ip")?.trim() ||
+    "unknown"
+  );
+}
+
+type ChatQuotaResult =
+  | {
+      allowed: true;
+      limit: number;
+      remaining: number;
+      dailyLimit: number;
+      dailyRemaining: number;
+    }
+  | {
+      allowed: false;
+      reason: "user_minute" | "ip_minute" | "daily";
+      limit: number;
+      retryAfterSeconds: number;
+    };
+
+async function consumeChatQuota(input: {
+  uid: string;
+  ipAddress: string;
+}): Promise<ChatQuotaResult> {
+  const now = new Date();
+  const minuteKey = now.toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  const dayKey = now.toISOString().slice(0, 10);
+  const secondsUntilNextMinute = Math.max(1, 60 - now.getUTCSeconds());
+  const tomorrow = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
+  const secondsUntilTomorrow = Math.max(
+    1,
+    Math.ceil((tomorrow.getTime() - now.getTime()) / 1000),
+  );
+
+  const ipHash = createHash("sha256")
+    .update(input.ipAddress)
+    .digest("hex")
+    .slice(0, 32);
+
+  const userRef = adminDb.collection("users").doc(input.uid);
+  const dailyRef = userRef.collection("apiUsage").doc(`chat_${dayKey}`);
+  const userMinuteRef = adminDb
+    .collection("apiRateLimits")
+    .doc(`chat_user_${input.uid}_${minuteKey}`);
+  const ipMinuteRef = adminDb
+    .collection("apiRateLimits")
+    .doc(`chat_ip_${ipHash}_${minuteKey}`);
+
+  return adminDb.runTransaction(async (transaction) => {
+    const [userSnapshot, dailySnapshot, userMinuteSnapshot, ipMinuteSnapshot] =
+      await Promise.all([
+        transaction.get(userRef),
+        transaction.get(dailyRef),
+        transaction.get(userMinuteRef),
+        transaction.get(ipMinuteRef),
+      ]);
+
+    const userData = userSnapshot.data() || {};
+    const subscription = readString(userData.subscription).toLowerCase();
+    const role = readString(userData.role).toLowerCase();
+    const premium =
+      role === "admin" ||
+      ["premium", "pro", "business"].includes(subscription);
+    const dailyLimit = premium
+      ? PREMIUM_DAILY_CHAT_LIMIT
+      : FREE_DAILY_CHAT_LIMIT;
+
+    const dailyCount = readSafeCount(dailySnapshot.data()?.count);
+    const userMinuteCount = readSafeCount(userMinuteSnapshot.data()?.count);
+    const ipMinuteCount = readSafeCount(ipMinuteSnapshot.data()?.count);
+
+    if (dailyCount >= dailyLimit) {
+      return {
+        allowed: false,
+        reason: "daily",
+        limit: dailyLimit,
+        retryAfterSeconds: secondsUntilTomorrow,
+      };
+    }
+
+    if (userMinuteCount >= USER_REQUESTS_PER_MINUTE) {
+      return {
+        allowed: false,
+        reason: "user_minute",
+        limit: USER_REQUESTS_PER_MINUTE,
+        retryAfterSeconds: secondsUntilNextMinute,
+      };
+    }
+
+    if (ipMinuteCount >= IP_REQUESTS_PER_MINUTE) {
+      return {
+        allowed: false,
+        reason: "ip_minute",
+        limit: IP_REQUESTS_PER_MINUTE,
+        retryAfterSeconds: secondsUntilNextMinute,
+      };
+    }
+
+    const expiresAt = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    transaction.set(
+      dailyRef,
+      {
+        count: dailyCount + 1,
+        date: dayKey,
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+    transaction.set(
+      userMinuteRef,
+      {
+        count: userMinuteCount + 1,
+        uid: input.uid,
+        kind: "chat_user_minute",
+        updatedAt: now,
+        expiresAt,
+      },
+      { merge: true },
+    );
+    transaction.set(
+      ipMinuteRef,
+      {
+        count: ipMinuteCount + 1,
+        kind: "chat_ip_minute",
+        updatedAt: now,
+        expiresAt,
+      },
+      { merge: true },
+    );
+
+    return {
+      allowed: true,
+      limit: USER_REQUESTS_PER_MINUTE,
+      remaining: USER_REQUESTS_PER_MINUTE - userMinuteCount - 1,
+      dailyLimit,
+      dailyRemaining: dailyLimit - dailyCount - 1,
+    };
+  });
+}
+
+function readSafeCount(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
 }
 
 async function callGeminiWithRetry(input: {
@@ -243,6 +496,7 @@ async function callGeminiWithRetry(input: {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
         body: JSON.stringify({
           systemInstruction: {
             parts: [{ text: buildSystemInstruction(input.language) }],

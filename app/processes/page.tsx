@@ -306,8 +306,10 @@ function formatDeadline(
 export default function ProcessesPage() {
   const router = useRouter();
 
-  const [language, setLanguage] =
-    useState<Language>("tr");
+  const [language] =
+  useState<Language>(() =>
+    normalizeProcessLanguage(readStoredLanguage("tr")),
+  );
   const [processes, setProcesses] =
     useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,13 +321,7 @@ export default function ProcessesPage() {
     ? "rtl"
     : "ltr";
 
-  useEffect(() => {
-    const storedLanguage =
-      readStoredLanguage("tr");
-    setLanguage(
-      normalizeProcessLanguage(storedLanguage),
-    );
-  }, []);
+  
 
   useEffect(() => {
     let isMounted = true;

@@ -12,6 +12,12 @@ import {
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 
+const CONSENT_VERSION = "2026-07-26";
+const PRIVACY_VERSION = "2026-07-26";
+const TERMS_VERSION = "2026-07-26";
+const AI_NOTICE_VERSION = "2026-07-26";
+const OCR_NOTICE_VERSION = "2026-07-26";
+
 function getFirebaseErrorMessage(errorCode?: string) {
   switch (errorCode) {
     case "auth/email-already-in-use":
@@ -58,6 +64,41 @@ function getErrorCode(error: unknown) {
   return undefined;
 }
 
+type ConsentCheckboxProps = {
+  id: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+  children: React.ReactNode;
+};
+
+function ConsentCheckbox({
+  id,
+  checked,
+  disabled,
+  onChange,
+  children,
+}: ConsentCheckboxProps) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
+    >
+      <input
+        id={id}
+        name={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-black text-violet-500 accent-violet-500 focus:ring-2 focus:ring-violet-500/40 disabled:cursor-not-allowed"
+      />
+
+      <span className="text-xs leading-5 text-zinc-400">{children}</span>
+    </label>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
 
@@ -65,6 +106,12 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [aiNoticeAccepted, setAiNoticeAccepted] = useState(false);
+  const [ocrConsent, setOcrConsent] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -99,6 +146,26 @@ export default function SignupPage() {
       return;
     }
 
+    if (!privacyAccepted) {
+      setErrorMessage("Devam etmek için gizlilik politikasını kabul etmelisin.");
+      return;
+    }
+
+    if (!termsAccepted) {
+      setErrorMessage("Devam etmek için kullanım koşullarını kabul etmelisin.");
+      return;
+    }
+
+    if (!aiNoticeAccepted) {
+      setErrorMessage("ALQEV&apos;in yapay zekâ kullanım bilgilendirmesini onaylamalısın.");
+      return;
+    }
+
+    if (!ageConfirmed) {
+      setErrorMessage("Hesap oluşturmak için 18 yaşını doldurduğunu onaylamalısın.");
+      return;
+    }
+
     let createdUser: User | null = null;
 
     try {
@@ -120,10 +187,26 @@ export default function SignupPage() {
         fullName: normalizedName,
         email: normalizedEmail,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         language: "tr",
         country: "",
         onboardingCompleted: false,
         subscription: "free",
+        accountStatus: "active",
+        role: "user",
+        legal: {
+          consentVersion: CONSENT_VERSION,
+          privacyAccepted: true,
+          privacyVersion: PRIVACY_VERSION,
+          termsAccepted: true,
+          termsVersion: TERMS_VERSION,
+          aiNoticeAccepted: true,
+          aiNoticeVersion: AI_NOTICE_VERSION,
+          ocrConsent,
+          ocrNoticeVersion: OCR_NOTICE_VERSION,
+          ageConfirmed: true,
+          acceptedAt: serverTimestamp(),
+        },
       });
 
       setSuccessMessage(
@@ -134,9 +217,14 @@ export default function SignupPage() {
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+      setPrivacyAccepted(false);
+      setTermsAccepted(false);
+      setAiNoticeAccepted(false);
+      setOcrConsent(false);
+      setAgeConfirmed(false);
 
       window.setTimeout(() => {
-        router.push("/");
+        router.replace("/dashboard");
         router.refresh();
       }, 1200);
     } catch (error: unknown) {
@@ -165,13 +253,11 @@ export default function SignupPage() {
         className="pointer-events-none absolute inset-0"
       >
         <div className="absolute left-1/2 top-[-220px] h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-violet-700/20 blur-[140px]" />
-
         <div className="absolute bottom-[-250px] right-[-150px] h-[500px] w-[500px] rounded-full bg-blue-700/15 blur-[150px]" />
-
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:42px_42px]" />
       </div>
 
-      <section className="relative z-10 w-full max-w-md">
+      <section className="relative z-10 w-full max-w-xl">
         <Link
           href="/"
           className="mb-8 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-white"
@@ -191,15 +277,12 @@ export default function SignupPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              ALQEV deneyimine başlamak için bilgilerini gir.
+              ALQEV deneyimine başlamak için bilgilerini gir ve gerekli
+              bilgilendirmeleri onayla.
             </p>
           </div>
 
-          <form
-            className="space-y-5"
-            onSubmit={handleSubmit}
-            noValidate
-          >
+          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
             <div>
               <label
                 htmlFor="fullName"
@@ -243,48 +326,130 @@ export default function SignupPage() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium text-zinc-200"
-              >
-                Şifre
-              </label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
+                  Şifre
+                </label>
 
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={isSubmitting}
-                placeholder="En az 6 karakter"
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-              />
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="En az 6 karakter"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
+                  Şifreyi doğrula
+                </label>
+
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(event.target.value)
+                  }
+                  disabled={isSubmitting}
+                  placeholder="Şifreni tekrar gir"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="mb-2 block text-sm font-medium text-zinc-200"
-              >
-                Şifreyi doğrula
-              </label>
+            <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.05] p-4">
+              <h2 className="text-sm font-semibold text-zinc-100">
+                Gizlilik ve kullanım onayları
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-zinc-500">
+                Yıldızlı onaylar hesap oluşturmak için zorunludur. OCR izni
+                isteğe bağlıdır ve belge yükleme ekranında yeniden sorulmalıdır.
+              </p>
+            </div>
 
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) =>
-                  setConfirmPassword(event.target.value)
-                }
+            <div className="space-y-3">
+              <ConsentCheckbox
+                id="privacyAccepted"
+                checked={privacyAccepted}
                 disabled={isSubmitting}
-                placeholder="Şifreni tekrar gir"
-                className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-              />
+                onChange={setPrivacyAccepted}
+              >
+                <span className="font-medium text-zinc-200">*</span>{" "}
+                <Link
+                  href="/datenschutz"
+                  target="_blank"
+                  className="font-medium text-violet-300 underline decoration-violet-300/40 underline-offset-2 hover:text-violet-200"
+                >
+                  Gizlilik Politikasını
+                </Link>{" "}
+                okudum ve kişisel verilerimin burada açıklandığı şekilde
+                işlenmesini kabul ediyorum.
+              </ConsentCheckbox>
+
+              <ConsentCheckbox
+                id="termsAccepted"
+                checked={termsAccepted}
+                disabled={isSubmitting}
+                onChange={setTermsAccepted}
+              >
+                <span className="font-medium text-zinc-200">*</span>{" "}
+                <Link
+                  href="/nutzungsbedingungen"
+                  target="_blank"
+                  className="font-medium text-violet-300 underline decoration-violet-300/40 underline-offset-2 hover:text-violet-200"
+                >
+                  Kullanım Koşullarını
+                </Link>{" "}
+                okudum ve kabul ediyorum.
+              </ConsentCheckbox>
+
+              <ConsentCheckbox
+                id="aiNoticeAccepted"
+                checked={aiNoticeAccepted}
+                disabled={isSubmitting}
+                onChange={setAiNoticeAccepted}
+              >
+                <span className="font-medium text-zinc-200">*</span> ALQEV&apos;in
+                yanıt üretmek için yapay zekâ sistemleri kullandığını; AI
+                yanıtlarının hata içerebileceğini ve resmi, hukuki, tıbbi veya
+                mali danışmanlığın yerine geçmediğini anladım.
+              </ConsentCheckbox>
+
+              <ConsentCheckbox
+                id="ocrConsent"
+                checked={ocrConsent}
+                disabled={isSubmitting}
+                onChange={setOcrConsent}
+              >
+                Belge yüklediğimde içeriğin OCR ve yapay zekâ yöntemleriyle
+                analiz edilebileceğini kabul ediyorum. Bu izin isteğe bağlıdır;
+                belge yükleme özelliğini kullanmadan ALQEV hesabı açabilirim.
+              </ConsentCheckbox>
+
+              <ConsentCheckbox
+                id="ageConfirmed"
+                checked={ageConfirmed}
+                disabled={isSubmitting}
+                onChange={setAgeConfirmed}
+              >
+                <span className="font-medium text-zinc-200">*</span> 18 yaşımı
+                doldurduğumu ve verdiğim bilgilerin doğru olduğunu onaylıyorum.
+              </ConsentCheckbox>
             </div>
 
             {errorMessage ? (
@@ -325,8 +490,8 @@ export default function SignupPage() {
           </p>
 
           <p className="mt-5 text-center text-xs leading-5 text-zinc-600">
-            Hesap oluşturarak ALQEV kullanım koşullarını ve gizlilik
-            politikasını kabul etmiş olursun.
+            Onay kayıtları; ilgili metinlerin sürümü, seçimlerin ve kabul tarihi
+            ile birlikte kullanıcı profilinde saklanır.
           </p>
         </div>
       </section>

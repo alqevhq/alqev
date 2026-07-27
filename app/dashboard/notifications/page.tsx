@@ -370,7 +370,9 @@ function getSeverityLabel(
 export default function NotificationCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [language, setLanguage] = useState<SupportedLanguage>("tr");
+const [language] = useState<SupportedLanguage>(() =>
+  normalizeLanguage(readStoredLanguage("tr")),
+);
   const [processes, setProcesses] = useState<NotificationProcess[]>([]);
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -381,9 +383,7 @@ export default function NotificationCenterPage() {
   const copy = translations[language];
   const isRtl = language === "ar" || language === "fa";
 
-  useEffect(() => {
-    setLanguage(normalizeLanguage(readStoredLanguage("tr")));
-  }, []);
+  
 
   useEffect(() => {
     let isMounted = true;

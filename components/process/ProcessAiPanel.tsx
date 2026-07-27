@@ -605,8 +605,10 @@ function PremiumLock({
 export default function ProcessAiPanel({
   process,
 }: ProcessAiPanelProps) {
-  const [language, setLanguage] =
-    useState<Language>("tr");
+  const [language] =
+  useState<Language>(() =>
+    readStoredLanguage("tr"),
+  );
   const [
     subscriptionPlan,
     setSubscriptionPlan,
@@ -614,9 +616,7 @@ export default function ProcessAiPanel({
   const [isPlanLoading, setIsPlanLoading] =
     useState(true);
 
-  useEffect(() => {
-    setLanguage(readStoredLanguage("tr"));
-  }, []);
+  
 
   const analysis = useMemo(
     () => analyzeProcess(process),

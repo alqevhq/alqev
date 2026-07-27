@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChangeEvent,
   DragEvent,
@@ -906,8 +907,9 @@ export default function ProcessDetailPage() {
 
   const processId = typeof params.id === "string" ? params.id : params.id?.[0];
 
-  const [language, setLanguage] =
-    useState<Language>("tr");
+  const [language] = useState<Language>(() =>
+    readStoredLanguage("tr"),
+  );
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [process, setProcess] = useState<Process | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -946,9 +948,7 @@ export default function ProcessDetailPage() {
   const bulkInputRef = useRef<HTMLInputElement | null>(null);
   const processRef = useRef<Process | null>(null);
 
-  useEffect(() => {
-    setLanguage(readStoredLanguage("tr"));
-  }, []);
+  
 
   useEffect(() => {
     let isMounted = true;
@@ -1200,7 +1200,7 @@ export default function ProcessDetailPage() {
     if (!selectedDocument) return false;
 
     const safeFileName = sanitizeFileName(file.name);
-    const storagePath = `users/${currentUser.uid}/processes/${processId}/documents/${Date.now()}-${safeFileName}`;
+  const storagePath = `users/${currentUser.uid}/processes/${processId}/documents/${crypto.randomUUID()}-${safeFileName}`;
     const storageReference = ref(storage, storagePath);
     const previousStoragePath = selectedDocument.storagePath;
 
@@ -2148,11 +2148,16 @@ export default function ProcessDetailPage() {
             <div className="min-h-0 flex-1 bg-slate-900">
               {previewDocument.contentType?.startsWith("image/") ? (
                 <div className="flex h-full items-center justify-center overflow-auto p-4">
-                  <img
-                    src={previewDocument.fileUrl}
-                    alt={previewDocument.fileName || previewDocument.title}
-                    className="max-h-full max-w-full rounded-xl object-contain"
-                  />
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={previewDocument.fileUrl}
+                      alt={previewDocument.fileName || previewDocument.title}
+                      fill
+                      unoptimized
+                      sizes="100vw"
+                      className="rounded-xl object-contain"
+                    />
+                  </div>
                 </div>
               ) : (
                 <iframe

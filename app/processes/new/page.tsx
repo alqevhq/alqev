@@ -46,7 +46,9 @@ export default function NewProcessPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [language, setLanguage] =
-    useState<Language>("tr");
+  useState<Language>(() =>
+    readStoredLanguage("tr"),
+  );
   const [templateKey, setTemplateKey] = useState("");
   const [country, setCountry] = useState("DE");
   const [deadline, setDeadline] = useState("");
@@ -83,10 +85,6 @@ export default function NewProcessPage() {
     planLimits.maxProcesses,
   );
 
- useEffect(() => {
-  const storedLanguage = readStoredLanguage("tr");
-  setLanguage(storedLanguage);
-}, []);
 
 useEffect(() => {
     let isMounted = true;
@@ -182,7 +180,7 @@ useEffect(() => {
       isMounted = false;
       unsubscribe();
     };
-  }, [router]);
+  }, [router, copy.newProcess.loadError]);
 
   function handleTemplateChange(value: string) {
     setTemplateKey(value);

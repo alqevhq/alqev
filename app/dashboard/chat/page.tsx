@@ -4,6 +4,7 @@ import {
   FormEvent,
   KeyboardEvent,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -330,7 +331,9 @@ function ChatPageContent() {
   const [documents, setDocuments] =
     useState<DocumentItem[]>([]);
   const [language, setLanguage] =
-    useState<Language>("tr");
+  useState<Language>(() =>
+    normalizeLanguage(readStoredLanguage("tr")),
+  );
   const [messages, setMessages] =
     useState<ChatMessage[]>([]);
   const [draft, setDraft] =
@@ -364,13 +367,7 @@ function ChatPageContent() {
     t.q4,
   ];
 
-  useEffect(() => {
-    const stored =
-      readStoredLanguage("tr");
-    setLanguage(
-      normalizeLanguage(stored),
-    );
-  }, []);
+  
 
   useEffect(() => {
     let mounted = true;
@@ -613,6 +610,130 @@ function ChatPageContent() {
     );
   }, [messages, isSending]);
 
+  const sendMessage = useCallback(
+    async (rawMessage: string) => {
+      const message = rawMessage.trim();
+
+      if (!message || isSending) {
+        return;
+      }
+
+      const userMessage =
+        createMessage("user", message);
+
+      const previousMessages =
+        messages.slice(-20);
+
+      setMessages((current) => [
+        ...current,
+        userMessage,
+      ]);
+      setDraft("");
+      setErrorMessage("");
+      setIsSending(true);
+
+      try {
+        if (!user) {
+          throw new Error(t.error);
+        }
+
+        const idToken = await user.getIdToken();
+
+        const response = await fetch(
+          "/api/chat",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              message,
+              language,
+              history:
+                previousMessages.map(
+                  (item) => ({
+                    role: item.role,
+                    content:
+                      item.content,
+                  }),
+                ),
+              profile:
+                profile || {
+                  fullName:
+                    displayName,
+                  language,
+                },
+              processes,
+              documents,
+            }),
+          },
+        );
+
+        const payload =
+          (await response.json()) as ChatApiResponse;
+
+        if (
+          !response.ok ||
+          !payload.success ||
+          !payload.data
+        ) {
+          throw new Error(
+            payload.error ||
+              t.error,
+          );
+        }
+
+        const assistantMessage =
+          createMessage(
+            "assistant",
+            payload.data.answer,
+            {
+              category:
+                payload.data.category,
+              topic:
+                payload.data.topic,
+              suggestedActions:
+                payload.data
+                  .suggestedActions,
+              officialBodies:
+                payload.data
+                  .officialBodies,
+              importantNotice:
+                payload.data
+                  .importantNotice,
+            },
+          );
+
+        setMessages((current) => [
+          ...current,
+          assistantMessage,
+        ]);
+      } catch (error) {
+        const messageText =
+          error instanceof Error
+            ? error.message
+            : t.error;
+
+        setErrorMessage(messageText);
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [
+      displayName,
+      documents,
+      isSending,
+      language,
+      messages,
+      processes,
+      profile,
+      t.error,
+      user,
+    ],
+  );
+
   useEffect(() => {
     if (
       isLoading ||
@@ -627,125 +748,17 @@ function ChatPageContent() {
     initialQuestionHandled.current = true;
 
     if (initialQuestion) {
-      void sendMessage(
-        initialQuestion,
-      );
-    }
-  }, [isLoading, searchParams]);
-
-  async function sendMessage(
-    rawMessage: string,
-  ) {
-    const message =
-      rawMessage.trim();
-
-    if (!message || isSending) {
-      return;
-    }
-
-    const userMessage =
-      createMessage("user", message);
-
-    const previousMessages =
-      messages.slice(-20);
-
-    setMessages((current) => [
-      ...current,
-      userMessage,
-    ]);
-    setDraft("");
-    setErrorMessage("");
-    setIsSending(true);
-
-    try {
-      if (!user) {
-        throw new Error(t.error);
-      }
-
-      const idToken = await user.getIdToken();
-
-      const response = await fetch(
-        "/api/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            message,
-            language,
-            history:
-              previousMessages.map(
-                (item) => ({
-                  role: item.role,
-                  content:
-                    item.content,
-                }),
-              ),
-            profile:
-              profile || {
-                fullName:
-                  displayName,
-                language,
-              },
-            processes,
-            documents,
-          }),
-        },
-      );
-
-      const payload =
-        (await response.json()) as ChatApiResponse;
-
-      if (
-        !response.ok ||
-        !payload.success ||
-        !payload.data
-      ) {
-        throw new Error(
-          payload.error ||
-            t.error,
+      const timer = window.setTimeout(() => {
+        void sendMessage(
+          initialQuestion,
         );
-      }
+      }, 0);
 
-      const assistantMessage =
-        createMessage(
-          "assistant",
-          payload.data.answer,
-          {
-            category:
-              payload.data.category,
-            topic:
-              payload.data.topic,
-            suggestedActions:
-              payload.data
-                .suggestedActions,
-            officialBodies:
-              payload.data
-                .officialBodies,
-            importantNotice:
-              payload.data
-                .importantNotice,
-          },
-        );
-
-      setMessages((current) => [
-        ...current,
-        assistantMessage,
-      ]);
-    } catch (error) {
-      const messageText =
-        error instanceof Error
-          ? error.message
-          : t.error;
-
-      setErrorMessage(messageText);
-    } finally {
-      setIsSending(false);
+      return () => {
+        window.clearTimeout(timer);
+      };
     }
-  }
+  }, [isLoading, searchParams, sendMessage]);
 
   function handleSubmit(
     event: FormEvent<HTMLFormElement>,

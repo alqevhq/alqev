@@ -1045,16 +1045,14 @@ export default function DashboardPage() {
     useState("");
 
   const [selectedLanguage, setSelectedLanguage] =
-    useState<SupportedLanguage>("tr");
+  useState<SupportedLanguage>(() =>
+    normalizeLanguage(readStoredLanguage("tr")),
+  );
 
   const [alQuestion, setAlQuestion] = useState("");
   const [alQuestionError, setAlQuestionError] = useState("");
 
-  useEffect(() => {
-    const storedLanguage = readStoredLanguage("tr");
-    setSelectedLanguage(storedLanguage);
-  }, []);
-
+  
   useEffect(() => {
     let isMounted = true;
 
@@ -1606,28 +1604,24 @@ export default function DashboardPage() {
     setAlQuestionError("");
   }
 
-  async function handleSignOut() {
-    try {
-      setIsSigningOut(true);
-      setErrorMessage("");
+ async function handleSignOut() {
+  try {
+    setIsSigningOut(true);
+    setErrorMessage("");
 
-      await signOut(auth);
+    await signOut(auth);
 
-      router.replace("/");
-      router.refresh();
-    } catch (error) {
-      console.error(
-        "Çıkış yapılamadı:",
-        error,
-      );
+    window.location.href = "/login";
+  } catch (error) {
+    console.error("Çıkış yapılamadı:", error);
 
-      setErrorMessage(
-        "Çıkış yapılırken bir hata oluştu. Lütfen tekrar dene.",
-      );
+    setErrorMessage(
+      "Çıkış yapılırken bir hata oluştu. Lütfen tekrar dene.",
+    );
 
-      setIsSigningOut(false);
-    }
+    setIsSigningOut(false);
   }
+}
 
   if (isLoading) {
     return (

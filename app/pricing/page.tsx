@@ -389,8 +389,10 @@ const copy = {
 } as const;
 
 export default function PricingPage() {
-  const [language, setLanguage] =
-    useState<Language>("tr");
+  const [language] =
+  useState<Language>(() =>
+    readStoredLanguage("tr"),
+  );
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] =
     useState<SubscriptionPlan>("free");
@@ -401,9 +403,7 @@ export default function PricingPage() {
   const [requestError, setRequestError] = useState("");
   const [requestSuccess, setRequestSuccess] = useState(false);
 
-  useEffect(() => {
-    setLanguage(readStoredLanguage("tr"));
-  }, []);
+ 
 
   useEffect(() => {
     let isMounted = true;
