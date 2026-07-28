@@ -184,15 +184,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(token, true);
-    } catch {
-      return NextResponse.json(
-        { error: messages[language].unauthorized },
-        { status: 401 },
-      );
-    }
+   let decodedToken;
+
+try {
+  decodedToken = await adminAuth.verifyIdToken(token, true);
+} catch (error) {
+  console.error("Firebase ID Token doğrulama hatası:", error);
+
+  return NextResponse.json(
+    { error: messages[language].unauthorized },
+    { status: 401 },
+  );
+}
 
     const body = (await request.json()) as ChatRequestBody;
     language = normalizeLanguage(body.language);

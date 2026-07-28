@@ -637,7 +637,7 @@ function ChatPageContent() {
           throw new Error(t.error);
         }
 
-        const idToken = await user.getIdToken();
+     const idToken = await user.getIdToken(true);
 
         const response = await fetch(
           "/api/chat",

@@ -158,6 +158,169 @@ const INACTIVE_PROCESS_STATUSES = new Set([
   "rejected",
 ]);
 
+export type DashboardAdvisorLocale =
+  | "en"
+  | "de"
+  | "tr"
+  | "ru"
+  | "ar"
+  | "fa";
+
+type DashboardAdvisorCopy = {
+  noProcessesTitle: string;
+  noProcessesMessage: string;
+  noProcessesAction: string;
+  missingDocumentsTitle: string;
+  missingDocumentsMessage: (count: number) => string;
+  missingDocumentsAction: string;
+  criticalIssuesTitle: string;
+  criticalIssuesMessage: (count: number) => string;
+  criticalIssuesAction: string;
+  nearestDeadlineTitle: string;
+  deadlineTodayMessage: string;
+  nearestDeadlineMessage: (count: number) => string;
+  nearestDeadlineAction: string;
+  accountReadyTitle: string;
+  accountReadyMessage: string;
+  accountReadyAction: string;
+};
+
+const DASHBOARD_ADVISOR_COPY: Record<DashboardAdvisorLocale, DashboardAdvisorCopy> = {
+  en: {
+    noProcessesTitle: "No active process",
+    noProcessesMessage: "Create your first process to start receiving readiness and document guidance.",
+    noProcessesAction: "Create a new process.",
+    missingDocumentsTitle: "Required documents are missing",
+    missingDocumentsMessage: (count) => `${count} required document(s) are still missing across your processes.`,
+    missingDocumentsAction: "Upload the missing required documents.",
+    criticalIssuesTitle: "Critical issues need attention",
+    criticalIssuesMessage: (count) => `${count} critical issue(s) were detected across your processes.`,
+    criticalIssuesAction: "Review the highest-priority critical issue.",
+    nearestDeadlineTitle: "A deadline is approaching",
+    deadlineTodayMessage: "One of your process deadlines is today.",
+    nearestDeadlineMessage: (count) => `The nearest deadline is in ${count} day(s).`,
+    nearestDeadlineAction: "Prioritize the process with the nearest deadline.",
+    accountReadyTitle: "Your processes are in strong condition",
+    accountReadyMessage: "No blocking issue was detected and your overall readiness is high.",
+    accountReadyAction: "Review the information once more before submission.",
+  },
+  de: {
+    noProcessesTitle: "Kein aktiver Vorgang",
+    noProcessesMessage: "Erstellen Sie Ihren ersten Vorgang, um Hinweise zur Bereitschaft und zu Dokumenten zu erhalten.",
+    noProcessesAction: "Neuen Vorgang erstellen.",
+    missingDocumentsTitle: "Erforderliche Dokumente fehlen",
+    missingDocumentsMessage: (count) => `In Ihren Vorgängen fehlen noch ${count} erforderliche Dokumente.`,
+    missingDocumentsAction: "Fehlende erforderliche Dokumente hochladen.",
+    criticalIssuesTitle: "Kritische Probleme erfordern Aufmerksamkeit",
+    criticalIssuesMessage: (count) => `In Ihren Vorgängen wurden ${count} kritische Probleme erkannt.`,
+    criticalIssuesAction: "Das kritischste Problem mit höchster Priorität prüfen.",
+    nearestDeadlineTitle: "Eine Frist rückt näher",
+    deadlineTodayMessage: "Eine Frist in einem Ihrer Vorgänge endet heute.",
+    nearestDeadlineMessage: (count) => `Die nächste Frist endet in ${count} Tagen.`,
+    nearestDeadlineAction: "Den Vorgang mit der nächsten Frist priorisieren.",
+    accountReadyTitle: "Ihre Vorgänge sind in einem sehr guten Zustand",
+    accountReadyMessage: "Es wurden keine blockierenden Probleme erkannt und Ihre Gesamtbereitschaft ist hoch.",
+    accountReadyAction: "Die Angaben vor dem Einreichen noch einmal prüfen.",
+  },
+  tr: {
+    noProcessesTitle: "Aktif süreç yok",
+    noProcessesMessage: "Hazırlık ve belge yönlendirmeleri almaya başlamak için ilk sürecinizi oluşturun.",
+    noProcessesAction: "Yeni bir süreç oluştur.",
+    missingDocumentsTitle: "Gerekli belgeler eksik",
+    missingDocumentsMessage: (count) => `Süreçlerinizde hâlâ ${count} gerekli belge eksik.`,
+    missingDocumentsAction: "Eksik gerekli belgeleri yükleyin.",
+    criticalIssuesTitle: "Kritik sorunların incelenmesi gerekiyor",
+    criticalIssuesMessage: (count) => `Süreçlerinizde ${count} kritik sorun tespit edildi.`,
+    criticalIssuesAction: "En yüksek öncelikli kritik sorunu inceleyin.",
+    nearestDeadlineTitle: "Bir son tarih yaklaşıyor",
+    deadlineTodayMessage: "Süreçlerinizden birinin son tarihi bugün.",
+    nearestDeadlineMessage: (count) => `En yakın son tarihe ${count} gün kaldı.`,
+    nearestDeadlineAction: "En yakın son tarihe sahip sürece öncelik verin.",
+    accountReadyTitle: "Süreçleriniz güçlü durumda",
+    accountReadyMessage: "Engelleyici bir sorun tespit edilmedi ve genel hazırlık seviyeniz yüksek.",
+    accountReadyAction: "Göndermeden önce bilgileri bir kez daha kontrol edin.",
+  },
+  ru: {
+    noProcessesTitle: "Нет активного процесса",
+    noProcessesMessage: "Создайте свой первый процесс, чтобы получать рекомендации по готовности и документам.",
+    noProcessesAction: "Создать новый процесс.",
+    missingDocumentsTitle: "Отсутствуют обязательные документы",
+    missingDocumentsMessage: (count) => `В ваших процессах всё ещё отсутствует обязательных документов: ${count}.`,
+    missingDocumentsAction: "Загрузить отсутствующие обязательные документы.",
+    criticalIssuesTitle: "Критические проблемы требуют внимания",
+    criticalIssuesMessage: (count) => `В ваших процессах обнаружено критических проблем: ${count}.`,
+    criticalIssuesAction: "Проверить критическую проблему с наивысшим приоритетом.",
+    nearestDeadlineTitle: "Приближается срок",
+    deadlineTodayMessage: "Срок одного из ваших процессов истекает сегодня.",
+    nearestDeadlineMessage: (count) => `До ближайшего срока осталось дней: ${count}.`,
+    nearestDeadlineAction: "Отдать приоритет процессу с ближайшим сроком.",
+    accountReadyTitle: "Ваши процессы находятся в хорошем состоянии",
+    accountReadyMessage: "Блокирующих проблем не обнаружено, а общий уровень готовности высокий.",
+    accountReadyAction: "Ещё раз проверить информацию перед отправкой.",
+  },
+  ar: {
+    noProcessesTitle: "لا توجد عملية نشطة",
+    noProcessesMessage: "أنشئ عمليتك الأولى لبدء تلقي إرشادات الجاهزية والمستندات.",
+    noProcessesAction: "إنشاء عملية جديدة.",
+    missingDocumentsTitle: "المستندات المطلوبة غير مكتملة",
+    missingDocumentsMessage: (count) => `لا يزال هناك ${count} من المستندات المطلوبة المفقودة في عملياتك.`,
+    missingDocumentsAction: "رفع المستندات المطلوبة المفقودة.",
+    criticalIssuesTitle: "توجد مشكلات حرجة تحتاج إلى الانتباه",
+    criticalIssuesMessage: (count) => `تم اكتشاف ${count} من المشكلات الحرجة في عملياتك.`,
+    criticalIssuesAction: "مراجعة المشكلة الحرجة ذات الأولوية الأعلى.",
+    nearestDeadlineTitle: "موعد نهائي يقترب",
+    deadlineTodayMessage: "الموعد النهائي لإحدى عملياتك هو اليوم.",
+    nearestDeadlineMessage: (count) => `يتبقى ${count} يومًا على أقرب موعد نهائي.`,
+    nearestDeadlineAction: "إعطاء الأولوية للعملية ذات الموعد النهائي الأقرب.",
+    accountReadyTitle: "عملياتك في حالة جيدة",
+    accountReadyMessage: "لم يتم اكتشاف أي مشكلة مانعة ومستوى جاهزيتك العام مرتفع.",
+    accountReadyAction: "مراجعة المعلومات مرة أخرى قبل الإرسال.",
+  },
+  fa: {
+    noProcessesTitle: "فرایند فعالی وجود ندارد",
+    noProcessesMessage:
+      "برای دریافت راهنمایی درباره آمادگی و مدارک، نخستین فرایند خود را ایجاد کنید.",
+    noProcessesAction: "ایجاد فرایند جدید.",
+
+    missingDocumentsTitle:
+      "مدارک الزامی ناقص هستند",
+    missingDocumentsMessage: (count) =>
+      `هنوز ${count} مدرک الزامی در فرایندهای شما ناقص است.`,
+    missingDocumentsAction:
+      "مدارک الزامیِ ناقص را بارگذاری کنید.",
+
+    criticalIssuesTitle:
+      "مشکلات بحرانی نیاز به بررسی دارند",
+    criticalIssuesMessage: (count) =>
+      `${count} مشکل بحرانی در فرایندهای شما شناسایی شد.`,
+    criticalIssuesAction:
+      "مهم‌ترین مشکل بحرانی را بررسی کنید.",
+
+    nearestDeadlineTitle: "یک مهلت در حال نزدیک شدن است",
+    deadlineTodayMessage:
+      "مهلت یکی از فرایندهای شما امروز است.",
+    nearestDeadlineMessage: (count) =>
+      `${count} روز تا نزدیک‌ترین مهلت باقی مانده است.`,
+    nearestDeadlineAction:
+      "فرایندی را که نزدیک‌ترین مهلت را دارد در اولویت قرار دهید.",
+
+    accountReadyTitle:
+      "فرایندهای شما در وضعیت خوبی قرار دارند",
+    accountReadyMessage:
+      "هیچ مشکل مسدودکننده‌ای شناسایی نشد و سطح کلی آمادگی شما بالاست.",
+    accountReadyAction:
+      "پیش از ارسال، اطلاعات را یک بار دیگر بررسی کنید.",
+  },
+};
+
+function normalizeDashboardLocale(locale?: string): DashboardAdvisorLocale {
+  const normalized = normalizeText(locale).toLowerCase().split("-")[0];
+  if (normalized === "de" || normalized === "tr" || normalized === "ru" || normalized === "ar" || normalized === "fa") {
+    return normalized;
+  }
+  return "en";
+}
+
 function clamp(
   value: number,
   minimum = 0,
@@ -489,9 +652,12 @@ function calculateOverallHealthScore(
 
 function buildAccountRecommendations(
   metrics: DashboardMetrics,
+  locale: DashboardAdvisorLocale,
 ): DashboardRecommendation[] {
   const recommendations:
     DashboardRecommendation[] = [];
+
+  const copy = DASHBOARD_ADVISOR_COPY[locale];
 
   if (metrics.totalProcesses === 0) {
     recommendations.push({
@@ -501,11 +667,10 @@ function buildAccountRecommendations(
       priority: 220,
       titleKey: "noProcesses",
       messageKey: "noProcessesMessage",
-      title: "No active process",
-      message:
-        "Create your first process to start receiving readiness and document guidance.",
+      title: copy.noProcessesTitle,
+      message: copy.noProcessesMessage,
       suggestedAction:
-        "Create a new process.",
+        copy.noProcessesAction,
     });
 
     return recommendations;
@@ -527,14 +692,17 @@ function buildAccountRecommendations(
       messageKey:
         "missingRequiredDocumentsMessage",
       title:
-        "Required documents are missing",
-      message: `${metrics.missingRequiredDocuments} required document(s) are still missing across your processes.`,
+        copy.missingDocumentsTitle,
+      message:
+        copy.missingDocumentsMessage(
+          metrics.missingRequiredDocuments,
+        ),
       variables: {
         count:
           metrics.missingRequiredDocuments,
       },
       suggestedAction:
-        "Upload the missing required documents.",
+        copy.missingDocumentsAction,
     });
   }
 
@@ -550,13 +718,16 @@ function buildAccountRecommendations(
       messageKey:
         "criticalIssuesMessage",
       title:
-        "Critical issues need attention",
-      message: `${metrics.criticalIssues} critical issue(s) were detected across your processes.`,
+        copy.criticalIssuesTitle,
+      message:
+        copy.criticalIssuesMessage(
+          metrics.criticalIssues,
+        ),
       variables: {
         count: metrics.criticalIssues,
       },
       suggestedAction:
-        "Review the highest-priority critical issue.",
+        copy.criticalIssuesAction,
     });
   }
 
@@ -581,17 +752,19 @@ function buildAccountRecommendations(
       messageKey:
         "nearestDeadlineMessage",
       title:
-        "A deadline is approaching",
+        copy.nearestDeadlineTitle,
       message:
         metrics.nearestDeadlineDays === 0
-          ? "One of your process deadlines is today."
-          : `The nearest deadline is in ${metrics.nearestDeadlineDays} day(s).`,
+          ? copy.deadlineTodayMessage
+          : copy.nearestDeadlineMessage(
+              metrics.nearestDeadlineDays,
+            ),
       variables: {
         count:
           metrics.nearestDeadlineDays,
       },
       suggestedAction:
-        "Prioritize the process with the nearest deadline.",
+        copy.nearestDeadlineAction,
     });
   }
 
@@ -610,11 +783,11 @@ function buildAccountRecommendations(
       messageKey:
         "accountReadyMessage",
       title:
-        "Your processes are in strong condition",
+        copy.accountReadyTitle,
       message:
-        "No blocking issue was detected and your overall readiness is high.",
+        copy.accountReadyMessage,
       suggestedAction:
-        "Review the information once more before submission.",
+        copy.accountReadyAction,
     });
   }
 
@@ -623,7 +796,11 @@ function buildAccountRecommendations(
 
 export function analyzeDashboard(
   processes: AdvisorProcess[],
+  locale: string = "en",
 ): DashboardAdvisorResult {
+  const dashboardLocale =
+    normalizeDashboardLocale(locale);
+
   const safeProcesses =
     Array.isArray(processes)
       ? processes
@@ -796,7 +973,10 @@ export function analyzeDashboard(
   };
 
   const accountRecommendations =
-    buildAccountRecommendations(metrics);
+    buildAccountRecommendations(
+      metrics,
+      dashboardLocale,
+    );
 
   const recommendations =
     sortDashboardRecommendations([
