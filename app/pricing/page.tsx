@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
   addDoc,
@@ -19,6 +19,10 @@ import {
 } from "@/lib/i18n";
 
 type SubscriptionPlan = "free" | "premium";
+
+const subscribeToStoredLanguage = () => () => {};
+const getStoredLanguageSnapshot = (): Language => readStoredLanguage("tr");
+const getServerLanguageSnapshot = (): Language => "tr";
 
 const copy = {
   tr: {
@@ -389,9 +393,10 @@ const copy = {
 } as const;
 
 export default function PricingPage() {
-  const [language] =
-  useState<Language>(() =>
-    readStoredLanguage("tr"),
+  const language = useSyncExternalStore(
+    subscribeToStoredLanguage,
+    getStoredLanguageSnapshot,
+    getServerLanguageSnapshot,
   );
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] =
@@ -404,7 +409,7 @@ export default function PricingPage() {
   const [requestSuccess, setRequestSuccess] = useState(false);
 
  
-
+  
   useEffect(() => {
     let isMounted = true;
 
