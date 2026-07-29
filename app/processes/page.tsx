@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -38,6 +38,11 @@ type Process = {
   deadline: string | null;
   createdAt: Timestamp | null;
 };
+
+const subscribeToStoredLanguage = () => () => {};
+const getStoredLanguageSnapshot = (): Language =>
+  normalizeProcessLanguage(readStoredLanguage("tr"));
+const getServerLanguageSnapshot = (): Language => "tr";
 
 const copy = {
   tr: {
@@ -306,9 +311,10 @@ function formatDeadline(
 export default function ProcessesPage() {
   const router = useRouter();
 
-  const [language] =
-  useState<Language>(() =>
-    normalizeProcessLanguage(readStoredLanguage("tr")),
+  const language = useSyncExternalStore(
+    subscribeToStoredLanguage,
+    getStoredLanguageSnapshot,
+    getServerLanguageSnapshot,
   );
   const [processes, setProcesses] =
     useState<Process[]>([]);
