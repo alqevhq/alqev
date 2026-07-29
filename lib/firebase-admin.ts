@@ -1,6 +1,6 @@
 import {
   cert,
-  getApp,
+  
   getApps,
   initializeApp,
   type App,

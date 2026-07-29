@@ -633,7 +633,7 @@ export default function PricingPage() {
 
             <div className="mt-7">
               <span className="text-5xl font-black">
-                19,90 €
+                9,90 €
               </span>
               <span className="ml-2 text-slate-400">
                 {currentCopy.perMonth}
