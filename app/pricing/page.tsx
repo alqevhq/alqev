@@ -477,7 +477,7 @@ export default function PricingPage() {
           email: user.email || "",
           status: "waiting",
           requestedPlan: "premium",
-          monthlyPrice: 19.9,
+          monthlyPrice: 9.9,
           currency: "EUR",
           source: "pricing-page",
           createdAt: serverTimestamp(),
