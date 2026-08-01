@@ -1045,9 +1045,7 @@ export default function DashboardPage() {
     useState("");
 
   const [selectedLanguage, setSelectedLanguage] =
-  useState<SupportedLanguage>(() =>
-    normalizeLanguage(readStoredLanguage("tr")),
-  );
+    useState<SupportedLanguage>("tr");
 
   const [alQuestion, setAlQuestion] = useState("");
   const [alQuestionError, setAlQuestionError] = useState("");

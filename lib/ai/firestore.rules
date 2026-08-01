@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerifiedUser()
+        && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Kayıt sırasında e-posta henüz doğrulanmamış olabilir.
+      allow create: if isOwner(userId)
+        && request.resource.data.role == "user"
+        && request.resource.data.subscription == "free"
+        && request.resource.data.accountStatus == "active";
+
+      // Profil yalnızca doğrulanmış hesap sahibi tarafından okunabilir.
+      allow read: if isVerifiedOwner(userId);
+
+      // Kullanıcı kendi profilini güncelleyebilir; yetki ve abonelik
+      // alanlarını tarayıcıdan değiştiremez.
+      allow update: if isVerifiedOwner(userId)
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasNone([
+            "role",
+            "subscription",
+            "accountStatus",
+            "updatedByAdminUid"
+          ]);
+
+      allow delete: if false;
+
+      // Kullanıcının kendi süreçleri.
+      match /processes/{processId} {
+        allow read, create, update, delete: if isVerifiedOwner(userId);
+      }
+
+      // Kullanıcının AI kayıtları.
+      match /ai/{aiDocument} {
+        allow read, create, update, delete: if isVerifiedOwner(userId);
+      }
+
+      // Kullanıcıya ait Copilot konuşmaları.
+      match /copilotMessages/{messageId} {
+        allow read, create, update, delete: if isVerifiedOwner(userId);
+      }
+
+      // Kullanıcının Premium talepleri.
+      match /premiumRequests/{requestId} {
+        allow read, create, update: if isVerifiedOwner(userId);
+        allow delete: if false;
+      }
+
+      // Kullanıcı bildirimleri.
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isVerifiedOwner(userId);
+        allow create: if false;
+      }
+
+      // Kullanım limitleri yalnızca güvenilir sunucu kodu tarafından yönetilir.
+      match /apiUsage/{usageId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Dakikalık IP/kullanıcı limitleri yalnızca Admin SDK tarafından yönetilir.
+    match /apiRateLimits/{documentId} {
+      allow read, write: if false;
+    }
+
+    // Admin işlem kayıtları yalnızca Admin SDK tarafından yönetilir.
+    match /adminAuditLogs/{logId} {
+      allow read, write: if false;
+    }
+
+    // Yukarıda açıkça izin verilmeyen her şeyi kapat.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

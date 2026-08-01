@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
@@ -26,6 +26,12 @@ type UserRecord = {
   createdAt?: string | null;
 };
 
+type RegistrationDay = {
+  date: string;
+  label: string;
+  count: number;
+};
+
 async function requireAdmin(request: NextRequest): Promise<{
   uid: string;
   email: string | null;
@@ -43,7 +49,10 @@ async function requireAdmin(request: NextRequest): Promise<{
   }
 
   const decodedToken = await adminAuth.verifyIdToken(idToken, true);
-  const adminSnapshot = await adminDb.collection("users").doc(decodedToken.uid).get();
+  const adminSnapshot = await adminDb
+    .collection("users")
+    .doc(decodedToken.uid)
+    .get();
 
   if (!adminSnapshot.exists || adminSnapshot.data()?.role !== "admin") {
     throw new Response("Forbidden", { status: 403 });
@@ -107,6 +116,109 @@ function isAllowedAccountStatus(
   return value === "active" || value === "disabled";
 }
 
+function getBerlinDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function getBerlinDayLabel(date: Date): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+}
+
+function getBerlinStartOfToday(): Date {
+  const now = new Date();
+  const key = getBerlinDateKey(now);
+  const [year, month, day] = key.split("-").map(Number);
+
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  const berlinHour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(utcGuess),
+  );
+
+  return new Date(utcGuess.getTime() - berlinHour * 60 * 60 * 1000);
+}
+
+function createLast30DaysSeries(
+  registrationDates: Date[],
+): RegistrationDay[] {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const counts = new Map<string, number>();
+
+  for (const date of registrationDates) {
+    const key = formatter.format(date);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const result: RegistrationDay[] = [];
+  const start = getBerlinStartOfToday();
+
+  for (let index = 29; index >= 0; index -= 1) {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() - index);
+
+    const key = getBerlinDateKey(date);
+
+    result.push({
+      date: key,
+      label: getBerlinDayLabel(date),
+      count: counts.get(key) ?? 0,
+    });
+  }
+
+  return result;
+}
+
+async function getTotalProcessCount(
+  userDocuments: FirebaseFirestore.QueryDocumentSnapshot[],
+): Promise<number> {
+  try {
+    const aggregate = await adminDb.collectionGroup("processes").count().get();
+    return aggregate.data().count;
+  } catch (error) {
+    console.warn(
+      "Collection-group process count failed; using per-user fallback.",
+      error,
+    );
+
+    const counts = await Promise.all(
+      userDocuments.map(async (userDocument) => {
+        const aggregate = await userDocument.ref
+          .collection("processes")
+          .count()
+          .get();
+
+        return aggregate.data().count;
+      }),
+    );
+
+    return counts.reduce((total, count) => total + count, 0);
+  }
+}
+
 function errorResponse(error: unknown) {
   if (error instanceof Response) {
     return NextResponse.json(
@@ -136,20 +248,76 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
 
-    const snapshot = await adminDb
-      .collection("users")
-      .orderBy("createdAt", "desc")
-      .limit(500)
-      .get();
+    const usersReference = adminDb.collection("users");
+    const startOfToday = getBerlinStartOfToday();
+    const startOfLast30Days = new Date(startOfToday);
+    startOfLast30Days.setUTCDate(startOfLast30Days.getUTCDate() - 29);
 
-    const users = snapshot.docs.map((document) =>
+    const [
+      listSnapshot,
+      allUsersSnapshot,
+      totalUsersAggregate,
+      premiumUsersAggregate,
+      disabledUsersAggregate,
+      todayUsersAggregate,
+      last30DaysSnapshot,
+    ] = await Promise.all([
+      usersReference.orderBy("createdAt", "desc").limit(500).get(),
+      usersReference.get(),
+      usersReference.count().get(),
+      usersReference.where("subscription", "==", "premium").count().get(),
+      usersReference.where("accountStatus", "==", "disabled").count().get(),
+      usersReference
+        .where("createdAt", ">=", Timestamp.fromDate(startOfToday))
+        .count()
+        .get(),
+      usersReference
+        .where("createdAt", ">=", Timestamp.fromDate(startOfLast30Days))
+        .get(),
+    ]);
+
+    const users = listSnapshot.docs.map((document) =>
       toUserRecord(document.id, document.data()),
     );
+
+    const totalUsers = totalUsersAggregate.data().count;
+    const premiumUsers = premiumUsersAggregate.data().count;
+    const disabledUsers = disabledUsersAggregate.data().count;
+    const activeUsers = Math.max(0, totalUsers - disabledUsers);
+    const registeredToday = todayUsersAggregate.data().count;
+    const totalProcesses = await getTotalProcessCount(allUsersSnapshot.docs);
+
+    const registrationDates = last30DaysSnapshot.docs.flatMap((document) => {
+      const value = document.data().createdAt;
+
+      if (
+        value &&
+        typeof value === "object" &&
+        "toDate" in value &&
+        typeof (value as { toDate?: unknown }).toDate === "function"
+      ) {
+        return [(value as { toDate: () => Date }).toDate()];
+      }
+
+      return [];
+    });
+
+    const registrationsLast30Days = registrationDates.length;
+    const last30Days = createLast30DaysSeries(registrationDates);
 
     return NextResponse.json({
       success: true,
       data: {
         users,
+        stats: {
+          totalUsers,
+          activeUsers,
+          premiumUsers,
+          totalProcesses,
+          registeredToday,
+          registrationsLast30Days,
+          last30Days,
+        },
       },
     });
   } catch (error) {

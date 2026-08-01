@@ -6,10 +6,17 @@ import { useRouter } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  sendEmailVerification,
+  signOut,
   updateProfile,
   type User,
 } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 
 const CONSENT_VERSION = "2026-07-26";
@@ -17,6 +24,7 @@ const PRIVACY_VERSION = "2026-07-26";
 const TERMS_VERSION = "2026-07-26";
 const AI_NOTICE_VERSION = "2026-07-26";
 const OCR_NOTICE_VERSION = "2026-07-26";
+const AGE_NOTICE_VERSION = "2026-07-26";
 
 function getFirebaseErrorMessage(errorCode?: string) {
   switch (errorCode) {
@@ -167,6 +175,7 @@ export default function SignupPage() {
     }
 
     let createdUser: User | null = null;
+    let userDocumentCreated = false;
 
     try {
       setIsSubmitting(true);
@@ -183,7 +192,11 @@ export default function SignupPage() {
         displayName: normalizedName,
       });
 
-      await setDoc(doc(db, "users", createdUser.uid), {
+      const acceptedAt = serverTimestamp();
+
+      const userDocumentReference = doc(db, "users", createdUser.uid);
+
+      await setDoc(userDocumentReference, {
         fullName: normalizedName,
         email: normalizedEmail,
         createdAt: serverTimestamp(),
@@ -196,21 +209,39 @@ export default function SignupPage() {
         role: "user",
         legal: {
           consentVersion: CONSENT_VERSION,
-          privacyAccepted: true,
+
+          privacyAccepted,
+          privacyAcceptedAt: acceptedAt,
           privacyVersion: PRIVACY_VERSION,
-          termsAccepted: true,
+
+          termsAccepted,
+          termsAcceptedAt: acceptedAt,
           termsVersion: TERMS_VERSION,
-          aiNoticeAccepted: true,
+
+          aiNoticeAccepted,
+          aiNoticeAcceptedAt: acceptedAt,
           aiNoticeVersion: AI_NOTICE_VERSION,
+
           ocrConsent,
+          ocrConsentAcceptedAt: ocrConsent ? acceptedAt : null,
           ocrNoticeVersion: OCR_NOTICE_VERSION,
-          ageConfirmed: true,
-          acceptedAt: serverTimestamp(),
+
+          ageConfirmed,
+          ageConfirmedAt: acceptedAt,
+          ageNoticeVersion: AGE_NOTICE_VERSION,
+
+          requiredConsentsAccepted: true,
+          acceptedAt,
         },
       });
 
+      userDocumentCreated = true;
+
+      await sendEmailVerification(createdUser);
+      await signOut(auth);
+
       setSuccessMessage(
-        "Hesabın ve kullanıcı profilin başarıyla oluşturuldu. Yönlendiriliyorsun..."
+        "Hesabın oluşturuldu. Doğrulama bağlantısını e-posta adresine gönderdik. E-posta adresini doğruladıktan sonra giriş yapabilirsin."
       );
 
       setFullName("");
@@ -224,10 +255,21 @@ export default function SignupPage() {
       setAgeConfirmed(false);
 
       window.setTimeout(() => {
-        router.replace("/dashboard");
+        router.replace("/login");
         router.refresh();
-      }, 1200);
+      }, 2500);
     } catch (error: unknown) {
+      if (createdUser && userDocumentCreated) {
+        try {
+          await deleteDoc(doc(db, "users", createdUser.uid));
+        } catch (rollbackError) {
+          console.error(
+            "Tamamlanamayan kullanıcı profili geri alınamadı:",
+            rollbackError
+          );
+        }
+      }
+
       if (createdUser) {
         try {
           await deleteUser(createdUser);
@@ -393,6 +435,7 @@ export default function SignupPage() {
                 <Link
                   href="/datenschutz"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="font-medium text-violet-300 underline decoration-violet-300/40 underline-offset-2 hover:text-violet-200"
                 >
                   Gizlilik Politikasını
@@ -411,6 +454,7 @@ export default function SignupPage() {
                 <Link
                   href="/nutzungsbedingungen"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="font-medium text-violet-300 underline decoration-violet-300/40 underline-offset-2 hover:text-violet-200"
                 >
                   Kullanım Koşullarını
@@ -427,7 +471,9 @@ export default function SignupPage() {
                 <span className="font-medium text-zinc-200">*</span> ALQEV&apos;in
                 yanıt üretmek için yapay zekâ sistemleri kullandığını; AI
                 yanıtlarının hata içerebileceğini ve resmi, hukuki, tıbbi veya
-                mali danışmanlığın yerine geçmediğini anladım.
+                mali danışmanlığın yerine geçmediğini ve bağlayıcı kararlar için
+                yetkili kurumların veya uzmanların değerlendirmesinin esas olduğunu
+                anladım.
               </ConsentCheckbox>
 
               <ConsentCheckbox

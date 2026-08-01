@@ -19,6 +19,32 @@ type UserRecord = {
   createdAt?: string | null;
 };
 
+type RegistrationDay = {
+  date: string;
+  label: string;
+  count: number;
+};
+
+type AdminStats = {
+  totalUsers: number;
+  activeUsers: number;
+  premiumUsers: number;
+  totalProcesses: number;
+  registeredToday: number;
+  registrationsLast30Days: number;
+  last30Days: RegistrationDay[];
+};
+
+const emptyStats: AdminStats = {
+  totalUsers: 0,
+  activeUsers: 0,
+  premiumUsers: 0,
+  totalProcesses: 0,
+  registeredToday: 0,
+  registrationsLast30Days: 0,
+  last30Days: [],
+};
+
 function formatDate(value: UserRecord["createdAt"]) {
   if (!value) {
     return "—";
@@ -40,6 +66,7 @@ type AdminUsersResponse = {
   error?: string;
   data?: {
     users?: UserRecord[];
+    stats?: AdminStats;
   };
 };
 
@@ -53,6 +80,7 @@ export default function AdminPage() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [stats, setStats] = useState<AdminStats>(emptyStats);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -83,7 +111,12 @@ export default function AdminPage() {
 
         const payload = (await response.json()) as AdminUsersResponse;
 
-        if (!response.ok || !payload.success || !payload.data?.users) {
+        if (
+          !response.ok ||
+          !payload.success ||
+          !payload.data?.users ||
+          !payload.data.stats
+        ) {
           if (response.status === 401) {
             router.replace("/login");
             return;
@@ -97,6 +130,7 @@ export default function AdminPage() {
         }
 
         setUsers(payload.data.users);
+        setStats(payload.data.stats);
         setIsAuthorized(true);
       } catch (error) {
         console.error("Admin paneli yüklenemedi:", error);
@@ -125,17 +159,6 @@ export default function AdminPage() {
     });
   }, [search, users]);
 
-  const premiumUserCount = users.filter(
-    (user) => user.subscription === "premium"
-  ).length;
-
-  const activeUserCount = users.filter(
-    (user) => user.accountStatus !== "disabled"
-  ).length;
-
-  const completedOnboardingCount = users.filter(
-    (user) => user.onboardingCompleted === true
-  ).length;
 
   async function runAdminUpdate(input: {
     action: "change_subscription" | "change_account_status";
@@ -181,11 +204,25 @@ export default function AdminPage() {
         value: subscription,
       });
 
+      const previousSubscription =
+        users.find((user) => user.id === userId)?.subscription || "free";
+
       setUsers((currentUsers) =>
         currentUsers.map((user) =>
           user.id === userId ? { ...user, subscription } : user,
         ),
       );
+
+      if (previousSubscription !== subscription) {
+        setStats((currentStats) => ({
+          ...currentStats,
+          premiumUsers: Math.max(
+            0,
+            currentStats.premiumUsers +
+              (subscription === "premium" ? 1 : -1),
+          ),
+        }));
+      }
     } catch (error) {
       console.error("Abonelik değiştirilemedi:", error);
       setErrorMessage(
@@ -212,11 +249,25 @@ export default function AdminPage() {
         value: accountStatus,
       });
 
+      const previousStatus =
+        users.find((user) => user.id === userId)?.accountStatus || "active";
+
       setUsers((currentUsers) =>
         currentUsers.map((user) =>
           user.id === userId ? { ...user, accountStatus } : user,
         ),
       );
+
+      if (previousStatus !== accountStatus) {
+        setStats((currentStats) => ({
+          ...currentStats,
+          activeUsers: Math.max(
+            0,
+            currentStats.activeUsers +
+              (accountStatus === "active" ? 1 : -1),
+          ),
+        }));
+      }
     } catch (error) {
       console.error("Hesap durumu değiştirilemedi:", error);
       setErrorMessage(
@@ -230,14 +281,9 @@ export default function AdminPage() {
   }
 
   async function handleSignOut() {
-  try {
     await signOut(auth);
-    window.location.replace("/login");
-  } catch (error) {
-    console.error("Logout failed:", error);
+    router.replace("/login");
   }
-}
-  
 
   if (isLoading) {
     return (
@@ -317,16 +363,41 @@ export default function AdminPage() {
             </span>
           </p>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Toplam kullanıcı" value={users.length} />
-            <StatCard label="Premium kullanıcı" value={premiumUserCount} />
-            <StatCard label="Aktif hesap" value={activeUserCount} />
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <StatCard
-              label="Onboarding tamamlandı"
-              value={completedOnboardingCount}
+              icon="👥"
+              label="Toplam kullanıcı"
+              value={stats.totalUsers}
+            />
+            <StatCard
+              icon="🟢"
+              label="Aktif kullanıcı"
+              value={stats.activeUsers}
+            />
+            <StatCard
+              icon="💎"
+              label="Premium kullanıcı"
+              value={stats.premiumUsers}
+            />
+            <StatCard
+              icon="📄"
+              label="Toplam süreç"
+              value={stats.totalProcesses}
+            />
+            <StatCard
+              icon="📅"
+              label="Bugün kayıt olanlar"
+              value={stats.registeredToday}
+            />
+            <StatCard
+              icon="📈"
+              label="Son 30 gün"
+              value={stats.registrationsLast30Days}
             />
           </div>
         </section>
+
+        <RegistrationChart data={stats.last30Days} />
 
         {errorMessage ? (
           <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -466,18 +537,71 @@ export default function AdminPage() {
 }
 
 function StatCard({
+  icon,
   label,
   value,
 }: {
+  icon: string;
   label: string;
   value: number;
 }) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-      <p className="text-sm text-zinc-500">{label}</p>
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-zinc-500">{label}</p>
+        <span aria-hidden="true" className="text-xl">
+          {icon}
+        </span>
+      </div>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
         {value}
       </p>
     </article>
+  );
+}
+
+function RegistrationChart({ data }: { data: RegistrationDay[] }) {
+  const maxCount = Math.max(1, ...data.map((item) => item.count));
+  const visibleLabels = new Set([0, 6, 12, 18, 24, 29]);
+
+  return (
+    <section className="mb-8 rounded-3xl border border-white/10 bg-zinc-950 p-5 sm:p-6">
+      <div>
+        <h2 className="text-lg font-semibold">Son 30 gün kayıt grafiği</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Firestore kullanıcı profillerindeki kayıt tarihlerine göre günlük dağılım.
+        </p>
+      </div>
+
+      <div className="mt-6 overflow-x-auto">
+        <div className="flex h-56 min-w-[760px] items-end gap-2 border-b border-white/10 px-1">
+          {data.map((item, index) => {
+            const height =
+              item.count === 0
+                ? 4
+                : Math.max(12, Math.round((item.count / maxCount) * 176));
+
+            return (
+              <div
+                key={item.date}
+                className="flex min-w-0 flex-1 flex-col items-center justify-end"
+                title={`${item.label}: ${item.count} kayıt`}
+              >
+                <span className="mb-2 text-xs text-zinc-400">
+                  {item.count > 0 ? item.count : ""}
+                </span>
+                <div
+                  className="w-full rounded-t-md bg-violet-500/80 transition hover:bg-violet-400"
+                  style={{ height }}
+                />
+                <span className="mt-2 h-5 text-[10px] text-zinc-600">
+                  {visibleLabels.has(index) ? item.label : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

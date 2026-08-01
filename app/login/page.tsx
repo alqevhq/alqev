@@ -3,7 +3,11 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { auth } from "../../lib/firebase";
 
 function getFirebaseErrorMessage(errorCode?: string) {
@@ -30,6 +34,19 @@ function getFirebaseErrorMessage(errorCode?: string) {
   }
 }
 
+function getErrorCode(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+
+  return undefined;
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -39,12 +56,17 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] =
+    useState(false);
+  const [showResendVerification, setShowResendVerification] =
+    useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setErrorMessage("");
     setSuccessMessage("");
+    setShowResendVerification(false);
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -61,7 +83,24 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
 
-      await signInWithEmailAndPassword(auth, normalizedEmail, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        normalizedEmail,
+        password,
+      );
+
+      await userCredential.user.reload();
+
+      if (!userCredential.user.emailVerified) {
+        setShowResendVerification(true);
+        setErrorMessage(
+          "E-posta adresin henüz doğrulanmamış. Gelen kutundaki ALQEV doğrulama bağlantısına tıkla.",
+        );
+
+        await signOut(auth);
+        setIsSubmitting(false);
+        return;
+      }
 
       setSuccessMessage("Giriş başarılı. Yönlendiriliyorsun...");
 
@@ -70,16 +109,54 @@ export default function LoginPage() {
         router.refresh();
       }, 1000);
     } catch (error: unknown) {
-      const errorCode =
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        typeof error.code === "string"
-          ? error.code
-          : undefined;
-
-      setErrorMessage(getFirebaseErrorMessage(errorCode));
+      setErrorMessage(getFirebaseErrorMessage(getErrorCode(error)));
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      setErrorMessage(
+        "Doğrulama e-postasını tekrar göndermek için e-posta adresini ve şifreni gir.",
+      );
+      return;
+    }
+
+    try {
+      setIsResendingVerification(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        normalizedEmail,
+        password,
+      );
+
+      await userCredential.user.reload();
+
+      if (userCredential.user.emailVerified) {
+        await signOut(auth);
+        setShowResendVerification(false);
+        setSuccessMessage(
+          "E-posta adresin zaten doğrulanmış. Şimdi giriş yapabilirsin.",
+        );
+        return;
+      }
+
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth);
+
+      setSuccessMessage(
+        "Yeni doğrulama bağlantısı e-posta adresine gönderildi. Spam klasörünü de kontrol et.",
+      );
+      setShowResendVerification(false);
+    } catch (error: unknown) {
+      setErrorMessage(getFirebaseErrorMessage(getErrorCode(error)));
+    } finally {
+      setIsResendingVerification(false);
     }
   }
 
@@ -134,7 +211,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isResendingVerification}
                 placeholder="ornek@email.com"
                 className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
@@ -155,10 +232,19 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isResendingVerification}
                 placeholder="Şifreni gir"
                 className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/60 focus:bg-white/[0.06] focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
+            </div>
+
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-violet-300 transition hover:text-violet-200"
+              >
+                Şifremi unuttum
+              </Link>
             </div>
 
             {errorMessage ? (
@@ -179,9 +265,22 @@ export default function LoginPage() {
               </div>
             ) : null}
 
+            {showResendVerification ? (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
+                className="flex h-12 w-full items-center justify-center rounded-xl border border-violet-400/30 bg-violet-400/10 px-5 text-sm font-semibold text-violet-100 transition hover:bg-violet-400/15 focus:outline-none focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isResendingVerification
+                  ? "Doğrulama e-postası gönderiliyor..."
+                  : "Doğrulama e-postasını tekrar gönder"}
+              </button>
+            ) : null}
+
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isResendingVerification}
               className="flex h-12 w-full items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-zinc-200 focus:outline-none focus:ring-4 focus:ring-white/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Giriş yapılıyor..." : "Giriş yap"}
