@@ -102,6 +102,10 @@ export default function LoginPage() {
         return;
       }
 
+      // Firestore güvenlik kurallarının güncel e-posta doğrulama
+      // bilgisini görmesi için Firebase ID tokenını zorla yenile.
+      await userCredential.user.getIdToken(true);
+
       setSuccessMessage("Giriş başarılı. Yönlendiriliyorsun...");
 
       window.setTimeout(() => {

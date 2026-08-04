@@ -11,7 +11,6 @@ import {
   orderBy,
   query,
   Timestamp,
-  updateDoc,
 } from "firebase/firestore";
 import {
   onAuthStateChanged,
@@ -1066,10 +1065,26 @@ export default function DashboardPage() {
           return;
         }
 
-        setUser(currentUser);
-        setErrorMessage("");
-
         try {
+          await currentUser.reload();
+
+          if (!currentUser.emailVerified) {
+            await signOut(auth);
+            router.replace("/login");
+            return;
+          }
+
+          // Firestore kurallarının güncel email_verified bilgisini
+          // kullanabilmesi için oturum tokenını zorla yenile.
+          await currentUser.getIdToken(true);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setUser(currentUser);
+          setErrorMessage("");
+
           const userDocumentReference = doc(
             db,
             "users",
@@ -1559,6 +1574,12 @@ export default function DashboardPage() {
   async function handleLanguageChange(
     language: SupportedLanguage,
   ) {
+    if (!user || language === selectedLanguage) {
+      return;
+    }
+
+    const previousLanguage = selectedLanguage;
+
     setSelectedLanguage(language);
     storeLanguage(language);
     setProfile((currentProfile) =>
@@ -1566,19 +1587,52 @@ export default function DashboardPage() {
         ? { ...currentProfile, language }
         : currentProfile,
     );
-
-    if (!user) {
-      return;
-    }
+    setErrorMessage("");
 
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        language,
+      const idToken = await user.getIdToken(true);
+
+      const response = await fetch("/api/profile/language", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ language }),
       });
+
+      const responseBody = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          responseBody?.error ||
+            "Dil tercihi sunucuda kaydedilemedi.",
+        );
+      }
     } catch (error) {
-      console.error("Dil tercihi kaydedilemedi:", error);
+      console.error(
+        "Dil tercihi kaydedilemedi:",
+        error,
+      );
+
+      setSelectedLanguage(previousLanguage);
+      storeLanguage(previousLanguage);
+      setProfile((currentProfile) =>
+        currentProfile
+          ? {
+              ...currentProfile,
+              language: previousLanguage,
+            }
+          : currentProfile,
+      );
       setErrorMessage(
-        "Dil tercihi kaydedilemedi. Lütfen tekrar dene.",
+        error instanceof Error
+          ? error.message
+          : uiTranslations[previousLanguage].language === "Dil"
+            ? "Dil tercihi kaydedilemedi. Lütfen tekrar dene."
+            : "Language preference could not be saved. Please try again.",
       );
     }
   }
