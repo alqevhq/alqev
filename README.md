@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# ALQEV
 
-First, run the development server:
+### AI-powered Life Management Platform
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**One Platform. Endless Possibilities.**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🌍 **Website:** https://www.alqev.com
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+</div>
 
-## Learn More
+## About
 
-To learn more about Next.js, take a look at the following resources:
+ALQEV is building an AI-powered platform that simplifies life's most important processes.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Instead of using multiple websites, applications and services, ALQEV brings everything together in one intelligent ecosystem.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Our goal is to help people save time, reduce complexity and make better decisions with AI.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Vision
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+We believe artificial intelligence should empower people—not replace them.
+
+ALQEV is building the next generation of digital life management.
+
+---
+
+# Core Modules
+
+- 🌍 Immigration
+- 📄 Documents
+- 💼 Career
+- 💰 Finance
+- 🏥 Health
+- 🚗 Mobility
+- 🎓 Education
+- 🏠 Housing
+- 🤖 AI Assistant
+
+---
+
+# Technology Stack
+
+- Next.js
+- React
+- TypeScript
+- Firebase
+- Vercel
+- OpenAI API
+
+---
+
+# Project Status
+
+🟢 Active Development
+
+Current focus:
+
+- Multi-language dashboard
+- AI Copilot
+- Authentication
+- User Dashboard
+- Life Management Modules
+
+---
+
+# Roadmap
+
+### Phase 1
+
+- Landing Page
+- Authentication
+- Dashboard
+- AI Assistant
+
+### Phase 2
+
+- Immigration Module
+- Documents Module
+- Career Module
+- Finance Module
+
+### Phase 3
+
+- Health Module
+- Mobility Module
+- Education Module
+- Mobile Apps
+
+---
+
+# Why ALQEV?
+
+Managing everyday life has become increasingly complex.
+
+ALQEV combines essential services into one secure AI-powered platform, helping users navigate documents, applications, appointments and daily processes more efficiently.
+
+---
+
+# Website
+
+https://www.alqev.com
+
+---
+
+# Connect
+
+- 🌐 Website: https://www.alqev.com
+- 💼 LinkedIn: https://www.linkedin.com/company/alqev
+- 🐦 X: https://x.com/alqev_ai
+
+---
+
+# Made in Germany 🇩🇪
+
+Designed and developed in Germany.
+
+Building the future of AI-powered life management.
