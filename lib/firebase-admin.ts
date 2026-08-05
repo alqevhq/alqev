@@ -1,6 +1,5 @@
 import {
   cert,
-  
   getApps,
   initializeApp,
   type App,
@@ -8,30 +7,47 @@ import {
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
-const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
-const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY
-  ?.replace(/\\n/g, "\n")
-  .trim();
+type FirebaseServiceAccount = {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+};
 
-if (!projectId) {
-  throw new Error(
-    "FIREBASE_ADMIN_PROJECT_ID ortam değişkeni tanımlı değil.",
-  );
+function getServiceAccount(): FirebaseServiceAccount {
+  const encoded =
+    process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_BASE64?.trim();
+
+  if (!encoded) {
+    throw new Error(
+      "FIREBASE_ADMIN_SERVICE_ACCOUNT_BASE64 ortam değişkeni tanımlı değil.",
+    );
+  }
+
+  try {
+    const decodedJson = Buffer.from(encoded, "base64").toString("utf8");
+    const serviceAccount = JSON.parse(
+      decodedJson,
+    ) as FirebaseServiceAccount;
+
+    if (
+      !serviceAccount.project_id ||
+      !serviceAccount.client_email ||
+      !serviceAccount.private_key
+    ) {
+      throw new Error("Servis hesabı bilgileri eksik.");
+    }
+
+    return serviceAccount;
+  } catch (error) {
+    console.error("Firebase servis hesabı okunamadı:", error);
+
+    throw new Error(
+      "Firebase servis hesabı Base64 değeri geçersiz.",
+    );
+  }
 }
 
-if (!clientEmail) {
-  throw new Error(
-    "FIREBASE_ADMIN_CLIENT_EMAIL ortam değişkeni tanımlı değil.",
-  );
-}
-
-if (!privateKey) {
-  throw new Error(
-    "FIREBASE_ADMIN_PRIVATE_KEY ortam değişkeni tanımlı değil.",
-  );
-}
-
+const serviceAccount = getServiceAccount();
 const ADMIN_APP_NAME = "alqev-firebase-admin";
 
 const existingAdminApp = getApps().find(
@@ -43,11 +59,11 @@ const adminApp: App =
   initializeApp(
     {
       credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
+        projectId: serviceAccount.project_id,
+        clientEmail: serviceAccount.client_email,
+        privateKey: serviceAccount.private_key,
       }),
-      projectId,
+      projectId: serviceAccount.project_id,
     },
     ADMIN_APP_NAME,
   );
