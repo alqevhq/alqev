@@ -1,12 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Header() {
+type HeaderProps = {
+  homeLabel: string;
+  loginLabel: string;
+  signupLabel: string;
+};
+
+export default function Header({
+  homeLabel,
+  loginLabel,
+  signupLabel,
+}: HeaderProps) {
   return (
     <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
       <Link
         href="/"
-        aria-label="ALQEV ana sayfa"
+        aria-label={homeLabel}
         className="flex items-center"
       >
         <Image
@@ -24,14 +34,14 @@ export default function Header() {
           href="/login"
           className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-semibold transition hover:bg-slate-800"
         >
-          Giriş yap
+          {loginLabel}
         </Link>
 
         <Link
           href="/signup"
           className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
         >
-          Hesap Oluştur
+          {signupLabel}
         </Link>
       </div>
     </nav>
