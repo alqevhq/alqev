@@ -2,10 +2,25 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import {
+  getPlanLimits,
+  normalizeSubscriptionPlan,
+} from "@/lib/subscription";
+import {
+  getExpiryDate,
+  getMinuteKey,
+  hashIp,
+  safeCounter,
+  secondsUntilNextMinute,
+} from "@/lib/rate-limit";
 
 const MAX_FILE_SIZE =
   10 * 1024 * 1024;
 const MAX_RETRIES = 4;
+const OCR_USER_REQUESTS_PER_MINUTE = 5;
+const OCR_IP_REQUESTS_PER_MINUTE = 15;
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "application/pdf",
@@ -114,46 +129,156 @@ export const dynamic = "force-dynamic";
 export async function POST(
   request: NextRequest,
 ) {
-  try {
-    const apiKey =
-      process.env.GEMINI_API_KEY?.trim();
+  let reservedUsage:
+    | { userId: string; period: string }
+    | null = null;
 
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "GEMINI_API_KEY tanımlı değil. .env.local dosyasını kontrol et.",
-        },
-        { status: 500 },
+  try {
+    const decodedToken =
+      await verifyAuthenticatedUser(request);
+
+    const body = await readRequestBody(request);
+
+    const processId = readRequiredString(
+      body.processId,
+      "processId",
+    );
+    const documentKey = readRequiredString(
+      body.documentKey,
+      "documentKey",
+    );
+    const requestedFileUrl =
+      readRequiredString(body.fileUrl, "fileUrl");
+    const language = normalizeLanguage(
+      body.language,
+    );
+
+    const userReference = adminDb
+      .collection("users")
+      .doc(decodedToken.uid);
+    const processReference = userReference
+      .collection("processes")
+      .doc(processId);
+
+    const [userSnapshot, processSnapshot] =
+      await Promise.all([
+        userReference.get(),
+        processReference.get(),
+      ]);
+
+    if (!userSnapshot.exists) {
+      throw new ApiError(
+        404,
+        "Kullanıcı profili bulunamadı.",
       );
     }
 
-    const body =
-      (await request.json()) as OcrRequestBody;
-
-    const processId =
-      readOptionalString(body.processId) ||
-      "unknown-process";
-    const documentKey =
-      readOptionalString(body.documentKey) ||
-      "unknown-document";
-    const documentTitle =
-      readOptionalString(
-        body.documentTitle,
-      ) || "Belge";
-    const fileUrl = readRequiredString(
-      body.fileUrl,
-      "fileUrl",
+    const userData = userSnapshot.data() ?? {};
+    const accountStatus = readOptionalString(
+      userData.accountStatus,
     );
+
+    if (
+      accountStatus &&
+      accountStatus !== "active"
+    ) {
+      throw new ApiError(
+        403,
+        "Hesabın şu anda aktif değil.",
+      );
+    }
+
+    if (!processSnapshot.exists) {
+      throw new ApiError(
+        404,
+        "Bu süreç bulunamadı.",
+      );
+    }
+
+    const processData =
+      processSnapshot.data() ?? {};
+    const documents = Array.isArray(
+      processData.requiredDocuments,
+    )
+      ? processData.requiredDocuments.filter(
+          (
+            item,
+          ): item is Record<string, unknown> =>
+            Boolean(item) &&
+            typeof item === "object",
+        )
+      : [];
+
+    const storedDocument = documents.find(
+      (item) =>
+        readOptionalString(item.key) ===
+        documentKey,
+    );
+
+    if (!storedDocument) {
+      throw new ApiError(
+        404,
+        "Bu belge süreç içinde bulunamadı.",
+      );
+    }
+
+    const storedFileUrl = readRequiredString(
+      storedDocument.fileUrl,
+      "storedFileUrl",
+    );
+
+    if (storedFileUrl !== requestedFileUrl) {
+      throw new ApiError(
+        403,
+        "Belge adresi süreç kaydıyla eşleşmiyor.",
+      );
+    }
+
+    const expectedStoragePrefix =
+      `users/${decodedToken.uid}/processes/${processId}/documents/`;
+    const storagePath = readOptionalString(
+      storedDocument.storagePath,
+    );
+
+    if (
+      storagePath &&
+      !storagePath.startsWith(
+        expectedStoragePrefix,
+      )
+    ) {
+      throw new ApiError(
+        403,
+        "Belgenin Storage yolu kullanıcıyla eşleşmiyor.",
+      );
+    }
+
+    const rateLimit = await consumeOcrRateLimit({
+      uid: decodedToken.uid,
+      ipAddress: getClientIp(request),
+    });
+
+    if (!rateLimit.allowed) {
+      throw new ApiError(
+        429,
+        "Çok kısa sürede fazla belge analizi yaptın. Lütfen biraz bekleyip tekrar dene.",
+        true,
+      );
+    }
+
+    const documentTitle =
+      readOptionalString(storedDocument.title) ||
+      readOptionalString(body.documentTitle) ||
+      "Belge";
     const fileName =
+      readOptionalString(storedDocument.fileName) ||
       readOptionalString(body.fileName);
     const requestedContentType =
-      readOptionalString(body.contentType);
-    const language =
-      normalizeLanguage(body.language);
+      readOptionalString(
+        storedDocument.contentType,
+      ) || readOptionalString(body.contentType);
 
     const parsedFileUrl =
-      validateFileUrl(fileUrl);
+      validateFileUrl(storedFileUrl);
 
     const fileResponse = await fetch(
       parsedFileUrl,
@@ -165,11 +290,9 @@ export async function POST(
     );
 
     if (!fileResponse.ok) {
-      return NextResponse.json(
-        {
-          error: `Belge indirilemedi. HTTP ${fileResponse.status}`,
-        },
-        { status: 400 },
+      throw new ApiError(
+        400,
+        `Belge indirilemedi. HTTP ${fileResponse.status}`,
       );
     }
 
@@ -194,16 +317,11 @@ export async function POST(
 
     if (
       !contentType ||
-      !ALLOWED_CONTENT_TYPES.has(
-        contentType,
-      )
+      !ALLOWED_CONTENT_TYPES.has(contentType)
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "OCR yalnızca PDF, JPG, PNG veya WEBP belgelerini destekliyor.",
-        },
-        { status: 415 },
+      throw new ApiError(
+        415,
+        "OCR yalnızca PDF, JPG, PNG veya WEBP belgelerini destekliyor.",
       );
     }
 
@@ -217,12 +335,9 @@ export async function POST(
       Number.isFinite(contentLength) &&
       contentLength > MAX_FILE_SIZE
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Belge 10 MB sınırını aşıyor.",
-        },
-        { status: 413 },
+      throw new ApiError(
+        413,
+        "Belge 10 MB sınırını aşıyor.",
       );
     }
 
@@ -231,31 +346,49 @@ export async function POST(
     );
 
     if (fileBuffer.byteLength === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Belge boş görünüyor.",
-        },
-        { status: 400 },
+      throw new ApiError(
+        400,
+        "Belge boş görünüyor.",
       );
     }
 
     if (
-      fileBuffer.byteLength >
-      MAX_FILE_SIZE
+      fileBuffer.byteLength > MAX_FILE_SIZE
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Belge 10 MB sınırını aşıyor.",
-        },
-        { status: 413 },
+      throw new ApiError(
+        413,
+        "Belge 10 MB sınırını aşıyor.",
       );
     }
 
+    const apiKey =
+      process.env.GEMINI_API_KEY?.trim();
+
+    if (!apiKey) {
+      throw new ApiError(
+        500,
+        "GEMINI_API_KEY tanımlı değil.",
+      );
+    }
+
+    const plan = normalizeSubscriptionPlan(
+      userData.subscription,
+    );
+    const period = getCurrentMonthKey();
+
+    await reserveMonthlyOcrUsage({
+      userId: decodedToken.uid,
+      period,
+      limit: getPlanLimits(plan)
+        .maxOCRPerMonth,
+    });
+    reservedUsage = {
+      userId: decodedToken.uid,
+      period,
+    };
+
     const base64File =
       fileBuffer.toString("base64");
-
     const model =
       process.env.GEMINI_MODEL?.trim() ||
       "gemini-3.5-flash";
@@ -275,25 +408,23 @@ export async function POST(
 
     const responseText =
       geminiPayload.candidates?.[0]
-        ?.content?.parts
-        ?.map(
+        ?.content?.parts?.map(
           (part) => part.text || "",
         )
         .join("")
         .trim() || "";
 
     if (!responseText) {
-      return NextResponse.json(
-        {
-          error:
-            "OCR sağlayıcısı boş sonuç döndürdü.",
-        },
-        { status: 502 },
+      throw new ApiError(
+        502,
+        "OCR sağlayıcısı boş sonuç döndürdü.",
       );
     }
 
     const parsedResult =
       parseGeminiResult(responseText);
+
+    reservedUsage = null;
 
     return NextResponse.json({
       success: true,
@@ -302,7 +433,7 @@ export async function POST(
         documentKey,
         documentTitle,
         fileName,
-        fileUrl,
+        fileUrl: storedFileUrl,
         contentType,
         documentType:
           parsedResult.documentType,
@@ -321,12 +452,10 @@ export async function POST(
             parsedResult.mrzDetected,
           expiryStatus:
             parsedResult.expiryStatus,
-          summary:
-            parsedResult.summary,
+          summary: parsedResult.summary,
           nextAction:
             parsedResult.nextAction,
-          warnings:
-            parsedResult.warnings,
+          warnings: parsedResult.warnings,
           risks: parsedResult.risks,
         },
         analyzedAt:
@@ -334,16 +463,35 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error(
-      "OCR API hatası:",
-      error,
-    );
+    if (reservedUsage) {
+      try {
+        await releaseMonthlyOcrUsage(
+          reservedUsage,
+        );
+      } catch (releaseError) {
+        console.error(
+          "OCR kullanım rezervasyonu geri alınamadı:",
+          releaseError,
+        );
+      }
+    }
+
+    console.error("OCR API hatası:", error);
+
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          retryable: error.retryable,
+        },
+        { status: error.status },
+      );
+    }
 
     const message =
       error instanceof Error
         ? error.message
         : "OCR işlemi sırasında bilinmeyen bir hata oluştu.";
-
     const isTemporaryProviderError =
       isTemporaryGeminiError(message);
 
@@ -354,9 +502,322 @@ export async function POST(
           : message,
         retryable: isTemporaryProviderError,
       },
-      { status: isTemporaryProviderError ? 503 : 400 },
+      {
+        status: isTemporaryProviderError
+          ? 503
+          : 400,
+      },
     );
   }
+}
+
+class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly retryable = false,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function getBearerToken(
+  request: NextRequest,
+): string {
+  const authorization =
+    request.headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    throw new ApiError(
+      401,
+      "Oturum doğrulama anahtarı bulunamadı.",
+    );
+  }
+
+  const token = authorization
+    .slice("Bearer ".length)
+    .trim();
+
+  if (!token) {
+    throw new ApiError(
+      401,
+      "Oturum doğrulama anahtarı geçersiz.",
+    );
+  }
+
+  return token;
+}
+
+async function verifyAuthenticatedUser(
+  request: NextRequest,
+) {
+  try {
+    const decodedToken =
+      await adminAuth.verifyIdToken(
+        getBearerToken(request),
+        true,
+      );
+
+    if (decodedToken.email_verified !== true) {
+      throw new ApiError(
+        403,
+        "E-posta adresi doğrulanmamış.",
+      );
+    }
+
+    return decodedToken;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(
+      401,
+      "Oturum doğrulanamadı. Lütfen yeniden giriş yap.",
+    );
+  }
+}
+
+async function readRequestBody(
+  request: NextRequest,
+): Promise<OcrRequestBody> {
+  try {
+    return (await request.json()) as OcrRequestBody;
+  } catch {
+    throw new ApiError(
+      400,
+      "İstek gövdesi geçerli JSON değil.",
+    );
+  }
+}
+
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(
+    now.getUTCMonth() + 1,
+  ).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
+function getClientIp(
+  request: NextRequest,
+): string {
+  const forwardedFor =
+    request.headers.get("x-forwarded-for");
+
+  if (forwardedFor) {
+    return (
+      forwardedFor.split(",")[0]?.trim() ||
+      "unknown"
+    );
+  }
+
+  return (
+    request.headers
+      .get("x-real-ip")
+      ?.trim() ||
+    request.headers
+      .get("cf-connecting-ip")
+      ?.trim() ||
+    "unknown"
+  );
+}
+
+type OcrRateLimitResult =
+  | {
+      allowed: true;
+      remaining: number;
+    }
+  | {
+      allowed: false;
+      reason: "user_minute" | "ip_minute";
+      retryAfterSeconds: number;
+    };
+
+async function consumeOcrRateLimit(input: {
+  uid: string;
+  ipAddress: string;
+}): Promise<OcrRateLimitResult> {
+  const now = new Date();
+  const minuteKey = getMinuteKey(now);
+  const retryAfterSeconds =
+    secondsUntilNextMinute(now);
+  const ipHash = hashIp(input.ipAddress);
+  const expiresAt = getExpiryDate(2);
+
+  const userMinuteReference = adminDb
+    .collection("apiRateLimits")
+    .doc(
+      `ocr_user_${input.uid}_${minuteKey}`,
+    );
+  const ipMinuteReference = adminDb
+    .collection("apiRateLimits")
+    .doc(
+      `ocr_ip_${ipHash}_${minuteKey}`,
+    );
+
+  return adminDb.runTransaction(
+    async (transaction) => {
+      const [
+        userMinuteSnapshot,
+        ipMinuteSnapshot,
+      ] = await Promise.all([
+        transaction.get(
+          userMinuteReference,
+        ),
+        transaction.get(
+          ipMinuteReference,
+        ),
+      ]);
+
+      const userMinuteCount = safeCounter(
+        userMinuteSnapshot.data()?.count,
+      );
+      const ipMinuteCount = safeCounter(
+        ipMinuteSnapshot.data()?.count,
+      );
+
+      if (
+        userMinuteCount >=
+        OCR_USER_REQUESTS_PER_MINUTE
+      ) {
+        return {
+          allowed: false,
+          reason: "user_minute",
+          retryAfterSeconds,
+        };
+      }
+
+      if (
+        ipMinuteCount >=
+        OCR_IP_REQUESTS_PER_MINUTE
+      ) {
+        return {
+          allowed: false,
+          reason: "ip_minute",
+          retryAfterSeconds,
+        };
+      }
+
+      transaction.set(
+        userMinuteReference,
+        {
+          count: userMinuteCount + 1,
+          uid: input.uid,
+          kind: "ocr_user_minute",
+          updatedAt: now,
+          expiresAt,
+        },
+        { merge: true },
+      );
+
+      transaction.set(
+        ipMinuteReference,
+        {
+          count: ipMinuteCount + 1,
+          kind: "ocr_ip_minute",
+          updatedAt: now,
+          expiresAt,
+        },
+        { merge: true },
+      );
+
+      return {
+        allowed: true,
+        remaining:
+          OCR_USER_REQUESTS_PER_MINUTE -
+          userMinuteCount -
+          1,
+      };
+    },
+  );
+}
+
+async function reserveMonthlyOcrUsage(input: {
+  userId: string;
+  period: string;
+  limit: number;
+}) {
+  const usageReference = adminDb
+    .collection("users")
+    .doc(input.userId)
+    .collection("apiUsage")
+    .doc(`ocr-${input.period}`);
+
+  await adminDb.runTransaction(
+    async (transaction) => {
+      const snapshot =
+        await transaction.get(usageReference);
+      const currentCount = snapshot.exists
+        ? safeCounter(
+            snapshot.data()?.count,
+          )
+        : 0;
+
+      if (
+        Number.isFinite(input.limit) &&
+        currentCount >= input.limit
+      ) {
+        throw new ApiError(
+          429,
+          `Aylık OCR limitine ulaştın (${input.limit}).`,
+        );
+      }
+
+      transaction.set(
+        usageReference,
+        {
+          type: "ocr",
+          period: input.period,
+          count: currentCount + 1,
+          updatedAt:
+            FieldValue.serverTimestamp(),
+          ...(snapshot.exists
+            ? {}
+            : {
+                createdAt:
+                  FieldValue.serverTimestamp(),
+              }),
+        },
+        { merge: true },
+      );
+    },
+  );
+}
+
+async function releaseMonthlyOcrUsage(input: {
+  userId: string;
+  period: string;
+}) {
+  const usageReference = adminDb
+    .collection("users")
+    .doc(input.userId)
+    .collection("apiUsage")
+    .doc(`ocr-${input.period}`);
+
+  await adminDb.runTransaction(
+    async (transaction) => {
+      const snapshot =
+        await transaction.get(usageReference);
+
+      if (!snapshot.exists) {
+        return;
+      }
+
+      const currentCount = safeCounter(
+        snapshot.data()?.count,
+      );
+
+      transaction.update(usageReference, {
+        count: Math.max(currentCount - 1, 0),
+        updatedAt:
+          FieldValue.serverTimestamp(),
+      });
+    },
+  );
 }
 
 async function callGeminiWithRetry(input: {

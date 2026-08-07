@@ -659,14 +659,6 @@ function ChatPageContent() {
                       item.content,
                   }),
                 ),
-              profile:
-                profile || {
-                  fullName:
-                    displayName,
-                  language,
-                },
-              processes,
-              documents,
             }),
           },
         );

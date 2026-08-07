@@ -1091,9 +1091,14 @@ export default function ProcessDetailPage() {
     setOcrState({ documentKey, mode: "analyzing" });
 
     try {
+      const idToken = await currentUser.getIdToken(true);
+
       const response = await fetch("/api/ocr", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({
           processId,
           documentKey,

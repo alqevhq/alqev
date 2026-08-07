@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
-  addDoc,
-  collection,
   doc,
   getDoc,
-  serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { normalizeSubscriptionPlan } from "@/lib/subscription";
@@ -45,10 +42,13 @@ const copy = {
     premiumDescription:
       "Süreçlerini sınırsız yönetmek ve ALQEV AI'ın gelişmiş özelliklerini kullanmak için.",
     premiumActiveShort: "Premium aktif",
-    earlyAccessRequest: "Premium erken erişim talebi oluştur",
+    manageSubscription: "Aboneliğimi yönet",
+    portalOpening: "Abonelik portalı açılıyor...",
+    portalError: "Abonelik portalı açılamadı. Lütfen tekrar dene.",
+    earlyAccessRequest: "Premium’a geç",
     createForPremium: "Premium için hesap oluştur",
     earlyAccessHint:
-      "Güvenli ödeme sistemi açıldığında erken erişim kullanıcılarına öncelik verilecek.",
+      "Güvenli ödeme Stripe üzerinden gerçekleştirilir. Aboneliğini dilediğin zaman yönetebilirsin.",
     whyPremium: "Neden ALQEV Premium?",
     whyPremiumText:
       "Premium yalnızca daha yüksek kullanım limiti sunmaz. Belgelerini daha ayrıntılı analiz eder, eksiklerini önceliklendirir ve süreçlerin için kişiselleştirilmiş bir yol haritası oluşturur.",
@@ -62,11 +62,11 @@ const copy = {
       "Ödeme sistemi aktif olduğunda ilk bilgilendirilen kullanıcılardan biri ol. Talep şu hesap adına kaydedilecek:",
     emailMissing: "E-posta bilgisi bulunamadı",
     cancel: "İptal",
-    saving: "Kaydediliyor...",
+    saving: "Stripe açılıyor...",
     sendRequest: "Erken erişim talebi gönder",
     loginRequired:
       "Premium erken erişim talebi oluşturmak için önce hesabına giriş yapmalısın.",
-    requestError: "Talebin kaydedilemedi. Lütfen tekrar dene.",
+    requestError: "Ödeme sayfası açılamadı. Lütfen tekrar dene.",
     freeFeatures: [
       "1 aktif süreç",
       "Temel belge yönetimi",
@@ -105,10 +105,13 @@ const copy = {
     premiumDescription:
       "Für unbegrenzte Vorgänge und die erweiterten Funktionen von ALQEV AI.",
     premiumActiveShort: "Premium aktiv",
-    earlyAccessRequest: "Premium-Frühzugang anfragen",
+    manageSubscription: "Abo verwalten",
+    portalOpening: "Abo-Portal wird geöffnet...",
+    portalError: "Das Abo-Portal konnte nicht geöffnet werden. Bitte versuche es erneut.",
+    earlyAccessRequest: "Premium abonnieren",
     createForPremium: "Konto für Premium erstellen",
     earlyAccessHint:
-      "Frühzugangsnutzer werden bevorzugt, sobald das sichere Zahlungssystem verfügbar ist.",
+      "Die sichere Zahlung erfolgt über Stripe. Du kannst dein Abo jederzeit verwalten.",
     whyPremium: "Warum ALQEV Premium?",
     whyPremiumText:
       "Premium bietet nicht nur höhere Nutzungslimits. Dokumente werden detaillierter analysiert, Lücken priorisiert und eine persönliche Roadmap erstellt.",
@@ -122,12 +125,12 @@ const copy = {
       "Sei unter den ersten Informierten, sobald das Zahlungssystem aktiv ist. Die Anfrage wird für dieses Konto gespeichert:",
     emailMissing: "Keine E-Mail-Adresse gefunden",
     cancel: "Abbrechen",
-    saving: "Wird gespeichert...",
+    saving: "Stripe wird geöffnet...",
     sendRequest: "Frühzugang anfragen",
     loginRequired:
       "Bitte melde dich an, um Premium-Frühzugang anzufragen.",
     requestError:
-      "Die Anfrage konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "Die Zahlungsseite konnte nicht geöffnet werden. Bitte versuche es erneut.",
     freeFeatures: [
       "1 aktiver Vorgang",
       "Grundlegende Dokumentenverwaltung",
@@ -166,10 +169,13 @@ const copy = {
     premiumDescription:
       "For unlimited process management and ALQEV AI's advanced features.",
     premiumActiveShort: "Premium active",
-    earlyAccessRequest: "Request Premium early access",
+    manageSubscription: "Manage subscription",
+    portalOpening: "Opening subscription portal...",
+    portalError: "The subscription portal could not be opened. Please try again.",
+    earlyAccessRequest: "Subscribe to Premium",
     createForPremium: "Create an account for Premium",
     earlyAccessHint:
-      "Early-access users will be prioritized when secure payments become available.",
+      "Secure payment is handled by Stripe. You can manage your subscription at any time.",
     whyPremium: "Why ALQEV Premium?",
     whyPremiumText:
       "Premium does more than raise usage limits. It analyzes documents in greater detail, prioritizes gaps, and creates a personalized roadmap.",
@@ -183,12 +189,12 @@ const copy = {
       "Be among the first to be informed when payments become available. The request will be saved for this account:",
     emailMissing: "Email address not found",
     cancel: "Cancel",
-    saving: "Saving...",
+    saving: "Opening Stripe...",
     sendRequest: "Send early-access request",
     loginRequired:
       "Please sign in before requesting Premium early access.",
     requestError:
-      "Your request could not be saved. Please try again.",
+      "The payment page could not be opened. Please try again.",
     freeFeatures: [
       "1 active process",
       "Basic document management",
@@ -227,10 +233,13 @@ const copy = {
     premiumDescription:
       "Для неограниченного управления процессами и расширенных возможностей ALQEV AI.",
     premiumActiveShort: "Premium активен",
-    earlyAccessRequest: "Запросить ранний доступ Premium",
+    manageSubscription: "Управлять подпиской",
+    portalOpening: "Открывается портал подписки...",
+    portalError: "Не удалось открыть портал подписки. Повторите попытку.",
+    earlyAccessRequest: "Подключить Premium",
     createForPremium: "Создать аккаунт для Premium",
     earlyAccessHint:
-      "Пользователи раннего доступа получат приоритет после запуска безопасной оплаты.",
+      "Безопасная оплата проводится через Stripe. Подпиской можно управлять в любое время.",
     whyPremium: "Почему ALQEV Premium?",
     whyPremiumText:
       "Premium не только повышает лимиты. Он глубже анализирует документы, расставляет приоритеты и создаёт персональную дорожную карту.",
@@ -244,12 +253,12 @@ const copy = {
       "Будьте среди первых, кто узнает о запуске оплаты. Запрос будет сохранён для этого аккаунта:",
     emailMissing: "Адрес электронной почты не найден",
     cancel: "Отмена",
-    saving: "Сохранение...",
+    saving: "Открывается Stripe...",
     sendRequest: "Отправить запрос на ранний доступ",
     loginRequired:
       "Сначала войдите в аккаунт, чтобы запросить ранний доступ Premium.",
     requestError:
-      "Не удалось сохранить запрос. Повторите попытку.",
+      "Не удалось открыть страницу оплаты. Повторите попытку.",
     freeFeatures: [
       "1 активный процесс",
       "Базовое управление документами",
@@ -288,10 +297,13 @@ const copy = {
     premiumDescription:
       "لإدارة إجراءات غير محدودة واستخدام مزايا ALQEV AI المتقدمة.",
     premiumActiveShort: "Premium نشط",
-    earlyAccessRequest: "طلب الوصول المبكر إلى Premium",
+    manageSubscription: "إدارة الاشتراك",
+    portalOpening: "جارٍ فتح بوابة الاشتراك...",
+    portalError: "تعذر فتح بوابة الاشتراك. يرجى المحاولة مرة أخرى.",
+    earlyAccessRequest: "الاشتراك في Premium",
     createForPremium: "إنشاء حساب لـ Premium",
     earlyAccessHint:
-      "سيحصل مستخدمو الوصول المبكر على الأولوية عند تفعيل الدفع الآمن.",
+      "تتم عملية الدفع الآمنة عبر Stripe، ويمكنك إدارة اشتراكك في أي وقت.",
     whyPremium: "لماذا ALQEV Premium؟",
     whyPremiumText:
       "لا يرفع Premium حدود الاستخدام فقط، بل يحلل الوثائق بعمق ويحدد الأولويات وينشئ خريطة طريق مخصصة.",
@@ -305,12 +317,12 @@ const copy = {
       "كن من أوائل من يتم إبلاغهم عند تفعيل الدفع. سيتم حفظ الطلب باسم هذا الحساب:",
     emailMissing: "لم يتم العثور على البريد الإلكتروني",
     cancel: "إلغاء",
-    saving: "جارٍ الحفظ...",
+    saving: "جارٍ فتح Stripe...",
     sendRequest: "إرسال طلب الوصول المبكر",
     loginRequired:
       "يرجى تسجيل الدخول أولاً لطلب الوصول المبكر إلى Premium.",
     requestError:
-      "تعذر حفظ الطلب. يرجى المحاولة مرة أخرى.",
+      "تعذر فتح صفحة الدفع. يرجى المحاولة مرة أخرى.",
     freeFeatures: [
       "إجراء نشط واحد",
       "إدارة أساسية للوثائق",
@@ -349,10 +361,13 @@ const copy = {
     premiumDescription:
       "برای مدیریت نامحدود فرایندها و استفاده از قابلیت‌های پیشرفته ALQEV AI.",
     premiumActiveShort: "Premium فعال",
-    earlyAccessRequest: "درخواست دسترسی زودهنگام Premium",
+    manageSubscription: "مدیریت اشتراک",
+    portalOpening: "در حال باز کردن پرتال اشتراک...",
+    portalError: "پرتال اشتراک باز نشد. دوباره تلاش کنید.",
+    earlyAccessRequest: "اشتراک Premium",
     createForPremium: "ایجاد حساب برای Premium",
     earlyAccessHint:
-      "پس از فعال شدن پرداخت امن، کاربران دسترسی زودهنگام در اولویت خواهند بود.",
+      "پرداخت امن از طریق Stripe انجام می‌شود و می‌توانید اشتراک را هر زمان مدیریت کنید.",
     whyPremium: "چرا ALQEV Premium؟",
     whyPremiumText:
       "Premium فقط محدودیت مصرف را افزایش نمی‌دهد؛ مدارک را دقیق‌تر تحلیل، کمبودها را اولویت‌بندی و نقشه راه شخصی ایجاد می‌کند.",
@@ -366,12 +381,12 @@ const copy = {
       "با فعال شدن پرداخت، جزو اولین افراد مطلع باشید. درخواست برای این حساب ثبت می‌شود:",
     emailMissing: "ایمیل یافت نشد",
     cancel: "لغو",
-    saving: "در حال ذخیره...",
+    saving: "در حال باز کردن Stripe...",
     sendRequest: "ارسال درخواست دسترسی زودهنگام",
     loginRequired:
       "برای درخواست دسترسی زودهنگام Premium ابتدا وارد شوید.",
     requestError:
-      "درخواست ذخیره نشد. دوباره تلاش کنید.",
+      "صفحه پرداخت باز نشد. دوباره تلاش کنید.",
     freeFeatures: [
       "۱ فرایند فعال",
       "مدیریت پایه مدارک",
@@ -403,10 +418,9 @@ export default function PricingPage() {
     useState<SubscriptionPlan>("free");
   const [isLoading, setIsLoading] = useState(true);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isPortalOpening, setIsPortalOpening] = useState(false);
   const [requestError, setRequestError] = useState("");
-  const [requestSuccess, setRequestSuccess] = useState(false);
 
  
   
@@ -455,10 +469,7 @@ export default function PricingPage() {
     };
   }, []);
 
-  async function handleEarlyAccessRequest(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
+  async function handleCheckout() {
     setRequestError("");
 
     if (!user) {
@@ -471,32 +482,113 @@ export default function PricingPage() {
     try {
       setIsRequesting(true);
 
-      await addDoc(
-        collection(
-          db,
-          "users",
-          user.uid,
-          "premiumRequests",
-        ),
+      const idToken =
+        await user.getIdToken(true);
+
+      const response = await fetch(
+        "/api/stripe/checkout",
         {
-          email: user.email || "",
-          status: "waiting",
-          requestedPlan: "premium",
-          monthlyPrice: 9.9,
-          currency: "EUR",
-          source: "pricing-page",
-          createdAt: serverTimestamp(),
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            language,
+          }),
         },
       );
 
-      setRequestSuccess(true);
+      const payload = (await response.json()) as {
+        success?: boolean;
+        url?: string;
+        error?: string;
+      };
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.url
+      ) {
+        throw new Error(
+          payload.error ||
+            currentCopy.requestError,
+        );
+      }
+
+      window.location.assign(payload.url);
     } catch (error) {
-      console.error("Premium talebi kaydedilemedi:", error);
-      setRequestError(
-        currentCopy.requestError,
+      console.error(
+        "Stripe Checkout başlatılamadı:",
+        error,
       );
-    } finally {
+
+      setRequestError(
+        error instanceof Error
+          ? error.message
+          : currentCopy.requestError,
+      );
       setIsRequesting(false);
+    }
+  }
+
+  async function handlePortal() {
+    setRequestError("");
+
+    if (!user) {
+      setRequestError(
+        currentCopy.loginRequired,
+      );
+      return;
+    }
+
+    try {
+      setIsPortalOpening(true);
+
+      const idToken =
+        await user.getIdToken(true);
+
+      const response = await fetch(
+        "/api/stripe/portal",
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              `Bearer ${idToken}`,
+          },
+        },
+      );
+
+      const payload = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+
+      if (
+        !response.ok ||
+        !payload.url
+      ) {
+        throw new Error(
+          payload.error ||
+            currentCopy.portalError,
+        );
+      }
+
+      window.location.assign(payload.url);
+    } catch (error) {
+      console.error(
+        "Stripe Customer Portal açılamadı:",
+        error,
+      );
+
+      setRequestError(
+        error instanceof Error
+          ? error.message
+          : currentCopy.portalError,
+      );
+      setIsPortalOpening(false);
     }
   }
 
@@ -664,20 +756,26 @@ export default function PricingPage() {
             </ul>
 
             {isPremium ? (
-              <div className="mt-9 flex w-full items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] px-5 py-3.5 text-sm font-semibold text-emerald-200">
-                {currentCopy.premiumActiveShort}
-              </div>
+              <button
+                type="button"
+                disabled={isPortalOpening}
+                onClick={handlePortal}
+                className="mt-9 flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPortalOpening
+                  ? currentCopy.portalOpening
+                  : currentCopy.manageSubscription}
+              </button>
             ) : user ? (
               <button
                 type="button"
-                onClick={() => {
-                  setRequestError("");
-                  setRequestSuccess(false);
-                  setIsModalOpen(true);
-                }}
-                className="mt-9 flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                disabled={isRequesting}
+                onClick={handleCheckout}
+                className="mt-9 flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {currentCopy.earlyAccessRequest}
+                {isRequesting
+                  ? currentCopy.saving
+                  : currentCopy.earlyAccessRequest}
               </button>
             ) : (
               <Link
@@ -693,6 +791,12 @@ export default function PricingPage() {
 {currentCopy.earlyAccessHint}
               </p>
             ) : null}
+
+            {requestError ? (
+              <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                {requestError}
+              </div>
+            ) : null}
           </article>
         </section>
 
@@ -707,94 +811,6 @@ export default function PricingPage() {
         </section>
       </div>
 
-      {isModalOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={currentCopy.modalLabel}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          onClick={() => {
-            if (!isRequesting) setIsModalOpen(false);
-          }}
-        >
-          <div
-            className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl sm:p-8"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {requestSuccess ? (
-              <div className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-2xl text-emerald-300">
-                  ✓
-                </div>
-
-                <h2 className="mt-5 text-2xl font-bold">
-                  {currentCopy.requestReceived}
-                </h2>
-
-                <p className="mt-3 text-sm leading-6 text-slate-400">
-{currentCopy.requestReceivedText}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
-                >
-                  {currentCopy.okay}
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
-                  {currentCopy.modalLabel}
-                </p>
-
-                <h2 className="mt-3 text-2xl font-bold">
-                  {currentCopy.joinWaitlist}
-                </h2>
-
-                <p className="mt-3 text-sm leading-6 text-slate-400">
-{currentCopy.waitlistText}
-                </p>
-
-                <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-slate-200">
-                  {user?.email || currentCopy.emailMissing}
-                </div>
-
-                {requestError ? (
-                  <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                    {requestError}
-                  </div>
-                ) : null}
-
-                <form
-                  onSubmit={handleEarlyAccessRequest}
-                  className="mt-6 flex flex-col gap-3 sm:flex-row"
-                >
-                  <button
-                    type="button"
-                    disabled={isRequesting}
-                    onClick={() => setIsModalOpen(false)}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-white/10 px-5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
-                  >
-                    {currentCopy.cancel}
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={isRequesting}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-indigo-500 px-5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isRequesting
-                      ? currentCopy.saving
-                      : currentCopy.sendRequest}
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }
