@@ -1839,7 +1839,7 @@ export default function ProcessDetailPage() {
                     }}
                     onDragLeave={() => setDraggedDocumentKey(null)}
                     onDrop={(event) => void handleDrop(event, item.key)}
-                    className={`rounded-2xl border p-5 transition ${draggedDocumentKey === item.key ? "border-indigo-400/60 bg-indigo-500/10" : "border-white/10 bg-black/10"}`}
+                    className={`min-w-0 w-full max-w-full rounded-2xl border p-5 transition ${draggedDocumentKey === item.key ? "border-indigo-400/60 bg-indigo-500/10" : "border-white/10 bg-black/10"}`}
                   >
                     <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
                       <input
