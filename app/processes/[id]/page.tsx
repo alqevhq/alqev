@@ -1841,7 +1841,7 @@ export default function ProcessDetailPage() {
                     onDrop={(event) => void handleDrop(event, item.key)}
                     className={`rounded-2xl border p-5 transition ${draggedDocumentKey === item.key ? "border-indigo-400/60 bg-indigo-500/10" : "border-white/10 bg-black/10"}`}
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
                       <input
                         type="checkbox"
                         checked={selectedDocumentKeys.includes(item.key)}
@@ -1866,7 +1866,7 @@ export default function ProcessDetailPage() {
                         {isCompleted ? "✓" : index + 1}
                       </div>
 
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 basis-full flex-1 sm:basis-0">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <h3 className="font-semibold text-slate-100">
@@ -2044,12 +2044,12 @@ export default function ProcessDetailPage() {
                           </button>
                         ) : null}
 
-                        <div className="mt-4 flex flex-wrap gap-3">
+                        <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
                           <label
                             className={
                               uploadState || ocrState
-                                ? "inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-400"
-                                : "inline-flex cursor-pointer items-center justify-center rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                                ? "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-400 sm:w-auto"
+                                : "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 sm:w-auto"
                             }
                           >
                             {isCompleted ? copy.uploadNew : copy.chooseFile}
@@ -2070,7 +2070,7 @@ export default function ProcessDetailPage() {
                               <button
                                 type="button"
                                 onClick={() => setPreviewDocument(item)}
-                                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 sm:w-auto"
                               >
                                 {copy.preview}
                               </button>
@@ -2080,7 +2080,7 @@ export default function ProcessDetailPage() {
                                 disabled={Boolean(
                                   uploadState || deletingDocumentKey,
                                 )}
-                                className="inline-flex items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                               >
                                 {copy.rename}
                               </button>
@@ -2090,7 +2090,7 @@ export default function ProcessDetailPage() {
                                 disabled={Boolean(
                                   uploadState || deletingDocumentKey,
                                 )}
-                                className="inline-flex items-center justify-center rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex w-full items-center justify-center rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                               >
                                 {deletingDocumentKey === item.key
                                   ? copy.deleting

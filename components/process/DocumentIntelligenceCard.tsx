@@ -320,13 +320,13 @@ export default function DocumentIntelligenceCard({
 
   if (!intelligence) {
     return (
-      <section className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-400/[0.06] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+      <section className="mt-4 min-w-0 w-full rounded-2xl border border-violet-400/20 bg-violet-400/[0.06] p-4">
+        <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="break-words text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
               {t.title}
             </p>
-            <p className="mt-1 text-sm font-semibold text-violet-100">
+            <p className="mt-1 break-words text-sm font-semibold text-violet-100">
               {result.documentType}
             </p>
           </div>
@@ -334,7 +334,7 @@ export default function DocumentIntelligenceCard({
             type="button"
             onClick={onReanalyze}
             disabled={isBusy}
-            className="rounded-lg border border-violet-300/20 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-400/10 disabled:opacity-50"
+            className="w-full rounded-lg border border-violet-300/20 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-400/10 disabled:opacity-50 sm:w-auto"
           >
             {t.reanalyze}
           </button>
@@ -349,14 +349,14 @@ export default function DocumentIntelligenceCard({
     t.expiryValues[intelligence.expiryStatus];
 
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl border border-violet-400/20 bg-violet-400/[0.055]">
+    <section className="mt-4 min-w-0 w-full overflow-hidden rounded-2xl border border-violet-400/20 bg-violet-400/[0.055]">
       <div className="border-b border-white/10 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+        <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="break-words text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
               {t.title}
             </p>
-            <p className="mt-1 text-base font-semibold text-violet-50">
+            <p className="mt-1 break-words text-base font-semibold text-violet-50">
               {intelligence.documentType ||
                 result.documentType}
             </p>
@@ -366,20 +366,20 @@ export default function DocumentIntelligenceCard({
             type="button"
             onClick={onReanalyze}
             disabled={isBusy}
-            className="rounded-lg border border-violet-300/20 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg border border-violet-300/20 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {t.reanalyze}
           </button>
         </div>
       </div>
 
-      <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+      <div className="grid min-w-0 gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <p className="text-[11px] text-slate-500">
             {t.match}
           </p>
           <p
-            className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass(
+            className={`mt-2 inline-flex max-w-full whitespace-normal break-words rounded-2xl border px-2.5 py-1 text-center text-xs font-medium leading-5 ${statusClass(
               intelligence.documentMatch,
             )}`}
           >
@@ -387,7 +387,7 @@ export default function DocumentIntelligenceCard({
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] text-slate-500">
               {t.quality}
@@ -415,7 +415,7 @@ export default function DocumentIntelligenceCard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <p className="text-[11px] text-slate-500">
             {t.readability}
           </p>
@@ -426,7 +426,7 @@ export default function DocumentIntelligenceCard({
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <p className="text-[11px] text-slate-500">
             {t.mrz}
           </p>
@@ -437,12 +437,12 @@ export default function DocumentIntelligenceCard({
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3 sm:col-span-2">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-slate-950/40 p-3 sm:col-span-2">
           <p className="text-[11px] text-slate-500">
             {t.expiry}
           </p>
           <p
-            className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass(
+            className={`mt-2 inline-flex max-w-full whitespace-normal break-words rounded-2xl border px-2.5 py-1 text-center text-xs font-medium leading-5 ${statusClass(
               intelligence.expiryStatus,
             )}`}
           >
@@ -456,7 +456,7 @@ export default function DocumentIntelligenceCard({
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             {t.summary}
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-200">
+          <p className="break-words mt-2 text-sm leading-6 text-slate-200">
             {intelligence.summary}
           </p>
         </div>
@@ -472,7 +472,7 @@ export default function DocumentIntelligenceCard({
               (warning, index) => (
                 <div
                   key={`${warning.code}-${index}`}
-                  className={`rounded-xl border px-3 py-2.5 text-sm leading-5 ${issueClass(
+                  className={`min-w-0 break-words rounded-xl border px-3 py-2.5 text-sm leading-5 ${issueClass(
                     warning.severity,
                   )}`}
                 >
@@ -494,7 +494,7 @@ export default function DocumentIntelligenceCard({
               (risk, index) => (
                 <div
                   key={`${risk.code}-${index}`}
-                  className={`rounded-xl border px-3 py-2.5 text-sm leading-5 ${issueClass(
+                  className={`min-w-0 break-words rounded-xl border px-3 py-2.5 text-sm leading-5 ${issueClass(
                     risk.severity,
                   )}`}
                 >
@@ -511,7 +511,7 @@ export default function DocumentIntelligenceCard({
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-300">
             {t.nextAction}
           </p>
-          <p className="mt-2 text-sm font-medium leading-6 text-indigo-50">
+          <p className="break-words mt-2 text-sm font-medium leading-6 text-indigo-50">
             → {intelligence.nextAction}
           </p>
         </div>
@@ -528,9 +528,9 @@ export default function DocumentIntelligenceCard({
                 key={`${field.key}-${field.value}`}
                 className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5"
               >
-                <dt className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
-                  <span>{field.label}</span>
-                  <span>
+                <dt className="flex min-w-0 flex-wrap items-start justify-between gap-2 text-[11px] text-slate-500">
+                  <span className="min-w-0 break-words">{field.label}</span>
+                  <span className="shrink-0">
                     {t.confidence}:{" "}
                     {Math.round(
                       field.confidence * 100,
