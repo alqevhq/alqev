@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -738,9 +737,9 @@ const priorityStyles: Record<
     label: "priorityWarning",
   },
   info: {
-    card: "border-indigo-400/20 bg-indigo-400/[0.05]",
-    icon: "bg-indigo-400/15 text-indigo-200",
-    badge: "bg-indigo-400/10 text-indigo-200",
+    card: "border-violet-400/20 bg-violet-400/[0.05]",
+    icon: "bg-violet-400/15 text-violet-200",
+    badge: "bg-violet-400/10 text-violet-200",
     label: "priorityInfo",
   },
   success: {
@@ -751,6 +750,63 @@ const priorityStyles: Record<
   },
 };
 
+
+function AlqevBrand({ compact = false }: { compact?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 520 245"
+      role="img"
+      aria-label="ALQEV"
+      className={
+        compact
+          ? "h-auto w-[132px] sm:w-[150px]"
+          : "h-auto w-[255px] max-w-[78vw] sm:w-[300px]"
+      }
+    >
+      <defs>
+        <linearGradient id={compact ? "alqevPurpleCompact" : "alqevPurpleDashboard"} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#a855f7" />
+          <stop offset="100%" stopColor="#6d28d9" />
+        </linearGradient>
+      </defs>
+
+      <path d="M260 14 L325 124 H291 L260 70 L229 124 H195 Z" fill="white" />
+      <path
+        d="M260 62 L287 108 H233 Z"
+        fill={`url(#${compact ? "alqevPurpleCompact" : "alqevPurpleDashboard"})`}
+      />
+
+      <g
+        fill="none"
+        stroke="white"
+        strokeWidth="9"
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+      >
+        <path d="M37 216 L75 148 L113 216" />
+        <path d="M137 148 V216 H184" />
+        <path d="M317 148 H374 M317 148 V216 M317 182 H365 M317 216 H374" />
+        <path d="M401 148 L438 216 L476 148" />
+      </g>
+
+      <circle
+        cx="254"
+        cy="182"
+        r="35"
+        fill="none"
+        stroke={`url(#${compact ? "alqevPurpleCompact" : "alqevPurpleDashboard"})`}
+        strokeWidth="11"
+      />
+      <path
+        d="M275 203 L299 224"
+        stroke={`url(#${compact ? "alqevPurpleCompact" : "alqevPurpleDashboard"})`}
+        strokeWidth="11"
+        strokeLinecap="square"
+      />
+    </svg>
+  );
+}
+
 function DashboardCard({
   title,
   description,
@@ -760,11 +816,11 @@ function DashboardCard({
   return (
     <Link
       href={href}
-      className="group rounded-3xl border border-white/10 bg-white/[0.035] p-6 transition hover:-translate-y-1 hover:border-indigo-400/40 hover:bg-white/[0.06]"
+      className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(18,18,29,0.92),rgba(8,8,15,0.94))] p-6 shadow-[0_18px_55px_rgba(0,0,0,0.26)] transition duration-300 hover:-translate-y-1 hover:border-violet-400/35 hover:shadow-[0_22px_65px_rgba(91,33,182,0.16)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-slate-400">
+          <p className="text-sm font-medium text-zinc-400">
             {title}
           </p>
 
@@ -773,12 +829,12 @@ function DashboardCard({
           </p>
         </div>
 
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition group-hover:border-indigo-400/30 group-hover:text-indigo-300">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-violet-500/[0.06] text-zinc-400 transition group-hover:border-violet-400/35 group-hover:bg-violet-500/10 group-hover:text-violet-300">
           →
         </span>
       </div>
 
-      <p className="mt-4 text-sm leading-6 text-slate-400">
+      <p className="mt-4 text-sm leading-6 text-zinc-400">
         {description}
       </p>
     </Link>
@@ -1739,11 +1795,11 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#030309] px-6 text-white">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
 
-          <p className="mt-4 text-sm text-slate-400">
+          <p className="mt-4 text-sm text-zinc-400">
             {uiTranslations[selectedLanguage].loading}
           </p>
         </div>
@@ -1834,32 +1890,24 @@ export default function DashboardPage() {
   ] as const;
 
   return (
-    <main dir={direction} className="min-h-screen bg-slate-950 text-white">
+    <main dir={direction} className="relative min-h-screen overflow-x-hidden bg-[#030309] text-white">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 overflow-hidden"
       >
-        <div className="absolute left-1/4 top-[-300px] h-[600px] w-[600px] rounded-full bg-indigo-700/15 blur-[160px]" />
-
-        <div className="absolute bottom-[-300px] right-[-200px] h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[170px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[165px]" />
+        <div className="absolute right-[-260px] top-[18%] h-[560px] w-[560px] rounded-full bg-fuchsia-700/[0.08] blur-[175px]" />
+        <div className="absolute bottom-[-340px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.09] blur-[180px]" />
+        <div className="absolute left-1/2 top-[122px] h-[210px] w-[1180px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/30 shadow-[0_-18px_90px_rgba(168,85,247,0.12)]" />
       </div>
 
-      <header className="relative z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#030309]/88 shadow-[0_10px_40px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-3"
           >
-            
-
-            <Image
-  src="/logo.png"
-  alt="ALQEV Logo"
-  width={180}
-  height={60}
-  priority
-  className="h-20 w-auto"
- />
+            <AlqevBrand compact />
           </Link>
 
           <div className="flex items-center gap-4">
@@ -1877,7 +1925,7 @@ export default function DashboardPage() {
                 )
               }
               aria-label={copy.language}
-              className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none transition hover:border-slate-600 focus:border-indigo-400"
+              className="rounded-xl border border-white/10 bg-[#090911] px-3 py-2.5 text-sm font-semibold text-zinc-200 outline-none transition hover:border-white/15 focus:border-violet-400"
             >
               {supportedLanguages.map((item) => (
                 <option key={item.code} value={item.code}>
@@ -1890,7 +1938,7 @@ export default function DashboardPage() {
                 {displayName}
               </p>
 
-              <p className="max-w-48 truncate text-xs text-slate-500">
+              <p className="max-w-48 truncate text-xs text-zinc-500">
                 {profile.email}
               </p>
             </div>
@@ -1899,7 +1947,7 @@ export default function DashboardPage() {
               type="button"
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-white/15 hover:bg-[#151522] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSigningOut
                 ? copy.signingOut
@@ -1909,7 +1957,7 @@ export default function DashboardPage() {
         </nav>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10">
         {errorMessage ? (
           <div
             role="alert"
@@ -1919,18 +1967,18 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <section className="overflow-hidden rounded-[2rem] border border-indigo-300/20 bg-gradient-to-br from-indigo-500/20 via-slate-900/95 to-blue-500/10 shadow-2xl shadow-indigo-950/30">
-          <div className="grid lg:grid-cols-[1fr_320px]">
-            <div className="p-7 sm:p-10 lg:p-12">
+        <section className="relative overflow-hidden rounded-[2rem] border border-violet-300/20 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,0.18),transparent_42%),linear-gradient(145deg,rgba(17,17,29,0.96),rgba(7,7,14,0.98))] shadow-[0_30px_100px_rgba(46,16,101,0.22)]">
+          <div className="grid min-w-0 lg:grid-cols-[1fr_320px]">
+            <div className="min-w-0 p-5 sm:p-8 lg:p-10">
               <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/15 text-xl shadow-lg shadow-indigo-950/30">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-400/15 text-xl shadow-lg shadow-violet-950/30">
                   AL
                 </span>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">
                     {copy.alAssistant}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">ALQEV</p>
+                  <p className="mt-1 text-xs text-zinc-500">ALQEV</p>
                 </div>
               </div>
 
@@ -1938,16 +1986,16 @@ export default function DashboardPage() {
                 {fillTemplate(copy.alWelcome, { name: firstName })} 👋
               </h1>
 
-              <p className="mt-3 text-xl font-semibold text-slate-200 sm:text-2xl">
+              <p className="mt-3 text-xl font-semibold text-zinc-200 sm:text-2xl">
                 {copy.alQuestion}
               </p>
 
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+              <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">
                 {copy.alDescription}
               </p>
 
               <form onSubmit={handleAlSubmit} className="mt-8">
-                <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-xl shadow-black/20 transition focus-within:border-indigo-400/50 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                <div className="rounded-3xl border border-white/10 bg-[#030309]/70 p-3 shadow-xl shadow-black/20 transition focus-within:border-violet-400/50 focus-within:ring-4 focus-within:ring-violet-500/10">
                   <textarea
                     value={alQuestion}
                     onChange={(event) => {
@@ -1956,17 +2004,17 @@ export default function DashboardPage() {
                     }}
                     placeholder={copy.alPlaceholder}
                     rows={3}
-                    className="w-full resize-none bg-transparent px-3 py-3 text-base leading-7 text-white outline-none placeholder:text-slate-600"
+                    className="w-full resize-none bg-transparent px-3 py-3 text-base leading-7 text-white outline-none placeholder:text-zinc-600"
                   />
 
                   <div className="flex flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs leading-5 text-slate-500">
+                    <p className="text-xs leading-5 text-zinc-500">
                       {copy.alPrivacy}
                     </p>
 
                     <button
                       type="submit"
-                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:-translate-y-0.5 hover:bg-indigo-400"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:-translate-y-0.5 hover:brightness-110"
                     >
                       {copy.alSend}
                       <span aria-hidden="true">→</span>
@@ -1983,8 +2031,8 @@ export default function DashboardPage() {
 
               <div className="mt-7">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <p className="text-sm font-semibold text-slate-200">{copy.alPopularTopics}</p>
-                  <p className="text-xs text-slate-500">{copy.alExplore}</p>
+                  <p className="text-sm font-semibold text-zinc-200">{copy.alPopularTopics}</p>
+                  <p className="text-xs text-zinc-500">{copy.alExplore}</p>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1993,7 +2041,7 @@ export default function DashboardPage() {
                       key={topicKey}
                       type="button"
                       onClick={() => handleSuggestedQuestion(copy[topicKey])}
-                      className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-indigo-400/30 hover:bg-indigo-400/10 hover:text-indigo-200"
+                      className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-200"
                     >
                       {copy[topicKey]}
                     </button>
@@ -2007,19 +2055,19 @@ export default function DashboardPage() {
                     key={questionKey}
                     type="button"
                     onClick={() => handleSuggestedQuestion(copy[questionKey])}
-                    className="group flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-start transition hover:border-indigo-400/30 hover:bg-white/[0.06]"
+                    className="group flex items-start justify-between gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-start transition hover:border-violet-400/30 hover:bg-white/[0.06]"
                   >
-                    <span className="text-sm leading-6 text-slate-300 group-hover:text-white">
+                    <span className="text-sm leading-6 text-zinc-300 group-hover:text-white">
                       {copy[questionKey]}
                     </span>
-                    <span className="mt-0.5 text-indigo-400 transition group-hover:translate-x-1">→</span>
+                    <span className="mt-0.5 text-violet-400 transition group-hover:translate-x-1">→</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <aside className="border-t border-white/10 bg-black/20 p-7 lg:border-l lg:border-t-0 lg:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                 {copy.dailyCenter}
               </p>
 
@@ -2027,25 +2075,25 @@ export default function DashboardPage() {
                 {getGreeting(language)}, {firstName}.
               </p>
 
-              <p className="mt-3 text-sm leading-6 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-zinc-400">
                 {copy.intro}
               </p>
 
               <div className="mt-7 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 text-sm">
                 <div className="flex items-center justify-between gap-6">
-                  <span className="text-slate-500">{copy.plan}</span>
-                  <span className="font-semibold text-slate-200">{subscriptionLabel}</span>
+                  <span className="text-zinc-500">{copy.plan}</span>
+                  <span className="font-semibold text-zinc-200">{subscriptionLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
-                  <span className="text-slate-500">{copy.language}</span>
-                  <span className="font-semibold text-slate-200">{languageLabel}</span>
+                  <span className="text-zinc-500">{copy.language}</span>
+                  <span className="font-semibold text-zinc-200">{languageLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
-                  <span className="text-slate-500">{copy.country}</span>
-                  <span className="font-semibold text-slate-200">{countryLabel}</span>
+                  <span className="text-zinc-500">{copy.country}</span>
+                  <span className="font-semibold text-zinc-200">{countryLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
-                  <span className="text-slate-500">{copy.profile}</span>
+                  <span className="text-zinc-500">{copy.profile}</span>
                   <span className={profile.onboardingCompleted ? "font-semibold text-emerald-300" : "font-semibold text-amber-300"}>
                     {profile.onboardingCompleted ? copy.completed : copy.incomplete}
                   </span>
@@ -2053,10 +2101,10 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-6 grid gap-3">
-                <Link href="/processes/new" className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
+                <Link href="/processes/new" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110">
                   {copy.startProcess}
                 </Link>
-                <Link href="/processes" className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800">
+                <Link href="/processes" className="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-[#151522]">
                   {copy.viewProcesses}
                 </Link>
               </div>
@@ -2134,10 +2182,10 @@ export default function DashboardPage() {
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <article className="rounded-3xl border border-indigo-400/20 bg-gradient-to-br from-indigo-500/[0.12] via-white/[0.035] to-cyan-400/[0.04] p-6 sm:p-8">
+          <article className="min-w-0 rounded-3xl border border-violet-400/20 bg-gradient-to-br from-violet-500/[0.12] via-white/[0.035] to-fuchsia-400/[0.04] p-6 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">
                   {copy.aiReadiness}
                 </p>
 
@@ -2146,31 +2194,31 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              <div className="rounded-2xl border border-indigo-300/20 bg-black/20 px-4 py-3 text-right">
+              <div className="rounded-2xl border border-violet-300/20 bg-black/20 px-4 py-3 text-right">
                 <span className="text-4xl font-black text-white">
                   {readinessScore}
                 </span>
 
-                <span className="ml-1 text-lg text-slate-500">
+                <span className="ml-1 text-lg text-zinc-500">
                   / 100
                 </span>
               </div>
             </div>
 
-            <div className="mt-7 h-3 overflow-hidden rounded-full bg-slate-800">
+            <div className="mt-7 h-3 overflow-hidden rounded-full bg-[#151522]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 transition-all"
                 style={{
                   width: `${readinessScore}%`,
                 }}
               />
             </div>
 
-            <p className="mt-4 font-semibold text-slate-200">
+            <p className="mt-4 font-semibold text-zinc-200">
               {getReadinessLabel(readinessScore, copy)}
             </p>
 
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
               {dashboardAdvisor.metrics.totalDocuments > 0
                 ? fillTemplate(copy.readinessProgress, { completed: dashboardAdvisor.metrics.completedDocuments, total: dashboardAdvisor.metrics.totalDocuments })
                 : copy.readinessEmpty}
@@ -2205,10 +2253,10 @@ export default function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+          <article className="min-w-0 rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)] p-6 sm:p-8">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">
                   ALQEV AI
                 </p>
 
@@ -2217,7 +2265,7 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-zinc-500">
                 {copy.topThree}
               </p>
             </div>
@@ -2242,7 +2290,7 @@ export default function DashboardPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-semibold text-slate-100">
+                          <p className="font-semibold text-zinc-100">
                             {item.title}
                           </p>
 
@@ -2253,12 +2301,12 @@ export default function DashboardPage() {
                           </span>
                         </div>
 
-                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                        <p className="mt-2 text-sm leading-6 text-zinc-400">
                           {item.description}
                         </p>
                       </div>
 
-                      <span className="self-center text-slate-600 transition group-hover:text-indigo-300">
+                      <span className="self-center text-zinc-600 transition group-hover:text-violet-300">
                         →
                       </span>
                     </Link>
@@ -2289,8 +2337,8 @@ export default function DashboardPage() {
             </p>
           </article>
 
-          <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-            <p className="text-sm font-medium text-slate-500">
+          <article className="min-w-0 rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)] p-6">
+            <p className="text-sm font-medium text-zinc-500">
               {copy.nextStep}
             </p>
 
@@ -2305,7 +2353,7 @@ export default function DashboardPage() {
                   : copy.createFirstProcessTitle}
             </p>
 
-            <p className="mt-3 text-sm leading-6 text-slate-400">
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
               {dashboardIntelligence.nextAction
                 ? getRecommendationText(
                     {
@@ -2359,14 +2407,14 @@ export default function DashboardPage() {
                     ? `/processes/${primaryProcess.id}`
                     : "/processes/new"
               }
-              className="mt-5 inline-flex text-sm font-semibold text-indigo-300 transition hover:text-indigo-200"
+              className="mt-5 inline-flex text-sm font-semibold text-violet-300 transition hover:text-violet-200"
             >
               {copy.openStep}
             </Link>
           </article>
 
-          <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-            <p className="text-sm font-medium text-slate-500">
+          <article className="min-w-0 rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)] p-6">
+            <p className="text-sm font-medium text-zinc-500">
               {copy.estimatedReadiness}
             </p>
 
@@ -2377,7 +2425,7 @@ export default function DashboardPage() {
                 : copy.ready}
             </p>
 
-            <p className="mt-3 text-sm leading-6 text-slate-400">
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
               {dashboardIntelligence.estimatedDays >
               0
                 ? copy.estimateByMissing
@@ -2387,12 +2435,12 @@ export default function DashboardPage() {
         </section>
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-          <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+          <article className="min-w-0 rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)] p-6 sm:p-8">
             {primaryProcess ? (
               <>
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-zinc-500">
                       {copy.featuredProcess}
                     </p>
 
@@ -2408,14 +2456,14 @@ export default function DashboardPage() {
                     </h2>
                   </div>
 
-                  <div className="rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm font-semibold text-indigo-300">
+                  <div className="rounded-full border border-violet-400/20 bg-violet-400/10 px-4 py-2 text-sm font-semibold text-violet-300">
                     {fillTemplate(copy.completedPercent, { percent: primaryProcess.progress })}
                   </div>
                 </div>
 
-                <div className="mt-7 h-2 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-7 h-2 overflow-hidden rounded-full bg-[#151522]">
                   <div
-                    className="h-full rounded-full bg-indigo-500 transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 transition-all"
                     style={{
                       width: `${primaryProcess.progress}%`,
                     }}
@@ -2446,14 +2494,14 @@ export default function DashboardPage() {
                               className={
                                 completed
                                   ? "flex items-center gap-4 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.04] p-4"
-                                  : "flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4"
+                                  : "flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4"
                               }
                             >
                               <span
                                 className={
                                   completed
                                     ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-emerald-300"
-                                    : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-600 text-slate-500"
+                                    : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 text-zinc-500"
                                 }
                               >
                                 {completed
@@ -2462,7 +2510,7 @@ export default function DashboardPage() {
                               </span>
 
                               <div className="min-w-0">
-                                <p className="font-semibold text-slate-200">
+                                <p className="font-semibold text-zinc-200">
                                   {getLocalizedDocumentTitle(
                                     {
                                       templateKey:
@@ -2481,7 +2529,7 @@ export default function DashboardPage() {
                                 <p
                                   className={
                                     completed
-                                      ? "mt-1 text-sm text-slate-500"
+                                      ? "mt-1 text-sm text-zinc-500"
                                       : "mt-1 text-sm text-amber-300/80"
                                   }
                                 >
@@ -2499,7 +2547,7 @@ export default function DashboardPage() {
                         },
                       )
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-500">
+                    <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-500">
                       {copy.noDocumentList}
                     </div>
                   )}
@@ -2507,7 +2555,7 @@ export default function DashboardPage() {
 
                 <Link
                   href={`/processes/${primaryProcess.id}`}
-                  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 transition hover:text-indigo-200"
+                  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-violet-300 transition hover:text-violet-200"
                 >
                   {copy.processDetails}
                   <span aria-hidden="true">
@@ -2517,7 +2565,7 @@ export default function DashboardPage() {
               </>
             ) : (
               <div className="flex min-h-80 flex-col items-center justify-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-2xl text-indigo-300">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-2xl text-violet-300">
                   +
                 </div>
 
@@ -2525,13 +2573,13 @@ export default function DashboardPage() {
                   {copy.noProcess}
                 </h2>
 
-                <p className="mt-3 max-w-lg text-sm leading-6 text-slate-400">
+                <p className="mt-3 max-w-lg text-sm leading-6 text-zinc-400">
                   {copy.noProcessText}
                 </p>
 
                 <Link
                   href="/processes/new"
-                  className="mt-6 inline-flex rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                  className="mt-6 inline-flex rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110"
                 >
                   {copy.firstProcess}
                 </Link>
@@ -2539,17 +2587,17 @@ export default function DashboardPage() {
             )}
           </article>
 
-          <aside className="space-y-6">
-            <article className="rounded-3xl border border-indigo-400/20 bg-indigo-500/[0.08] p-6">
-              <p className="text-sm font-semibold text-indigo-300">
+          <aside className="min-w-0 space-y-6">
+            <article className="min-w-0 rounded-3xl border border-violet-400/20 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.15),transparent_55%),rgba(13,12,23,0.92)] p-6">
+              <p className="text-sm font-semibold text-violet-300">
                 {copy.aiSummary}
               </p>
 
-              <p className="mt-4 text-xl font-bold text-slate-100">
+              <p className="mt-4 text-xl font-bold text-zinc-100">
                 {getReadinessLabel(readinessScore, copy)}
               </p>
 
-              <p className="mt-3 text-sm leading-6 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-zinc-400">
                 {dashboardIntelligence
                   .criticalCount > 0
                   ? fillTemplate(copy.criticalTopics, { count: dashboardIntelligence.criticalCount })
@@ -2566,7 +2614,7 @@ export default function DashboardPage() {
                     ? `/processes/${primaryProcess.id}`
                     : "/processes/new"
                 }
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110"
               >
                 {primaryProcess
                   ? copy.goToProcess
@@ -2574,8 +2622,8 @@ export default function DashboardPage() {
               </Link>
             </article>
 
-            <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-              <p className="text-sm font-medium text-slate-500">
+            <article className="min-w-0 rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)] p-6">
+              <p className="text-sm font-medium text-zinc-500">
                 {copy.upcomingDate}
               </p>
 
@@ -2585,7 +2633,7 @@ export default function DashboardPage() {
                     {nearestDeadline.title}
                   </p>
 
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 text-sm text-zinc-400">
                     {nearestDeadline.daysUntil ===
                     0
                       ? copy.targetToday
@@ -2608,7 +2656,7 @@ export default function DashboardPage() {
                     {copy.noUpcomingDate}
                   </p>
 
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                  <p className="mt-2 text-sm leading-6 text-zinc-400">
                     {copy.noUpcomingDateText}
                   </p>
                 </>
