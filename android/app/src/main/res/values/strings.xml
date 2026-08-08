@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ALQEV</string>
+    <string name="title_activity_main">ALQEV</string>
+    <string name="package_name">com.alqev.app</string>
+    <string name="custom_url_scheme">com.alqev.app</string>
+</resources>

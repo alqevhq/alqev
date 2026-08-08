@@ -45,6 +45,39 @@ export type NotificationDocument = {
   matchScore?: number | null;
   documentMatchScore?: number | null;
   validationStatus?: string;
+  ocrError?: string;
+  ocr?: {
+    rawText?: string;
+    documentType?: string;
+    fields?: Array<{
+      key?: string;
+      label?: string;
+      value?: string;
+      confidence?: number;
+    }>;
+    intelligence?: {
+      documentType?: string;
+      documentMatch?: "match" | "possible_match" | "mismatch" | "unknown";
+      qualityScore?: number;
+      isReadable?: boolean;
+      expiryStatus?:
+        | "valid"
+        | "expiring_soon"
+        | "expired"
+        | "not_applicable"
+        | "unknown";
+      warnings?: Array<{
+        code?: string;
+        severity?: "info" | "warning" | "critical";
+        message?: string;
+      }>;
+      risks?: Array<{
+        code?: string;
+        severity?: "info" | "warning" | "critical";
+        message?: string;
+      }>;
+    };
+  } | null;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -100,7 +133,7 @@ export type AdvisorNotification = {
 
 export type NotificationAdvisorOptions = {
   now?: Date;
-  language?: "tr" | "de" | "en";
+  language?: "tr" | "de" | "en" | "ru" | "ar" | "fa";
   includeSuccess?: boolean;
   includeInfo?: boolean;
   maxNotifications?: number;
@@ -338,6 +371,180 @@ const copy = {
     emptyMessage:
       "Start your first process to receive a personal roadmap and intelligent notifications.",
   },
+
+  ru: {
+    untitledProcess: "Процесс без названия",
+    untitledDocument: "Документ без названия",
+    openProcess: "Открыть процесс",
+    openDocument: "Открыть документ",
+    uploadDocument: "Загрузить документ",
+    reviewDocument: "Проверить документ",
+    openDashboard: "Открыть панель",
+
+    overdueTitle: "Срок процесса истёк",
+    overdueMessage:
+      "Срок для «{process}» истёк {days} дн. назад. Проверьте процесс как можно скорее.",
+
+    dueTodayTitle: "Срок сегодня",
+    dueTodayMessage:
+      "Срок для «{process}» — сегодня. Завершите оставшиеся шаги.",
+
+    deadlineTitle: "Приближается срок",
+    deadlineMessage:
+      "До срока для «{process}» осталось {days} дн.",
+
+    missingRequiredTitle: "Не хватает обязательного документа",
+    missingRequiredMessage:
+      "Для «{process}» необходимо загрузить документ «{document}».",
+
+    ocrFailedTitle: "Документ не удалось прочитать",
+    ocrFailedMessage:
+      "Документ «{document}» не удалось автоматически распознать. Загрузите его повторно или проверьте вручную.",
+
+    ocrPendingTitle: "Анализ документа продолжается",
+    ocrPendingMessage:
+      "Анализ документа «{document}» ещё не завершён.",
+
+    lowOcrTitle: "Низкое качество документа",
+    lowOcrMessage:
+      "Качество чтения документа «{document}» — %{score}. Возможно, потребуется более чёткая копия.",
+
+    mismatchTitle: "Нужно проверить соответствие документа",
+    mismatchMessage:
+      "Документ «{document}» недостаточно соответствует ожидаемому типу документа.",
+
+    invalidDocumentTitle: "Документ требует проверки",
+    invalidDocumentMessage:
+      "Документ «{document}» не прошёл проверку или требует ручного рассмотрения.",
+
+    readyTitle: "Процесс готов к подаче",
+    readyMessage:
+      "Все обязательные документы для «{process}» готовы. Можно выполнить финальную проверку.",
+
+    progressTitle: "Процесс продвигается",
+    progressMessage:
+      "Готовность «{process}» составляет %{score}. Продолжайте выполнять оставшиеся шаги.",
+
+    emptyTitle: "Создайте первый процесс",
+    emptyMessage:
+      "Запустите первый процесс, чтобы получать персональный план и умные уведомления.",
+  },
+
+  ar: {
+    untitledProcess: "إجراء بلا عنوان",
+    untitledDocument: "وثيقة بلا عنوان",
+    openProcess: "فتح الإجراء",
+    openDocument: "فتح الوثيقة",
+    uploadDocument: "رفع الوثيقة",
+    reviewDocument: "مراجعة الوثيقة",
+    openDashboard: "فتح لوحة التحكم",
+
+    overdueTitle: "انتهت مهلة الإجراء",
+    overdueMessage:
+      "انتهت مهلة «{process}» منذ {days} يومًا. راجع الإجراء الآن.",
+
+    dueTodayTitle: "المهلة اليوم",
+    dueTodayMessage:
+      "مهلة «{process}» هي اليوم. أكمل الخطوات المتبقية.",
+
+    deadlineTitle: "موعد نهائي قريب",
+    deadlineMessage:
+      "تبقى {days} يومًا حتى موعد «{process}».",
+
+    missingRequiredTitle: "وثيقة إلزامية مفقودة",
+    missingRequiredMessage:
+      "يجب رفع وثيقة «{document}» لإجراء «{process}».",
+
+    ocrFailedTitle: "تعذر قراءة الوثيقة",
+    ocrFailedMessage:
+      "تعذر قراءة «{document}» تلقائيًا. أعد رفعها أو راجعها يدويًا.",
+
+    ocrPendingTitle: "تحليل الوثيقة جارٍ",
+    ocrPendingMessage:
+      "لم يكتمل تحليل «{document}» بعد.",
+
+    lowOcrTitle: "جودة الوثيقة منخفضة",
+    lowOcrMessage:
+      "جودة قراءة «{document}» هي %{score}. قد تحتاج إلى نسخة أوضح.",
+
+    mismatchTitle: "يجب مراجعة تطابق الوثيقة",
+    mismatchMessage:
+      "لا تتطابق «{document}» بشكل كافٍ مع نوع الوثيقة المتوقع.",
+
+    invalidDocumentTitle: "الوثيقة تحتاج إلى مراجعة",
+    invalidDocumentMessage:
+      "لم تجتز «{document}» التحقق أو تحتاج إلى مراجعة يدوية.",
+
+    readyTitle: "الإجراء جاهز للتقديم",
+    readyMessage:
+      "اكتملت جميع الوثائق الإلزامية لإجراء «{process}». يمكنك إجراء المراجعة النهائية.",
+
+    progressTitle: "الإجراء يتقدم",
+    progressMessage:
+      "نسبة جاهزية «{process}» هي %{score}. تابع إكمال الخطوات المتبقية.",
+
+    emptyTitle: "أنشئ أول إجراء",
+    emptyMessage:
+      "ابدأ أول إجراء للحصول على خارطة طريق شخصية وإشعارات ذكية.",
+  },
+
+  fa: {
+    untitledProcess: "فرایند بدون عنوان",
+    untitledDocument: "مدرک بدون عنوان",
+    openProcess: "باز کردن فرایند",
+    openDocument: "باز کردن مدرک",
+    uploadDocument: "بارگذاری مدرک",
+    reviewDocument: "بررسی مدرک",
+    openDashboard: "باز کردن داشبورد",
+
+    overdueTitle: "مهلت فرایند گذشته است",
+    overdueMessage:
+      "مهلت «{process}» {days} روز پیش گذشته است. فرایند را اکنون بررسی کنید.",
+
+    dueTodayTitle: "مهلت امروز است",
+    dueTodayMessage:
+      "مهلت «{process}» امروز است. مراحل باقی‌مانده را کامل کنید.",
+
+    deadlineTitle: "مهلت نزدیک است",
+    deadlineMessage:
+      "{days} روز تا مهلت «{process}» باقی مانده است.",
+
+    missingRequiredTitle: "مدرک الزامی ناقص است",
+    missingRequiredMessage:
+      "برای «{process}» باید مدرک «{document}» را بارگذاری کنید.",
+
+    ocrFailedTitle: "مدرک خوانده نشد",
+    ocrFailedMessage:
+      "«{document}» به‌صورت خودکار خوانده نشد. دوباره بارگذاری کنید یا دستی بررسی کنید.",
+
+    ocrPendingTitle: "تحلیل مدرک ادامه دارد",
+    ocrPendingMessage:
+      "تحلیل «{document}» هنوز کامل نشده است.",
+
+    lowOcrTitle: "کیفیت مدرک پایین است",
+    lowOcrMessage:
+      "کیفیت خواندن «{document}» برابر %{score} است. ممکن است نسخه واضح‌تری لازم باشد.",
+
+    mismatchTitle: "تطابق مدرک باید بررسی شود",
+    mismatchMessage:
+      "«{document}» به اندازه کافی با نوع مدرک مورد انتظار مطابقت ندارد.",
+
+    invalidDocumentTitle: "مدرک نیاز به بررسی دارد",
+    invalidDocumentMessage:
+      "«{document}» اعتبارسنجی را رد کرده یا به بررسی دستی نیاز دارد.",
+
+    readyTitle: "فرایند آماده ارسال است",
+    readyMessage:
+      "همه مدارک الزامی «{process}» کامل هستند. می‌توانید بررسی نهایی را انجام دهید.",
+
+    progressTitle: "فرایند در حال پیشرفت است",
+    progressMessage:
+      "آمادگی «{process}» برابر %{score} است. مراحل باقی‌مانده را ادامه دهید.",
+
+    emptyTitle: "اولین فرایند را ایجاد کنید",
+    emptyMessage:
+      "برای دریافت نقشه راه شخصی و اعلان‌های هوشمند، اولین فرایند خود را شروع کنید.",
+  },
 } as const;
 
 type Language = keyof typeof copy;
@@ -345,7 +552,13 @@ type Language = keyof typeof copy;
 function normalizeLanguage(
   language: NotificationAdvisorOptions["language"],
 ): Language {
-  return language === "de" || language === "en" ? language : "tr";
+  return language === "de" ||
+    language === "en" ||
+    language === "ru" ||
+    language === "ar" ||
+    language === "fa"
+    ? language
+    : "tr";
 }
 
 function normalizeStatus(value: unknown): string {
@@ -374,6 +587,109 @@ function normalizeConfidence(value: unknown): number | null {
   }
 
   return Math.max(0, Math.min(1, numberValue));
+}
+
+function getDocumentOcrStatus(
+  document: NotificationDocument,
+): string {
+  const explicit = normalizeStatus(document.ocrStatus);
+
+  if (explicit) {
+    return explicit;
+  }
+
+  if (
+    typeof document.ocrError === "string" &&
+    document.ocrError.trim()
+  ) {
+    return "failed";
+  }
+
+  if (document.ocr?.intelligence?.isReadable === false) {
+    return "unreadable";
+  }
+
+  if (document.ocr) {
+    return "completed";
+  }
+
+  return "";
+}
+
+function getDocumentOcrConfidence(
+  document: NotificationDocument,
+): number | null {
+  const explicit = normalizeConfidence(
+    document.ocrConfidence ?? document.confidence,
+  );
+
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const qualityScore =
+    document.ocr?.intelligence?.qualityScore;
+
+  return normalizeConfidence(qualityScore);
+}
+
+function getDocumentMatchScore(
+  document: NotificationDocument,
+): number | null {
+  const explicit = normalizeConfidence(
+    document.matchScore ??
+      document.documentMatchScore,
+  );
+
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const documentMatch =
+    document.ocr?.intelligence?.documentMatch;
+
+  if (documentMatch === "match") {
+    return 1;
+  }
+
+  if (documentMatch === "possible_match") {
+    return 0.7;
+  }
+
+  if (documentMatch === "mismatch") {
+    return 0;
+  }
+
+  return null;
+}
+
+function getDocumentValidationStatus(
+  document: NotificationDocument,
+): string {
+  const explicit =
+    normalizeStatus(document.validationStatus);
+
+  if (explicit) {
+    return explicit;
+  }
+
+  if (
+    document.ocr?.intelligence?.documentMatch ===
+    "mismatch"
+  ) {
+    return "mismatch";
+  }
+
+  const hasCriticalRisk =
+    document.ocr?.intelligence?.risks?.some(
+      (item) => item.severity === "critical",
+    ) ?? false;
+
+  if (hasCriticalRisk) {
+    return "needs_review";
+  }
+
+  return "";
 }
 
 function formatPercent(value: number): string {
@@ -694,7 +1010,12 @@ function generateDeadlineNotifications(
     ];
   }
 
-  if (!warningDays.includes(daysUntil)) {
+  const nextWarningThreshold = warningDays
+    .filter((day) => day > 0)
+    .sort((first, second) => first - second)
+    .find((day) => daysUntil <= day);
+
+  if (daysUntil > 0 && nextWarningThreshold === undefined) {
     return [];
   }
 
@@ -735,7 +1056,7 @@ function generateDeadlineNotifications(
     createNotification({
       idParts: [
         "deadline",
-        `${daysUntil}-days`,
+        `${nextWarningThreshold ?? daysUntil}-day-window`,
         process.id,
       ],
       processId: process.id,
@@ -784,10 +1105,9 @@ function generateDocumentNotifications(
       dictionary.untitledDocument;
 
     const status = normalizeStatus(document.status);
-    const ocrStatus = normalizeStatus(document.ocrStatus);
-    const validationStatus = normalizeStatus(
-      document.validationStatus,
-    );
+    const ocrStatus = getDocumentOcrStatus(document);
+    const validationStatus =
+      getDocumentValidationStatus(document);
 
     const isCompleted = isDocumentCompleted(document);
 
@@ -899,9 +1219,8 @@ function generateDocumentNotifications(
       );
     }
 
-    const ocrConfidence = normalizeConfidence(
-      document.ocrConfidence ?? document.confidence,
-    );
+    const ocrConfidence =
+      getDocumentOcrConfidence(document);
 
     if (
       ocrConfidence !== null &&
@@ -942,10 +1261,8 @@ function generateDocumentNotifications(
       );
     }
 
-    const matchScore = normalizeConfidence(
-      document.matchScore ??
-        document.documentMatchScore,
-    );
+    const matchScore =
+      getDocumentMatchScore(document);
 
     if (
       matchScore !== null &&

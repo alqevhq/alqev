@@ -5,6 +5,12 @@ export const metadata = {
   description: "AI-powered platform for managing complex life processes",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

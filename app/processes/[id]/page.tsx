@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -41,6 +42,13 @@ import {
   readStoredLanguage,
   type Language,
 } from "@/lib/i18n";
+
+const subscribeToStoredLanguage = () => () => {};
+
+const getStoredLanguageSnapshot = (): Language =>
+  readStoredLanguage("tr");
+
+const getServerLanguageSnapshot = (): Language => "tr";
 
 type OcrResult = DocumentIntelligenceResult;
 
@@ -907,8 +915,10 @@ export default function ProcessDetailPage() {
 
   const processId = typeof params.id === "string" ? params.id : params.id?.[0];
 
-  const [language] = useState<Language>(() =>
-    readStoredLanguage("tr"),
+  const language = useSyncExternalStore(
+    subscribeToStoredLanguage,
+    getStoredLanguageSnapshot,
+    getServerLanguageSnapshot,
   );
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [process, setProcess] = useState<Process | null>(null);
@@ -2062,7 +2072,7 @@ export default function ProcessDetailPage() {
                                 onClick={() => setPreviewDocument(item)}
                                 className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
                               >
-                                Önizle
+                                {copy.preview}
                               </button>
                               <button
                                 type="button"
@@ -2072,7 +2082,7 @@ export default function ProcessDetailPage() {
                                 )}
                                 className="inline-flex items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                Yeniden adlandır
+                                {copy.rename}
                               </button>
                               <button
                                 type="button"

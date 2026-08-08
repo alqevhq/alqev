@@ -46,9 +46,7 @@ export default function NewProcessPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [language, setLanguage] =
-  useState<Language>(() =>
-    readStoredLanguage("tr"),
-  );
+    useState<Language>("tr");
   const [templateKey, setTemplateKey] = useState("");
   const [country, setCountry] = useState("DE");
   const [deadline, setDeadline] = useState("");

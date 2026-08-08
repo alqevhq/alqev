@@ -50,6 +50,7 @@ const copy = {
     description:
       "Aktif süreçlerini, gerekli belgelerini ve ilerleme durumunu tek ekrandan takip et.",
     newProcess: "Yeni Süreç Başlat",
+    backToDashboard: "Dashboard’a dön",
     activeProcesses: "Aktif süreçler",
     totalProcesses: "Toplam {count} süreç",
     loading: "Süreçler yükleniyor...",
@@ -79,6 +80,7 @@ const copy = {
     description:
       "Behalte aktive Vorgänge, erforderliche Dokumente und Fortschritte an einem Ort im Blick.",
     newProcess: "Neuen Vorgang starten",
+    backToDashboard: "Zum Dashboard",
     activeProcesses: "Aktive Vorgänge",
     totalProcesses: "Insgesamt {count} Vorgänge",
     loading: "Vorgänge werden geladen...",
@@ -108,6 +110,7 @@ const copy = {
     description:
       "Track active processes, required documents, and progress from one screen.",
     newProcess: "Start New Process",
+    backToDashboard: "Back to Dashboard",
     activeProcesses: "Active processes",
     totalProcesses: "{count} processes in total",
     loading: "Loading processes...",
@@ -137,6 +140,7 @@ const copy = {
     description:
       "Отслеживайте активные процессы, необходимые документы и прогресс на одном экране.",
     newProcess: "Начать новый процесс",
+    backToDashboard: "На панель управления",
     activeProcesses: "Активные процессы",
     totalProcesses: "Всего процессов: {count}",
     loading: "Загрузка процессов...",
@@ -166,6 +170,7 @@ const copy = {
     description:
       "تابع الإجراءات النشطة والوثائق المطلوبة ونسبة التقدم من شاشة واحدة.",
     newProcess: "بدء إجراء جديد",
+    backToDashboard: "العودة إلى لوحة التحكم",
     activeProcesses: "الإجراءات النشطة",
     totalProcesses: "إجمالي الإجراءات: {count}",
     loading: "جارٍ تحميل الإجراءات...",
@@ -195,6 +200,7 @@ const copy = {
     description:
       "فرایندهای فعال، مدارک لازم و میزان پیشرفت را در یک صفحه دنبال کنید.",
     newProcess: "شروع فرایند جدید",
+    backToDashboard: "بازگشت به داشبورد",
     activeProcesses: "فرایندهای فعال",
     totalProcesses: "مجموع فرایندها: {count}",
     loading: "در حال بارگذاری فرایندها...",
@@ -524,6 +530,16 @@ export default function ProcessesPage() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl">
+        <Link
+          href="/dashboard"
+          className="mb-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-indigo-400/30 hover:bg-white/[0.06] hover:text-white"
+        >
+          <span aria-hidden="true">
+            {direction === "rtl" ? "→" : "←"}
+          </span>
+          {currentCopy.backToDashboard}
+        </Link>
+
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">

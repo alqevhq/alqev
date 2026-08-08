@@ -19,6 +19,8 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { analyzeDashboard } from "@/lib/ai/dashboard-advisor";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
+import type { NotificationProcess } from "@/lib/ai/notification-advisor";
 import type { AdvisorProcess } from "@/lib/ai/process-advisor";
 import {
   getLocalizedDocumentTitle,
@@ -633,6 +635,33 @@ type RequiredDocument = {
   status?: string;
   fileName?: string;
   fileUrl?: string;
+  ocrStatus?: string;
+  ocrConfidence?: number | null;
+  confidence?: number | null;
+  matchScore?: number | null;
+  documentMatchScore?: number | null;
+  validationStatus?: string;
+  ocrError?: string;
+  ocr?: {
+    rawText?: string;
+    documentType?: string;
+    intelligence?: {
+      documentMatch?: "match" | "possible_match" | "mismatch" | "unknown";
+      qualityScore?: number;
+      isReadable?: boolean;
+      expiryStatus?:
+        | "valid"
+        | "expiring_soon"
+        | "expired"
+        | "not_applicable"
+        | "unknown";
+      risks?: Array<{
+        code?: string;
+        severity?: "info" | "warning" | "critical";
+        message?: string;
+      }>;
+    };
+  } | null;
 };
 
 type Process = {
@@ -810,6 +839,38 @@ function normalizeDocuments(
         typeof item.fileUrl === "string"
           ? item.fileUrl
           : undefined,
+      ocrStatus:
+        typeof item.ocrStatus === "string"
+          ? item.ocrStatus
+          : undefined,
+      ocrConfidence:
+        typeof item.ocrConfidence === "number"
+          ? item.ocrConfidence
+          : null,
+      confidence:
+        typeof item.confidence === "number"
+          ? item.confidence
+          : null,
+      matchScore:
+        typeof item.matchScore === "number"
+          ? item.matchScore
+          : null,
+      documentMatchScore:
+        typeof item.documentMatchScore === "number"
+          ? item.documentMatchScore
+          : null,
+      validationStatus:
+        typeof item.validationStatus === "string"
+          ? item.validationStatus
+          : undefined,
+      ocrError:
+        typeof item.ocrError === "string"
+          ? item.ocrError
+          : undefined,
+      ocr:
+        item.ocr && typeof item.ocr === "object"
+          ? (item.ocr as RequiredDocument["ocr"])
+          : null,
     }));
 }
 
@@ -1424,8 +1485,9 @@ export default function DashboardPage() {
     () =>
       analyzeDashboard(
         processes as unknown as AdvisorProcess[],
+        selectedLanguage,
       ),
-    [processes],
+    [processes, selectedLanguage],
   );
 
   const dashboardIntelligence = useMemo(() => {
@@ -1782,7 +1844,7 @@ export default function DashboardPage() {
         <div className="absolute bottom-[-300px] right-[-200px] h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[170px]" />
       </div>
 
-      <header className="relative z-10 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
+      <header className="relative z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <Link
             href="/dashboard"
@@ -1801,6 +1863,12 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <NotificationCenter
+              processes={processes as unknown as NotificationProcess[]}
+              language={language}
+              userId={user.uid}
+            />
+
             <select
               value={language}
               onChange={(event) =>
