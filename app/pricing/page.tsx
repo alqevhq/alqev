@@ -592,37 +592,39 @@ export default function PricingPage() {
     }
   }
 
-  const isPremium = subscription === "premium";
+  const isPremium = subscription === "premium"
   const currentCopy = copy[language];
   const direction = isRtlLanguage(language)
     ? "rtl"
     : "ltr";
 
   return (
-    <main dir={direction} className="relative min-h-screen overflow-hidden bg-slate-950 px-6 py-12 text-white">
+    <main dir={direction} className="relative min-h-[100dvh] overflow-x-hidden bg-[#030309] px-3 py-6 text-white sm:px-6 sm:py-10">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
       >
-        <div className="absolute left-1/4 top-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-700/20 blur-[150px]" />
-        <div className="absolute bottom-[-280px] right-[-180px] h-[560px] w-[560px] rounded-full bg-cyan-700/10 blur-[160px]" />
+        <div className="absolute left-1/2 top-[-300px] h-[680px] w-[680px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[175px]" />
+        <div className="absolute right-[-240px] top-[28%] h-[580px] w-[580px] rounded-full bg-fuchsia-700/[0.08] blur-[180px]" />
+        <div className="absolute bottom-[-320px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.08] blur-[180px]" />
+        <div className="absolute left-1/2 top-[170px] h-[230px] w-[1100px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/25 shadow-[0_-18px_80px_rgba(168,85,247,0.12)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl">
-        <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <header className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <Link
             href={user ? "/dashboard" : "/"}
-            className="inline-flex items-center gap-3"
+            className="inline-flex min-w-0 items-center gap-3"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500 text-xl font-bold">
-              H
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-violet-400/25 bg-[radial-gradient(circle_at_30%_25%,rgba(217,70,239,0.55),rgba(124,58,237,0.28)_45%,rgba(9,9,17,0.92)_75%)] text-lg font-black text-white shadow-[0_0_28px_rgba(139,92,246,0.20)]">
+              A
             </span>
 
-            <span>
-              <span className="block font-bold">
+            <span className="min-w-0">
+              <span className="block font-bold tracking-[0.16em] text-white">
                 ALQEV
               </span>
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-zinc-500">
                 Premium
               </span>
             </span>
@@ -630,27 +632,27 @@ export default function PricingPage() {
 
           <Link
             href={user ? "/dashboard" : "/login"}
-            className="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-indigo-400/40 hover:bg-white/[0.05]"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-[#090911]/75 px-5 py-3 text-sm font-semibold text-zinc-200 transition hover:border-violet-400/30 hover:bg-violet-400/[0.05] sm:w-auto"
           >
             {user ? currentCopy.backDashboard : currentCopy.login}
           </Link>
         </header>
 
-        <section className="mx-auto mt-16 max-w-3xl text-center">
-          <div className="inline-flex rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-2 text-sm font-semibold text-indigo-200">
+        <section className="mx-auto mt-12 max-w-3xl text-center sm:mt-16">
+          <div className="inline-flex rounded-full border border-violet-400/20 bg-violet-400/10 px-4 py-2 text-sm font-semibold tracking-[0.16em] text-violet-200">
             ALQEV PREMIUM
           </div>
 
-          <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-6xl">
+          <h1 className="mt-6 break-words text-[2.35rem] font-black leading-[1.05] tracking-tight sm:text-6xl">
             {currentCopy.heroTitle}
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl break-words text-base leading-7 text-zinc-400 sm:text-lg">
 {currentCopy.heroText}
           </p>
 
           {isLoading ? (
-            <p className="mt-5 text-sm text-slate-500">
+            <p className="mt-5 text-sm text-zinc-500">
               {currentCopy.loadingPlan}
             </p>
           ) : isPremium ? (
@@ -660,11 +662,11 @@ export default function PricingPage() {
           ) : null}
         </section>
 
-        <section className="mt-14 grid gap-6 lg:grid-cols-2">
-          <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-7 sm:p-9">
-            <div className="flex items-start justify-between gap-4">
+        <section className="mt-12 grid min-w-0 gap-6 lg:grid-cols-2 sm:mt-14">
+          <article className="min-w-0 rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.94),rgba(8,8,15,0.97))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] sm:p-8 lg:p-9">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3 sm:flex-nowrap sm:gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   {currentCopy.starter}
                 </p>
 
@@ -674,20 +676,20 @@ export default function PricingPage() {
               </div>
 
               {!isPremium ? (
-                <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
+                <span className="rounded-full border border-white/10 bg-[#151522] px-3 py-1 text-xs font-semibold text-zinc-300">
                   {currentCopy.currentPlan}
                 </span>
               ) : null}
             </div>
 
             <div className="mt-7">
-              <span className="text-5xl font-black">0 €</span>
-              <span className="ml-2 text-slate-500">
+              <span className="text-4xl font-black sm:text-5xl">0 €</span>
+              <span className="ms-2 text-zinc-500">
                 {currentCopy.perMonth}
               </span>
             </div>
 
-            <p className="mt-5 text-sm leading-6 text-slate-400">
+            <p className="mt-5 text-sm leading-6 text-zinc-400">
 {currentCopy.freeDescription}
             </p>
 
@@ -695,7 +697,7 @@ export default function PricingPage() {
               {currentCopy.freeFeatures.map((feature) => (
                 <li
                   key={feature}
-                  className="flex items-start gap-3 text-sm text-slate-300"
+                  className="flex min-w-0 items-start gap-3 text-sm text-zinc-300"
                 >
                   <span className="mt-0.5 text-emerald-300">
                     ✓
@@ -707,19 +709,19 @@ export default function PricingPage() {
 
             <Link
               href={user ? "/dashboard" : "/signup"}
-              className="mt-9 inline-flex w-full items-center justify-center rounded-xl border border-white/10 px-5 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+              className="mt-9 inline-flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 py-3.5 text-sm font-semibold text-zinc-200 transition hover:border-violet-400/25 hover:bg-violet-400/[0.05]"
             >
               {user ? currentCopy.useFree : currentCopy.startFree}
             </Link>
           </article>
 
-          <article className="relative overflow-hidden rounded-3xl border border-indigo-400/30 bg-gradient-to-br from-indigo-500/[0.18] via-white/[0.045] to-cyan-500/[0.08] p-7 shadow-2xl shadow-indigo-950/30 sm:p-9">
-            <div className="absolute right-5 top-5 rounded-full bg-indigo-400 px-3 py-1 text-xs font-bold text-slate-950">
+          <article className="relative min-w-0 overflow-hidden rounded-[2rem] border border-violet-400/30 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.24),transparent_46%),radial-gradient(circle_at_bottom_right,rgba(217,70,239,0.12),transparent_42%),linear-gradient(145deg,rgba(19,16,35,0.97),rgba(8,8,15,0.98))] p-5 shadow-[0_28px_90px_rgba(91,33,182,0.22)] sm:p-8 lg:p-9">
+            <div className="mb-5 inline-flex rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 px-3 py-1 text-xs font-bold text-[#030309] sm:absolute sm:right-5 sm:top-5 sm:mb-0">
               {currentCopy.recommended}
             </div>
 
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-300">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">
                 {currentCopy.professional}
               </p>
 
@@ -729,15 +731,15 @@ export default function PricingPage() {
             </div>
 
             <div className="mt-7">
-              <span className="text-5xl font-black">
+              <span className="break-words text-4xl font-black sm:text-5xl">
                 12,90 €
               </span>
-              <span className="ml-2 text-slate-400">
+              <span className="ms-2 text-zinc-400">
                 {currentCopy.perMonth}
               </span>
             </div>
 
-            <p className="mt-5 text-sm leading-6 text-slate-300">
+            <p className="mt-5 text-sm leading-6 text-zinc-300">
 {currentCopy.premiumDescription}
             </p>
 
@@ -745,9 +747,9 @@ export default function PricingPage() {
               {currentCopy.premiumFeatures.map((feature) => (
                 <li
                   key={feature}
-                  className="flex items-start gap-3 text-sm text-slate-200"
+                  className="flex min-w-0 items-start gap-3 text-sm text-zinc-200"
                 >
-                  <span className="mt-0.5 text-indigo-300">
+                  <span className="mt-0.5 text-violet-300">
                     ✓
                   </span>
                   <span>{feature}</span>
@@ -760,7 +762,7 @@ export default function PricingPage() {
                 type="button"
                 disabled={isPortalOpening}
                 onClick={handlePortal}
-                className="mt-9 flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-9 flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(16,185,129,0.14)] transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPortalOpening
                   ? currentCopy.portalOpening
@@ -771,7 +773,7 @@ export default function PricingPage() {
                 type="button"
                 disabled={isRequesting}
                 onClick={handleCheckout}
-                className="mt-9 flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-9 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRequesting
                   ? currentCopy.saving
@@ -780,32 +782,32 @@ export default function PricingPage() {
             ) : (
               <Link
                 href="/signup"
-                className="mt-9 flex w-full items-center justify-center rounded-xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
+                className="mt-9 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:brightness-110"
               >
                 {currentCopy.createForPremium}
               </Link>
             )}
 
             {!isPremium ? (
-              <p className="mt-3 text-center text-xs text-slate-500">
+              <p className="mt-3 text-center text-xs text-zinc-500">
 {currentCopy.earlyAccessHint}
               </p>
             ) : null}
 
             {requestError ? (
-              <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+              <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/[0.08] px-4 py-3 text-sm text-red-200">
                 {requestError}
               </div>
             ) : null}
           </article>
         </section>
 
-        <section className="mt-12 rounded-3xl border border-white/10 bg-white/[0.03] p-7 text-center sm:p-9">
+        <section className="mt-12 min-w-0 rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.08),transparent_55%),linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] p-5 text-center shadow-[0_18px_55px_rgba(0,0,0,0.20)] sm:p-9">
           <h2 className="text-2xl font-bold">
             {currentCopy.whyPremium}
           </h2>
 
-          <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-400">
+          <p className="mx-auto mt-4 max-w-3xl break-words text-sm leading-7 text-zinc-400">
 {currentCopy.whyPremiumText}
           </p>
         </section>
