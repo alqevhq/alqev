@@ -145,6 +145,7 @@ const pageCopy = {
     analyzeAi: "AI ile analiz et",
     uploadNew: "Yeni dosya yükle",
     chooseFile: "Dosya seç",
+    useCamera: "Kamerayı kullan",
     preview: "Önizle",
     rename: "Yeniden adlandır",
     delete: "Sil",
@@ -205,6 +206,7 @@ const pageCopy = {
     analyzeAi: "Mit KI analysieren",
     uploadNew: "Neue Datei hochladen",
     chooseFile: "Datei auswählen",
+    useCamera: "Kamera verwenden",
     preview: "Vorschau",
     rename: "Umbenennen",
     delete: "Löschen",
@@ -265,6 +267,7 @@ const pageCopy = {
     analyzeAi: "Analyze with AI",
     uploadNew: "Upload new file",
     chooseFile: "Choose file",
+    useCamera: "Use camera",
     preview: "Preview",
     rename: "Rename",
     delete: "Delete",
@@ -325,6 +328,7 @@ const pageCopy = {
     analyzeAi: "Анализировать с ИИ",
     uploadNew: "Загрузить новый файл",
     chooseFile: "Выбрать файл",
+    useCamera: "Использовать камеру",
     preview: "Предпросмотр",
     rename: "Переименовать",
     delete: "Удалить",
@@ -385,6 +389,7 @@ const pageCopy = {
     analyzeAi: "تحليل بالذكاء الاصطناعي",
     uploadNew: "رفع ملف جديد",
     chooseFile: "اختيار ملف",
+    useCamera: "استخدام الكاميرا",
     preview: "معاينة",
     rename: "إعادة تسمية",
     delete: "حذف",
@@ -445,6 +450,7 @@ const pageCopy = {
     analyzeAi: "تحلیل با هوش مصنوعی",
     uploadNew: "بارگذاری فایل جدید",
     chooseFile: "انتخاب فایل",
+    useCamera: "استفاده از دوربین",
     preview: "پیش‌نمایش",
     rename: "تغییر نام",
     delete: "حذف",
@@ -2059,6 +2065,27 @@ export default function ProcessDetailPage() {
                             <input
                               type="file"
                               accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              disabled={Boolean(uploadState || ocrState)}
+                              onChange={(event) =>
+                                handleFileChange(event, item.key)
+                              }
+                            />
+                          </label>
+
+                          <label
+                            className={
+                              uploadState || ocrState
+                                ? "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-cyan-400/10 bg-[#252536] px-4 py-2.5 text-sm font-semibold text-zinc-400 sm:w-auto"
+                                : "inline-flex w-full cursor-pointer items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/[0.08] px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.14] sm:w-auto"
+                            }
+                          >
+                            {copy.useCamera}
+
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              capture="environment"
                               className="hidden"
                               disabled={Boolean(uploadState || ocrState)}
                               onChange={(event) =>
