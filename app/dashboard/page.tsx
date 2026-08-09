@@ -759,7 +759,7 @@ function AlqevBrand({ compact = false }: { compact?: boolean }) {
       aria-label="ALQEV"
       className={
         compact
-          ? "h-auto w-[132px] sm:w-[150px]"
+          ? "h-auto w-[112px] sm:w-[150px]"
           : "h-auto w-[255px] max-w-[78vw] sm:w-[300px]"
       }
     >
@@ -1902,7 +1902,7 @@ export default function DashboardPage() {
       </div>
 
       <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#030309]/88 shadow-[0_10px_40px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-3"
@@ -1910,7 +1910,7 @@ export default function DashboardPage() {
             <AlqevBrand compact />
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4">
             <NotificationCenter
               processes={processes as unknown as NotificationProcess[]}
               language={language}
@@ -1933,7 +1933,7 @@ export default function DashboardPage() {
                 </option>
               ))}
             </select>
-            <div className="hidden text-right sm:block">
+            <div className="hidden text-right lg:block">
               <p className="text-sm font-semibold text-white">
                 {displayName}
               </p>
@@ -1957,7 +1957,7 @@ export default function DashboardPage() {
         </nav>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-3 py-6 sm:px-6 sm:py-10">
         {errorMessage ? (
           <div
             role="alert"
@@ -1982,15 +1982,15 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <h1 className="mt-7 text-3xl font-bold tracking-tight sm:text-5xl">
+              <h1 className="mt-7 text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
                 {fillTemplate(copy.alWelcome, { name: firstName })} 👋
               </h1>
 
-              <p className="mt-3 text-xl font-semibold text-zinc-200 sm:text-2xl">
+              <p className="mt-3 text-[1.55rem] font-semibold leading-tight text-zinc-200 sm:text-2xl">
                 {copy.alQuestion}
               </p>
 
-              <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">
+              <p className="mt-4 max-w-3xl break-words text-base leading-7 text-zinc-400">
                 {copy.alDescription}
               </p>
 
@@ -2007,14 +2007,14 @@ export default function DashboardPage() {
                     className="w-full resize-none bg-transparent px-3 py-3 text-base leading-7 text-white outline-none placeholder:text-zinc-600"
                   />
 
-                  <div className="flex flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs leading-5 text-zinc-500">
                       {copy.alPrivacy}
                     </p>
 
                     <button
                       type="submit"
-                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:-translate-y-0.5 hover:brightness-110"
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
                     >
                       {copy.alSend}
                       <span aria-hidden="true">→</span>
@@ -2041,7 +2041,7 @@ export default function DashboardPage() {
                       key={topicKey}
                       type="button"
                       onClick={() => handleSuggestedQuestion(copy[topicKey])}
-                      className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-200"
+                      className="max-w-full break-words rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-violet-200"
                     >
                       {copy[topicKey]}
                     </button>
@@ -2082,15 +2082,15 @@ export default function DashboardPage() {
               <div className="mt-7 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-5 text-sm">
                 <div className="flex items-center justify-between gap-6">
                   <span className="text-zinc-500">{copy.plan}</span>
-                  <span className="font-semibold text-zinc-200">{subscriptionLabel}</span>
+                  <span className="break-words font-semibold text-zinc-200">{subscriptionLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
                   <span className="text-zinc-500">{copy.language}</span>
-                  <span className="font-semibold text-zinc-200">{languageLabel}</span>
+                  <span className="break-words font-semibold text-zinc-200">{languageLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
                   <span className="text-zinc-500">{copy.country}</span>
-                  <span className="font-semibold text-zinc-200">{countryLabel}</span>
+                  <span className="break-words font-semibold text-zinc-200">{countryLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-6">
                   <span className="text-zinc-500">{copy.profile}</span>
@@ -2290,7 +2290,7 @@ export default function DashboardPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-semibold text-zinc-100">
+                          <p className="break-words font-semibold text-zinc-100">
                             {item.title}
                           </p>
 
@@ -2493,8 +2493,8 @@ export default function DashboardPage() {
                               }
                               className={
                                 completed
-                                  ? "flex items-center gap-4 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.04] p-4"
-                                  : "flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4"
+                                  ? "flex min-w-0 items-center gap-3 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.04] p-4 sm:gap-4"
+                                  : "flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:gap-4"
                               }
                             >
                               <span
@@ -2509,8 +2509,8 @@ export default function DashboardPage() {
                                   : "○"}
                               </span>
 
-                              <div className="min-w-0">
-                                <p className="font-semibold text-zinc-200">
+                              <div className="min-w-0 flex-1">
+                                <p className="break-words font-semibold text-zinc-200">
                                   {getLocalizedDocumentTitle(
                                     {
                                       templateKey:
@@ -2529,8 +2529,8 @@ export default function DashboardPage() {
                                 <p
                                   className={
                                     completed
-                                      ? "mt-1 text-sm text-zinc-500"
-                                      : "mt-1 text-sm text-amber-300/80"
+                                      ? "mt-1 max-w-full break-all text-sm text-zinc-500"
+                                      : "mt-1 max-w-full break-words text-sm text-amber-300/80"
                                   }
                                 >
                                   {completed
