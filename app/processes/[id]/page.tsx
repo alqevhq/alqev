@@ -517,7 +517,7 @@ const localizedProcessDescriptions: Record<
     ar: "تابع إجراءات تصريح العمل لعرض أو وظيفة حالية.",
     fa: "فرایند مجوز کار برای پیشنهاد یا شغل فعلی را پیگیری کنید.",
   },
-  "eu-blue-card": {
+  "eu-fuchsia-card": {
     tr: "Nitelikli çalışanlar için AB Mavi Kart başvurusunu yönet.",
     de: "Verwalte den Antrag auf die Blaue Karte EU für qualifizierte Fachkräfte.",
     en: "Manage the EU Blue Card application for qualified workers.",
@@ -1545,11 +1545,11 @@ export default function ProcessDetailPage() {
 
   if (isLoading) {
     return (
-      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-[100dvh] items-center justify-center bg-[#030309] px-4 text-white">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
 
-          <p className="mt-4 text-sm text-slate-400">
+          <p className="mt-4 text-sm text-zinc-400">
             {pageCopy[language].loading}
           </p>
         </div>
@@ -1559,7 +1559,7 @@ export default function ProcessDetailPage() {
 
   if (errorMessage || !process) {
     return (
-      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <main dir={isRtlLanguage(language) ? "rtl" : "ltr"} className="flex min-h-[100dvh] items-center justify-center bg-[#030309] px-4 text-white">
         <section className="w-full max-w-lg rounded-3xl border border-red-400/20 bg-red-400/10 p-8 text-center">
           <h1 className="text-2xl font-semibold">{pageCopy[language].loadFailed}</h1>
 
@@ -1569,7 +1569,7 @@ export default function ProcessDetailPage() {
 
           <Link
             href="/processes"
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-slate-200"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110"
           >
             {pageCopy[language].back}
           </Link>
@@ -1609,35 +1609,37 @@ export default function ProcessDetailPage() {
   const progress = Math.min(100, Math.max(0, Math.round(process.progress)));
 
   return (
-    <main dir={direction} className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6">
+    <main dir={direction} className="relative min-h-[100dvh] overflow-x-hidden bg-[#030309] px-3 py-6 text-white sm:px-6 sm:py-10">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-700/20 blur-[150px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[165px]" />
 
-        <div className="absolute bottom-[-280px] right-[-180px] h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[170px]" />
+        <div className="absolute right-[-240px] top-[28%] h-[560px] w-[560px] rounded-full bg-fuchsia-700/[0.08] blur-[175px]" />
+        <div className="absolute bottom-[-320px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.08] blur-[180px]" />
+        <div className="absolute left-1/2 top-[150px] h-[220px] w-[1050px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/25 shadow-[0_-18px_80px_rgba(168,85,247,0.12)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
         <Link
           href="/processes"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+          className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#090911]/80 px-4 py-2.5 text-sm font-semibold text-zinc-300 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-violet-400/30 hover:bg-violet-400/[0.06] hover:text-white"
         >
           <span aria-hidden="true">{direction === "rtl" ? "→" : "←"}</span>
           {pageCopy[language].back}
         </Link>
 
-        <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+        <section className="mt-8 min-w-0 overflow-hidden rounded-[2rem] border border-violet-300/15 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(145deg,rgba(17,17,29,0.96),rgba(7,7,14,0.98))] p-5 shadow-[0_28px_90px_rgba(46,16,101,0.18)] backdrop-blur-2xl sm:p-8 lg:p-10">
+          <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-violet-300">
                 {copy.detail}
               </p>
 
-              <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
+              <h1 className="mt-4 break-words text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
                 {localizedProcessTitle}
               </h1>
 
               {process.description ? (
-                <p className="mt-4 leading-7 text-slate-400">
+                <p className="mt-4 break-words leading-7 text-zinc-400">
                   {localizedProcessDescription}
                 </p>
               ) : null}
@@ -1652,50 +1654,50 @@ export default function ProcessDetailPage() {
           <div className="mt-10">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm text-slate-400">{copy.overallProgress}</p>
+                <p className="text-sm text-zinc-400">{copy.overallProgress}</p>
 
                 <p className="mt-1 text-3xl font-bold">%{progress}</p>
               </div>
 
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-zinc-400">
                 {process.completedDocumentCount} / {process.totalDocumentCount}{" "}
                 {copy.documentsWord}
               </p>
             </div>
 
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-800">
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#151522]">
               <div
-                className="h-full rounded-full bg-indigo-500 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">{copy.country}</p>
-              <p className="mt-2 font-semibold text-slate-100">
+            <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-black/10 p-4 sm:p-5">
+              <p className="text-sm text-zinc-500">{copy.country}</p>
+              <p className="mt-2 break-words font-semibold text-zinc-100">
                 {getLocalizedCountryLabel(process.country, language)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">{copy.deadline}</p>
-              <p className="mt-2 font-semibold text-slate-100">
+            <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-black/10 p-4 sm:p-5">
+              <p className="text-sm text-zinc-500">{copy.deadline}</p>
+              <p className="mt-2 break-words font-semibold text-zinc-100">
                 {formatDeadline(process.deadline, language)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">{copy.created}</p>
-              <p className="mt-2 font-semibold text-slate-100">
+            <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-black/10 p-4 sm:p-5">
+              <p className="text-sm text-zinc-500">{copy.created}</p>
+              <p className="mt-2 break-words font-semibold text-zinc-100">
                 {formatDate(process.createdAt, language)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-              <p className="text-sm text-slate-500">{copy.category}</p>
-              <p className="mt-2 font-semibold text-slate-100">
+            <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-black/10 p-4 sm:p-5">
+              <p className="text-sm text-zinc-500">{copy.category}</p>
+              <p className="mt-2 break-words font-semibold text-zinc-100">
                 {localizedCategory}
               </p>
             </div>
@@ -1704,16 +1706,16 @@ export default function ProcessDetailPage() {
 
         <ProcessAiPanel process={process} />
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
+        <section className="mt-6 min-w-0 rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.93),rgba(8,8,15,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl sm:p-8 lg:p-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-violet-300">
                 {copy.documents}
               </p>
 
               <h2 className="mt-3 text-2xl font-bold">{copy.requiredList}</h2>
 
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-zinc-500">
                 {copy.uploadInfo}
               </p>
             </div>
@@ -1723,7 +1725,7 @@ export default function ProcessDetailPage() {
                 type="button"
                 onClick={() => bulkInputRef.current?.click()}
                 disabled={Boolean(uploadState || bulkProgress)}
-                className="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
+                className="w-full rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110 disabled:opacity-50 sm:w-auto"
               >
                 {bulkProgress
                   ? `${bulkProgress.current}/${bulkProgress.total} yükleniyor`
@@ -1752,19 +1754,19 @@ export default function ProcessDetailPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid min-w-0 gap-3 md:grid-cols-3">
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder={copy.search}
-              className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none focus:border-indigo-400/50"
+              className="h-11 rounded-xl border border-white/10 bg-[#030309]/70 px-4 text-sm outline-none focus:border-violet-400/50"
             />
             <select
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as typeof statusFilter)
               }
-              className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none"
+              className="h-11 rounded-xl border border-white/10 bg-[#030309]/70 px-4 text-sm outline-none"
             >
               <option value="all">{copy.allStatuses}</option>
               <option value="missing">{copy.missing}</option>
@@ -1776,7 +1778,7 @@ export default function ProcessDetailPage() {
               onChange={(event) =>
                 setSortMode(event.target.value as typeof sortMode)
               }
-              className="h-11 rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm outline-none"
+              className="h-11 rounded-xl border border-white/10 bg-[#030309]/70 px-4 text-sm outline-none"
             >
               <option value="default">{copy.defaultSort}</option>
               <option value="name">{copy.sortName}</option>
@@ -1798,11 +1800,11 @@ export default function ProcessDetailPage() {
           ) : null}
 
           {process.requiredDocuments.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-slate-500">
+            <div className="mt-8 rounded-2xl border border-dashed border-violet-400/20 bg-violet-500/[0.025] p-6 text-center text-sm text-zinc-500 sm:p-8">
               {copy.noDocuments}
             </div>
           ) : (
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="mt-8 grid min-w-0 gap-4 md:grid-cols-2">
               {visibleDocuments.map((item, index) => {
                 const isCompleted =
                   item.status === "uploaded" || item.status === "approved";
@@ -1839,7 +1841,7 @@ export default function ProcessDetailPage() {
                     }}
                     onDragLeave={() => setDraggedDocumentKey(null)}
                     onDrop={(event) => void handleDrop(event, item.key)}
-                    className={`min-w-0 w-full max-w-full rounded-2xl border p-5 transition ${draggedDocumentKey === item.key ? "border-indigo-400/60 bg-indigo-500/10" : "border-white/10 bg-black/10"}`}
+                    className={`min-w-0 w-full max-w-full rounded-2xl border p-5 transition ${draggedDocumentKey === item.key ? "border-violet-400/60 bg-violet-500/10" : "border-white/[0.08] bg-black/10"}`}
                   >
                     <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
                       <input
@@ -1853,14 +1855,14 @@ export default function ProcessDetailPage() {
                               : current.filter((key) => key !== item.key),
                           )
                         }
-                        className="mt-3 h-4 w-4 accent-indigo-500 disabled:opacity-30"
+                        className="mt-3 h-4 w-4 accent-violet-500 disabled:opacity-30"
                         aria-label={`${localizedDocumentTitle} belgesini seç`}
                       />
                       <div
                         className={
                           isCompleted
                             ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-300"
-                            : "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-slate-400"
+                            : "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-[#151522] text-zinc-400"
                         }
                       >
                         {isCompleted ? "✓" : index + 1}
@@ -1868,12 +1870,12 @@ export default function ProcessDetailPage() {
 
                       <div className="min-w-0 basis-full flex-1 sm:basis-0">
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <h3 className="font-semibold text-slate-100">
+                          <div className="min-w-0">
+                            <h3 className="break-words font-semibold text-zinc-100">
                               {localizedDocumentTitle}
                             </h3>
 
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-zinc-500">
                               {item.required === false
                                 ? copy.conditional
                                 : copy.required}
@@ -1892,13 +1894,13 @@ export default function ProcessDetailPage() {
                         </div>
 
                         {localizedDocumentDescription ? (
-                          <p className="mt-3 text-sm leading-6 text-slate-400">
+                          <p className="mt-3 break-words text-sm leading-6 text-zinc-400">
                             {localizedDocumentDescription}
                           </p>
                         ) : null}
 
                         {renamingDocumentKey === item.key ? (
-                          <div className="mt-4 rounded-xl border border-indigo-400/20 bg-slate-950/70 p-3">
+                          <div className="mt-4 rounded-xl border border-violet-400/20 bg-[#030309]/70 p-3">
                             <input
                               autoFocus
                               value={renameValue}
@@ -1914,13 +1916,13 @@ export default function ProcessDetailPage() {
                                   setRenameValue("");
                                 }
                               }}
-                              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400/60"
+                              className="w-full rounded-lg border border-white/10 bg-[#090911] px-3 py-2 text-sm text-white outline-none focus:border-violet-400/60"
                             />
                             <div className="mt-3 flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => void handleRenameDocument(item)}
-                                className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-400"
+                                className="rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 py-2 text-xs font-semibold text-white transition hover:brightness-110"
                               >
                                 Kaydet
                               </button>
@@ -1930,18 +1932,18 @@ export default function ProcessDetailPage() {
                                   setRenamingDocumentKey(null);
                                   setRenameValue("");
                                 }}
-                                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5"
+                                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-white/5"
                               >
                                 Vazgeç
                               </button>
                             </div>
                           </div>
                         ) : item.fileName ? (
-                          <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 p-3">
-                            <p className="truncate text-sm text-indigo-200">
+                          <div className="mt-4 rounded-xl border border-white/10 bg-[#030309]/50 p-3">
+                            <p className="max-w-full break-all text-sm leading-5 text-violet-200">
                               {item.fileName}
                             </p>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-zinc-500">
                               {item.fileSize
                                 ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB`
                                 : ""}
@@ -1954,14 +1956,14 @@ export default function ProcessDetailPage() {
 
                         {isUploading ? (
                           <div className="mt-4">
-                            <div className="flex items-center justify-between text-xs text-slate-400">
+                            <div className="flex items-center justify-between text-xs text-zinc-400">
                               <span>{copy.uploading}</span>
                               <span>%{uploadState.progress}</span>
                             </div>
 
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#151522]">
                               <div
-                                className="h-full rounded-full bg-indigo-500 transition-all"
+                                className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 transition-all"
                                 style={{
                                   width: `${uploadState.progress}%`,
                                 }}
@@ -2048,8 +2050,8 @@ export default function ProcessDetailPage() {
                           <label
                             className={
                               uploadState || ocrState
-                                ? "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-400 sm:w-auto"
-                                : "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 sm:w-auto"
+                                ? "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#252536] px-4 py-2.5 text-sm font-semibold text-zinc-400 sm:w-auto"
+                                : "inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(139,92,246,0.16)] transition hover:brightness-110 sm:w-auto"
                             }
                           >
                             {isCompleted ? copy.uploadNew : copy.chooseFile}
@@ -2070,7 +2072,7 @@ export default function ProcessDetailPage() {
                               <button
                                 type="button"
                                 onClick={() => setPreviewDocument(item)}
-                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 sm:w-auto"
+                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/10 sm:w-auto"
                               >
                                 {copy.preview}
                               </button>
@@ -2080,7 +2082,7 @@ export default function ProcessDetailPage() {
                                 disabled={Boolean(
                                   uploadState || deletingDocumentKey,
                                 )}
-                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                                className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.08] px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                               >
                                 {copy.rename}
                               </button>
@@ -2109,12 +2111,12 @@ export default function ProcessDetailPage() {
         </section>
 
         {process.notes ? (
-          <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+          <section className="mt-6 min-w-0 rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.93),rgba(8,8,15,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl sm:p-8 lg:p-10">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-violet-300">
               Notlar
             </p>
 
-            <p className="mt-4 whitespace-pre-wrap leading-7 text-slate-300">
+            <p className="mt-4 whitespace-pre-wrap break-words leading-7 text-zinc-300">
               {process.notes}
             </p>
           </section>
@@ -2130,24 +2132,24 @@ export default function ProcessDetailPage() {
           onClick={() => setPreviewDocument(null)}
         >
           <div
-            className="flex h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl"
+            className="flex h-[88dvh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/[0.08] bg-[#05050b] shadow-[0_30px_100px_rgba(0,0,0,0.60)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+            <div className="flex flex-col gap-3 border-b border-white/[0.08] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="min-w-0">
-                <p className="truncate font-semibold text-white">
+                <p className="break-all font-semibold text-white">
                   {previewDocument.fileName || previewDocument.title}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-zinc-500">
                   {previewDocument.contentType || copy.document}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto">
                 <a
                   href={previewDocument.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
+                  className="rounded-xl border border-white/[0.08] px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5"
                 >
                   Yeni sekmede aç
                 </a>
@@ -2160,7 +2162,7 @@ export default function ProcessDetailPage() {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 bg-slate-900">
+            <div className="min-h-0 flex-1 bg-[#090911]">
               {previewDocument.contentType?.startsWith("image/") ? (
                 <div className="flex h-full items-center justify-center overflow-auto p-4">
                   <div className="relative h-full w-full">
