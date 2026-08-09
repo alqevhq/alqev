@@ -48,13 +48,14 @@ type LandingCopy = {
 export const supportedLanguages: {
   code: SupportedLanguage;
   label: string;
+  shortLabel: string;
 }[] = [
-  { code: "de", label: "Deutsch" },
-  { code: "en", label: "English" },
-  { code: "tr", label: "Türkçe" },
-  { code: "ru", label: "Русский" },
-  { code: "ar", label: "العربية" },
-  { code: "fa", label: "فارسی" },
+  { code: "de", label: "Deutsch", shortLabel: "DE" },
+  { code: "en", label: "English", shortLabel: "EN" },
+  { code: "tr", label: "Türkçe", shortLabel: "TR" },
+  { code: "ru", label: "Русский", shortLabel: "RU" },
+  { code: "ar", label: "العربية", shortLabel: "AR" },
+  { code: "fa", label: "فارسی", shortLabel: "FA" },
 ];
 
 const translations: Record<SupportedLanguage, LandingCopy> = {
@@ -355,9 +356,7 @@ const translations: Record<SupportedLanguage, LandingCopy> = {
 };
 
 function detectBrowserLanguage(): SupportedLanguage {
-  if (typeof navigator === "undefined") {
-    return "de";
-  }
+  if (typeof navigator === "undefined") return "de";
 
   const browserLanguages =
     navigator.languages?.length > 0
@@ -388,7 +387,6 @@ export default function Hero() {
   useEffect(() => {
     const detectedLanguage = detectBrowserLanguage();
     const preferredLanguage = readStoredLanguage(detectedLanguage);
-
     setLanguage(preferredLanguage);
   }, []);
 
@@ -398,9 +396,7 @@ export default function Hero() {
       language === "ar" || language === "fa" ? "rtl" : "ltr";
   }, [language]);
 
-  function handleLanguageChange(
-    nextLanguage: SupportedLanguage,
-  ) {
+  function handleLanguageChange(nextLanguage: SupportedLanguage) {
     setLanguage(nextLanguage);
     storeLanguage(nextLanguage);
   }
@@ -411,50 +407,59 @@ export default function Hero() {
 
   return (
     <main
-      className="min-h-screen bg-slate-950 text-white"
+      className="relative min-h-[100dvh] overflow-x-hidden bg-[#030309] text-white"
       dir={isRightToLeft ? "rtl" : "ltr"}
     >
-      <Header
-        homeLabel={copy.header.homeLabel}
-        loginLabel={copy.header.login}
-        signupLabel={copy.header.signup}
-      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        <div className="absolute left-1/2 top-[-320px] h-[720px] w-[720px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[180px]" />
+        <div className="absolute right-[-240px] top-[24%] h-[580px] w-[580px] rounded-full bg-fuchsia-700/[0.08] blur-[180px]" />
+        <div className="absolute bottom-[-340px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.08] blur-[180px]" />
+        <div className="absolute left-1/2 top-[205px] h-[240px] w-[1180px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/20 shadow-[0_-18px_90px_rgba(168,85,247,0.10)]" />
+      </div>
 
-      <section className="mx-auto grid max-w-7xl gap-14 px-6 pb-24 pt-20 lg:grid-cols-2 lg:items-center">
-        <HeroContent
+      <div className="relative z-10">
+        <Header
+          homeLabel={copy.header.homeLabel}
+          loginLabel={copy.header.login}
+          signupLabel={copy.header.signup}
           language={language}
-          copy={copy.hero}
           onLanguageChange={handleLanguageChange}
         />
 
-        <ProcessPreview copy={copy.preview} />
-      </section>
+        <section className="mx-auto grid min-w-0 max-w-7xl gap-12 px-3 pb-20 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pb-24 lg:pt-20">
+          <HeroContent copy={copy.hero} />
+          <ProcessPreview copy={copy.preview} />
+        </section>
 
-      <section
-        id="how-it-works"
-        className="border-t border-slate-800 bg-slate-900/40"
-      >
-        <div className="mx-auto grid max-w-7xl gap-6 px-6 py-20 md:grid-cols-3">
-          {copy.benefits.map((benefit) => (
-            <article
-              key={benefit.title}
-              className="rounded-3xl border border-slate-800 bg-slate-900 p-7"
-            >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-xl font-bold text-indigo-400">
-                {benefit.icon}
-              </div>
+        <section
+          id="how-it-works"
+          className="border-t border-white/[0.07] bg-[#06060d]/72 backdrop-blur-xl"
+        >
+          <div className="mx-auto grid max-w-7xl gap-5 px-3 py-16 sm:px-6 sm:py-20 md:grid-cols-3">
+            {copy.benefits.map((benefit) => (
+              <article
+                key={benefit.title}
+                className="group min-w-0 rounded-[1.75rem] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.92),rgba(8,8,15,0.96))] p-6 shadow-[0_18px_55px_rgba(0,0,0,0.20)] transition duration-300 hover:-translate-y-1 hover:border-violet-400/30 hover:shadow-[0_22px_65px_rgba(91,33,182,0.14)] sm:p-7"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10 text-xl font-bold text-violet-300 shadow-[0_0_24px_rgba(139,92,246,0.12)]">
+                  {benefit.icon}
+                </div>
 
-              <h3 className="text-xl font-bold">
-                {benefit.title}
-              </h3>
+                <h3 className="text-xl font-bold">
+                  {benefit.title}
+                </h3>
 
-              <p className="mt-3 leading-7 text-slate-400">
-                {benefit.description}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+                <p className="mt-3 break-words leading-7 text-zinc-400">
+                  {benefit.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
