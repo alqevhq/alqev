@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   doc,
@@ -1297,6 +1298,76 @@ export default function ProcessDetailPage() {
     }
   }
 
+  async function handleNativeCamera(documentKey: string) {
+    if (uploadState || ocrState) return;
+
+    setSuccessMessage("");
+    setUploadError("");
+
+    try {
+      const photo = await Camera.getPhoto({
+        source: CameraSource.Camera,
+        resultType: CameraResultType.Uri,
+        quality: 72,
+        width: 1600,
+        height: 1600,
+        correctOrientation: true,
+        saveToGallery: false,
+      });
+
+      if (!photo.webPath) {
+        throw new Error("Kamera fotoğraf yolu döndürmedi.");
+      }
+
+      const response = await fetch(photo.webPath);
+      if (!response.ok) {
+        throw new Error("Kamera fotoğrafı okunamadı.");
+      }
+
+      const blob = await response.blob();
+      const mimeType =
+        blob.type && ALLOWED_FILE_TYPES.includes(blob.type)
+          ? blob.type
+          : "image/jpeg";
+      const extension =
+        mimeType === "image/png"
+          ? "png"
+          : mimeType === "image/webp"
+            ? "webp"
+            : "jpg";
+      const file = new File(
+        [blob],
+        `camera-${Date.now()}.${extension}`,
+        { type: mimeType },
+      );
+
+      await uploadFile(file, documentKey);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      // Closing/cancelling the native camera is not an upload failure.
+      if (/cancel|canceled|cancelled|user cancelled/i.test(message)) {
+        return;
+      }
+
+      console.error("Native kamera kullanılamadı:", error);
+      setUploadError(
+        language === "de"
+          ? "Die Kamera konnte nicht verwendet werden. Bitte versuche es erneut oder wähle ein vorhandenes Foto."
+          : language === "en"
+            ? "The camera could not be used. Please try again or choose an existing photo."
+            : language === "ru"
+              ? "Не удалось использовать камеру. Попробуйте ещё раз или выберите существующее фото."
+              : language === "ar"
+                ? "تعذر استخدام الكاميرا. حاول مرة أخرى أو اختر صورة موجودة."
+                : language === "fa"
+                  ? "استفاده از دوربین ممکن نشد. دوباره تلاش کنید یا یک عکس موجود را انتخاب کنید."
+                  : "Kamera kullanılamadı. Tekrar dene veya mevcut bir fotoğraf seç.",
+      );
+    }
+  }
+
   async function handleFileChange(
     event: ChangeEvent<HTMLInputElement>,
     documentKey: string,
@@ -2073,26 +2144,14 @@ export default function ProcessDetailPage() {
                             />
                           </label>
 
-                          <label
-                            className={
-                              uploadState || ocrState
-                                ? "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-cyan-400/10 bg-[#252536] px-4 py-2.5 text-sm font-semibold text-zinc-400 sm:w-auto"
-                                : "inline-flex w-full cursor-pointer items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/[0.08] px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.14] sm:w-auto"
-                            }
+                          <button
+                            type="button"
+                            onClick={() => void handleNativeCamera(item.key)}
+                            disabled={Boolean(uploadState || ocrState)}
+                            className="inline-flex w-full items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/[0.08] px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.14] disabled:cursor-not-allowed disabled:border-cyan-400/10 disabled:bg-[#252536] disabled:text-zinc-400 sm:w-auto"
                           >
                             {copy.useCamera}
-
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              capture="environment"
-                              className="hidden"
-                              disabled={Boolean(uploadState || ocrState)}
-                              onChange={(event) =>
-                                handleFileChange(event, item.key)
-                              }
-                            />
-                          </label>
+                          </button>
 
                           {item.fileUrl ? (
                             <>
