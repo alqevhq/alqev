@@ -1951,9 +1951,20 @@ export default function DashboardPage() {
   title={copy.signOut}
   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-zinc-200 transition hover:border-violet-400/30 hover:bg-violet-500/[0.06] disabled:cursor-not-allowed disabled:opacity-60 sm:h-auto sm:w-auto sm:px-4 sm:py-2.5"
 >
-  <span className="text-lg sm:hidden" aria-hidden="true">
-    ↪
-  </span>
+  <svg
+  className="h-5 w-5 sm:hidden"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  aria-hidden="true"
+>
+  <path d="M10 17l5-5-5-5" />
+  <path d="M15 12H3" />
+  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+</svg>
 
   <span className="hidden text-sm font-semibold sm:inline">
     {isSigningOut
