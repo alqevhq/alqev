@@ -102,6 +102,48 @@ const copy = {
     readinessScore: "Hazırlık puanı",
     readinessScoreMessage:
       "Genel hazırlık puanın %{score}.",
+    ocrAnalysisFailed: "Belge analizi başarısız",
+    ocrAnalysisFailedMessage:
+      "“{document}” belgesi analiz edilemedi.",
+    documentQualityCritical: "Belge kalitesi çok düşük",
+    documentQualityCriticalMessage:
+      "“{document}” belgesinin görüntü kalitesi başvuru için yetersiz görünüyor.",
+    documentQualityLow: "Belge kalitesi iyileştirilmeli",
+    documentQualityLowMessage:
+      "“{document}” belgesinin görüntü kalitesi düşük görünüyor.",
+    documentNotReadable: "Belge okunamıyor",
+    documentNotReadableMessage:
+      "“{document}” belgesinin içeriği güvenilir biçimde okunamadı.",
+    documentMismatch: "Yüklenen belge istenen belgeyle eşleşmiyor",
+    documentMismatchMessage:
+      "“{document}” belgesi istenen belge türüyle eşleşmiyor gibi görünüyor.",
+    documentPossibleMismatch: "Belge eşleşmesi belirsiz",
+    documentPossibleMismatchMessage:
+      "ALQEV, “{document}” belgesinin istenen belge olduğunu kesin olarak doğrulayamadı.",
+    documentExpired: "Belgenin süresi dolmuş",
+    documentExpiredMessage:
+      "“{document}” belgesinin süresi dolmuş görünüyor.",
+    documentExpiringSoon: "Belgenin süresi yakında doluyor",
+    documentExpiringSoonMessage:
+      "“{document}” belgesinin süresi yakında dolacak gibi görünüyor.",
+    documentWarning: "Belge uyarısı",
+    documentRisk: "Belge riski",
+    invalidDeadline: "Geçersiz hedef tarih",
+    invalidDeadlineMessage:
+      "Kaydedilen hedef tarih yorumlanamadı.",
+    deadlineTodayDetailed: "Son tarih bugün",
+    deadlineTodayDetailedMessage:
+      "Bu sürecin hedef tarihi bugün.",
+    deadlineUrgent: "Son tarih çok yakın",
+    deadlineUrgentMessage:
+      "Hedef tarihe yalnızca {count} gün kaldı.",
+    processNotActive: "Süreç aktif değil",
+    processNotActiveMessage:
+      "Mevcut süreç durumu “{status}”.",
+    processPaused: "Süreç duraklatıldı",
+    processPausedMessage:
+      "Bu süreç şu anda duraklatılmış durumda.",
+
   },
   de: {
     readinessVeryHigh: "Fast bereit für den Antrag",
@@ -155,6 +197,48 @@ const copy = {
     readinessScore: "Bereitschaftswert",
     readinessScoreMessage:
       "Dein allgemeiner Bereitschaftswert beträgt %{score}.",
+    ocrAnalysisFailed: "Dokumentenanalyse fehlgeschlagen",
+    ocrAnalysisFailedMessage:
+      "Das Dokument „{document}“ konnte nicht analysiert werden.",
+    documentQualityCritical: "Dokumentqualität ist zu niedrig",
+    documentQualityCriticalMessage:
+      "Die Bildqualität von „{document}“ scheint für den Antrag nicht ausreichend zu sein.",
+    documentQualityLow: "Dokumentqualität sollte verbessert werden",
+    documentQualityLowMessage:
+      "Die Bildqualität von „{document}“ scheint niedrig zu sein.",
+    documentNotReadable: "Dokument ist nicht lesbar",
+    documentNotReadableMessage:
+      "Der Inhalt von „{document}“ konnte nicht zuverlässig gelesen werden.",
+    documentMismatch: "Das hochgeladene Dokument stimmt nicht überein",
+    documentMismatchMessage:
+      "„{document}“ scheint nicht dem angeforderten Dokumenttyp zu entsprechen.",
+    documentPossibleMismatch: "Dokumentzuordnung ist unsicher",
+    documentPossibleMismatchMessage:
+      "ALQEV konnte nicht sicher bestätigen, dass „{document}“ das angeforderte Dokument ist.",
+    documentExpired: "Dokument ist abgelaufen",
+    documentExpiredMessage:
+      "„{document}“ scheint abgelaufen zu sein.",
+    documentExpiringSoon: "Dokument läuft bald ab",
+    documentExpiringSoonMessage:
+      "„{document}“ scheint bald abzulaufen.",
+    documentWarning: "Dokumentenhinweis",
+    documentRisk: "Dokumentenrisiko",
+    invalidDeadline: "Ungültiges Zieldatum",
+    invalidDeadlineMessage:
+      "Das gespeicherte Zieldatum konnte nicht interpretiert werden.",
+    deadlineTodayDetailed: "Frist ist heute",
+    deadlineTodayDetailedMessage:
+      "Das Zieldatum dieses Vorgangs ist heute.",
+    deadlineUrgent: "Frist ist sehr nah",
+    deadlineUrgentMessage:
+      "Bis zum Zieldatum bleiben nur noch {count} Tage.",
+    processNotActive: "Vorgang ist nicht aktiv",
+    processNotActiveMessage:
+      "Der aktuelle Vorgangsstatus ist „{status}“.",
+    processPaused: "Vorgang ist pausiert",
+    processPausedMessage:
+      "Dieser Vorgang ist derzeit pausiert.",
+
   },
   en: {
     readinessVeryHigh: "Almost ready to apply",
@@ -208,6 +292,48 @@ const copy = {
     readinessScore: "Readiness score",
     readinessScoreMessage:
       "Your overall readiness score is %{score}.",
+    ocrAnalysisFailed: "Document analysis failed",
+    ocrAnalysisFailedMessage:
+      "The document “{document}” could not be analyzed.",
+    documentQualityCritical: "Document quality is too low",
+    documentQualityCriticalMessage:
+      "The image quality of “{document}” appears insufficient for the application.",
+    documentQualityLow: "Document quality should be improved",
+    documentQualityLowMessage:
+      "The image quality of “{document}” appears low.",
+    documentNotReadable: "Document is not readable",
+    documentNotReadableMessage:
+      "The content of “{document}” could not be read reliably.",
+    documentMismatch: "The uploaded document does not match",
+    documentMismatchMessage:
+      "“{document}” appears not to match the requested document type.",
+    documentPossibleMismatch: "Document match is uncertain",
+    documentPossibleMismatchMessage:
+      "ALQEV could not confirm with certainty that “{document}” is the requested document.",
+    documentExpired: "Document has expired",
+    documentExpiredMessage:
+      "“{document}” appears to have expired.",
+    documentExpiringSoon: "Document expires soon",
+    documentExpiringSoonMessage:
+      "“{document}” appears to expire soon.",
+    documentWarning: "Document warning",
+    documentRisk: "Document risk",
+    invalidDeadline: "Invalid target date",
+    invalidDeadlineMessage:
+      "The saved target date could not be interpreted.",
+    deadlineTodayDetailed: "Deadline is today",
+    deadlineTodayDetailedMessage:
+      "The target date of this process is today.",
+    deadlineUrgent: "Deadline is very close",
+    deadlineUrgentMessage:
+      "Only {count} day(s) remain until the target date.",
+    processNotActive: "Process is not active",
+    processNotActiveMessage:
+      "The current process status is “{status}”.",
+    processPaused: "Process is paused",
+    processPausedMessage:
+      "This process is currently paused.",
+
   },
   ru: {
     readinessVeryHigh: "Почти готово к подаче",
@@ -261,6 +387,48 @@ const copy = {
     readinessScore: "Оценка готовности",
     readinessScoreMessage:
       "Ваша общая оценка готовности: %{score}.",
+    ocrAnalysisFailed: "Не удалось проанализировать документ",
+    ocrAnalysisFailedMessage:
+      "Не удалось проанализировать документ «{document}».",
+    documentQualityCritical: "Качество документа слишком низкое",
+    documentQualityCriticalMessage:
+      "Качество изображения документа «{document}» недостаточно для подачи.",
+    documentQualityLow: "Качество документа следует улучшить",
+    documentQualityLowMessage:
+      "Качество изображения документа «{document}» выглядит низким.",
+    documentNotReadable: "Документ не читается",
+    documentNotReadableMessage:
+      "Содержимое документа «{document}» не удалось надёжно прочитать.",
+    documentMismatch: "Загруженный документ не соответствует требуемому",
+    documentMismatchMessage:
+      "Документ «{document}», похоже, не соответствует запрошенному типу документа.",
+    documentPossibleMismatch: "Соответствие документа неясно",
+    documentPossibleMismatchMessage:
+      "ALQEV не смог уверенно подтвердить, что «{document}» является требуемым документом.",
+    documentExpired: "Срок действия документа истёк",
+    documentExpiredMessage:
+      "Срок действия документа «{document}», похоже, истёк.",
+    documentExpiringSoon: "Срок действия документа скоро истечёт",
+    documentExpiringSoonMessage:
+      "Срок действия документа «{document}», похоже, скоро истечёт.",
+    documentWarning: "Предупреждение по документу",
+    documentRisk: "Риск по документу",
+    invalidDeadline: "Некорректная целевая дата",
+    invalidDeadlineMessage:
+      "Сохранённую целевую дату не удалось распознать.",
+    deadlineTodayDetailed: "Срок сегодня",
+    deadlineTodayDetailedMessage:
+      "Целевая дата этого процесса — сегодня.",
+    deadlineUrgent: "Срок очень близко",
+    deadlineUrgentMessage:
+      "До целевой даты осталось всего {count} дней.",
+    processNotActive: "Процесс не активен",
+    processNotActiveMessage:
+      "Текущий статус процесса: «{status}».",
+    processPaused: "Процесс приостановлен",
+    processPausedMessage:
+      "Этот процесс сейчас приостановлен.",
+
   },
   ar: {
     readinessVeryHigh: "قريب جدًا من التقديم",
@@ -314,6 +482,48 @@ const copy = {
     readinessScore: "درجة الجاهزية",
     readinessScoreMessage:
       "درجة جاهزيتك العامة هي %{score}.",
+    ocrAnalysisFailed: "فشل تحليل الوثيقة",
+    ocrAnalysisFailedMessage:
+      "تعذر تحليل الوثيقة «{document}».",
+    documentQualityCritical: "جودة الوثيقة منخفضة جدًا",
+    documentQualityCriticalMessage:
+      "تبدو جودة صورة الوثيقة «{document}» غير كافية للتقديم.",
+    documentQualityLow: "ينبغي تحسين جودة الوثيقة",
+    documentQualityLowMessage:
+      "تبدو جودة صورة الوثيقة «{document}» منخفضة.",
+    documentNotReadable: "الوثيقة غير مقروءة",
+    documentNotReadableMessage:
+      "تعذر قراءة محتوى الوثيقة «{document}» بشكل موثوق.",
+    documentMismatch: "الوثيقة المرفوعة لا تطابق الوثيقة المطلوبة",
+    documentMismatchMessage:
+      "يبدو أن الوثيقة «{document}» لا تطابق نوع الوثيقة المطلوبة.",
+    documentPossibleMismatch: "مطابقة الوثيقة غير مؤكدة",
+    documentPossibleMismatchMessage:
+      "لم يتمكن ALQEV من التأكد بشكل قاطع من أن «{document}» هي الوثيقة المطلوبة.",
+    documentExpired: "انتهت صلاحية الوثيقة",
+    documentExpiredMessage:
+      "يبدو أن صلاحية الوثيقة «{document}» قد انتهت.",
+    documentExpiringSoon: "ستنتهي صلاحية الوثيقة قريبًا",
+    documentExpiringSoonMessage:
+      "يبدو أن صلاحية الوثيقة «{document}» ستنتهي قريبًا.",
+    documentWarning: "تنبيه بشأن الوثيقة",
+    documentRisk: "مخاطر الوثيقة",
+    invalidDeadline: "تاريخ هدف غير صالح",
+    invalidDeadlineMessage:
+      "تعذر تفسير تاريخ الهدف المحفوظ.",
+    deadlineTodayDetailed: "الموعد النهائي اليوم",
+    deadlineTodayDetailedMessage:
+      "التاريخ المستهدف لهذا الإجراء هو اليوم.",
+    deadlineUrgent: "الموعد النهائي قريب جدًا",
+    deadlineUrgentMessage:
+      "لم يتبقَّ سوى {count} أيام حتى التاريخ المستهدف.",
+    processNotActive: "الإجراء غير نشط",
+    processNotActiveMessage:
+      "حالة الإجراء الحالية هي «{status}».",
+    processPaused: "الإجراء متوقف مؤقتًا",
+    processPausedMessage:
+      "هذا الإجراء متوقف مؤقتًا حاليًا.",
+
   },
   fa: {
     readinessVeryHigh: "تقریباً آماده درخواست",
@@ -367,6 +577,48 @@ const copy = {
     readinessScore: "امتیاز آمادگی",
     readinessScoreMessage:
       "امتیاز کلی آمادگی شما %{score} است.",
+    ocrAnalysisFailed: "تحلیل مدرک ناموفق بود",
+    ocrAnalysisFailedMessage:
+      "مدرک «{document}» قابل تحلیل نبود.",
+    documentQualityCritical: "کیفیت مدرک بسیار پایین است",
+    documentQualityCriticalMessage:
+      "کیفیت تصویر مدرک «{document}» برای درخواست کافی به نظر نمی‌رسد.",
+    documentQualityLow: "کیفیت مدرک باید بهتر شود",
+    documentQualityLowMessage:
+      "کیفیت تصویر مدرک «{document}» پایین به نظر می‌رسد.",
+    documentNotReadable: "مدرک خوانا نیست",
+    documentNotReadableMessage:
+      "محتوای مدرک «{document}» با اطمینان قابل خواندن نبود.",
+    documentMismatch: "مدرک بارگذاری‌شده با مدرک موردنیاز مطابقت ندارد",
+    documentMismatchMessage:
+      "به نظر می‌رسد مدرک «{document}» با نوع مدرک درخواستی مطابقت ندارد.",
+    documentPossibleMismatch: "تطابق مدرک نامشخص است",
+    documentPossibleMismatchMessage:
+      "ALQEV نتوانست با اطمینان تأیید کند که «{document}» همان مدرک درخواستی است.",
+    documentExpired: "اعتبار مدرک منقضی شده است",
+    documentExpiredMessage:
+      "به نظر می‌رسد اعتبار مدرک «{document}» منقضی شده باشد.",
+    documentExpiringSoon: "اعتبار مدرک به‌زودی منقضی می‌شود",
+    documentExpiringSoonMessage:
+      "به نظر می‌رسد اعتبار مدرک «{document}» به‌زودی منقضی شود.",
+    documentWarning: "هشدار مدرک",
+    documentRisk: "ریسک مدرک",
+    invalidDeadline: "تاریخ هدف نامعتبر",
+    invalidDeadlineMessage:
+      "تاریخ هدف ذخیره‌شده قابل تفسیر نبود.",
+    deadlineTodayDetailed: "مهلت امروز است",
+    deadlineTodayDetailedMessage:
+      "تاریخ هدف این فرایند امروز است.",
+    deadlineUrgent: "مهلت بسیار نزدیک است",
+    deadlineUrgentMessage:
+      "فقط {count} روز تا تاریخ هدف باقی مانده است.",
+    processNotActive: "فرایند فعال نیست",
+    processNotActiveMessage:
+      "وضعیت فعلی فرایند «{status}» است.",
+    processPaused: "فرایند متوقف شده است",
+    processPausedMessage:
+      "این فرایند در حال حاضر متوقف است.",
+
   },
 } as const;
 
@@ -433,17 +685,45 @@ function getRecommendationText(
 
   const titleKeyMap: Record<string, keyof typeof currentCopy> = {
     missingDocument: "missingDocument",
+    ocrAnalysisFailed: "ocrAnalysisFailed",
+    documentQualityCritical: "documentQualityCritical",
+    documentQualityLow: "documentQualityLow",
+    documentNotReadable: "documentNotReadable",
+    documentMismatch: "documentMismatch",
+    documentPossibleMismatch: "documentPossibleMismatch",
+    documentExpired: "documentExpired",
+    documentExpiringSoon: "documentExpiringSoon",
+    documentWarning: "documentWarning",
+    documentRisk: "documentRisk",
+    invalidDeadline: "invalidDeadline",
     deadlineExpired: "deadlineExpired",
+    deadlineToday: "deadlineTodayDetailed",
+    deadlineUrgent: "deadlineUrgent",
     deadlineApproaching: "deadlineApproaching",
+    processNotActive: "processNotActive",
+    processPaused: "processPaused",
     allComplete: "allComplete",
     readinessScore: "readinessScore",
   };
 
   const messageKeyMap: Record<string, keyof typeof currentCopy> = {
     uploadMissingDocument: "uploadMissingDocument",
+    ocrAnalysisFailedMessage: "ocrAnalysisFailedMessage",
+    documentQualityCriticalMessage: "documentQualityCriticalMessage",
+    documentQualityLowMessage: "documentQualityLowMessage",
+    documentNotReadableMessage: "documentNotReadableMessage",
+    documentMismatchMessage: "documentMismatchMessage",
+    documentPossibleMismatchMessage: "documentPossibleMismatchMessage",
+    documentExpiredMessage: "documentExpiredMessage",
+    documentExpiringSoonMessage: "documentExpiringSoonMessage",
+    invalidDeadlineMessage: "invalidDeadlineMessage",
     deadlineExpiredMessage: "deadlineExpiredMessage",
+    deadlineTodayMessage: "deadlineTodayDetailedMessage",
+    deadlineUrgentMessage: "deadlineUrgentMessage",
     deadlineApproachingMessage:
       "deadlineApproachingMessage",
+    processNotActiveMessage: "processNotActiveMessage",
+    processPausedMessage: "processPausedMessage",
     allCompleteMessage: "allCompleteMessage",
     readinessScoreMessage:
       "readinessScoreMessage",
