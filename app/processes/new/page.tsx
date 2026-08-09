@@ -333,12 +333,12 @@ useEffect(() => {
     return (
       <main
         dir={direction}
-        className="flex min-h-screen items-center justify-center bg-slate-950 text-white"
+        className="flex min-h-[100dvh] items-center justify-center bg-[#030309] px-4 text-white"
       >
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-violet-400 shadow-[0_0_30px_rgba(139,92,246,0.18)]" />
 
-          <p className="mt-4 text-sm text-slate-400">
+          <p className="mt-4 text-sm text-zinc-400">
             {copy.newProcess.loading}
           </p>
         </div>
@@ -349,20 +349,22 @@ useEffect(() => {
   return (
     <main
       dir={direction}
-      className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6"
+      className="relative min-h-[100dvh] overflow-x-hidden bg-[#030309] px-3 py-6 text-white sm:px-6 sm:py-10"
     >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
       >
-        <div className="absolute left-1/4 top-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-700/20 blur-[150px]" />
-        <div className="absolute bottom-[-280px] right-[-180px] h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[170px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[165px]" />
+        <div className="absolute right-[-240px] top-[30%] h-[560px] w-[560px] rounded-full bg-fuchsia-700/[0.08] blur-[175px]" />
+        <div className="absolute bottom-[-320px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.08] blur-[180px]" />
+        <div className="absolute left-1/2 top-[160px] h-[220px] w-[1050px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/25 shadow-[0_-18px_80px_rgba(168,85,247,0.12)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-5xl">
+      <div className="relative z-10 mx-auto w-full max-w-5xl">
         <Link
           href="/processes"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+          className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#090911]/80 px-4 py-2.5 text-sm font-semibold text-zinc-300 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-xl transition hover:border-violet-400/30 hover:bg-violet-400/[0.06] hover:text-white"
         >
           <span aria-hidden="true">
             {direction === "rtl" ? "→" : "←"}
@@ -370,21 +372,21 @@ useEffect(() => {
           {copy.newProcess.backToProcesses}
         </Link>
 
-        <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl backdrop-blur-xl sm:p-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+        <section className="mt-8 min-w-0 overflow-hidden rounded-[2rem] border border-violet-300/15 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(145deg,rgba(17,17,29,0.96),rgba(7,7,14,0.98))] p-5 shadow-[0_28px_90px_rgba(46,16,101,0.18)] backdrop-blur-2xl sm:p-8 lg:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-violet-300">
             PROCESS ENGINE v1
           </p>
 
-          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-4 break-words text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
             {copy.newProcess.title}
           </h1>
 
-          <p className="mt-4 max-w-3xl leading-7 text-slate-400">
+          <p className="mt-4 max-w-3xl break-words leading-7 text-zinc-400">
             {copy.newProcess.description}
           </p>
 
           {hasProcessLimit ? (
-            <div className="mt-10 rounded-3xl border border-amber-400/25 bg-amber-400/[0.08] p-6 sm:p-8">
+            <div className="mt-10 rounded-3xl border border-amber-400/20 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.10),transparent_50%),rgba(20,15,8,0.72)] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] sm:p-8">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
                 {copy.newProcess.freeLimit}
               </p>
@@ -407,7 +409,7 @@ useEffect(() => {
 
                 <Link
                   href="/processes"
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 px-6 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-violet-400/25 hover:bg-violet-400/[0.05]"
                 >
                   {copy.newProcess.returnToCurrent}
                 </Link>
@@ -416,15 +418,15 @@ useEffect(() => {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="mt-10 space-y-8"
+              className="mt-10 min-w-0 space-y-8"
               noValidate
             >
               <div>
-                <p className="text-sm font-semibold text-indigo-300">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">
                   {copy.newProcess.processType}
                 </p>
 
-                <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {localizedTemplates.map(
                     (template) => {
                       const isSelected =
@@ -442,17 +444,17 @@ useEffect(() => {
                           disabled={isSubmitting}
                           className={
                             isSelected
-                              ? "rounded-2xl border border-indigo-400/60 bg-indigo-500/15 p-5 text-left ring-4 ring-indigo-500/10"
-                              : "rounded-2xl border border-white/10 bg-white/[0.025] p-5 text-left transition hover:border-indigo-400/30 hover:bg-white/[0.05]"
+                              ? "min-w-0 rounded-2xl border border-violet-400/50 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.16),transparent_55%),rgba(16,13,28,0.90)] p-5 text-left ring-4 ring-violet-500/10 shadow-[0_14px_38px_rgba(91,33,182,0.12)]"
+                              : "min-w-0 rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(16,16,26,0.90),rgba(8,8,14,0.94))] p-5 text-left transition hover:border-violet-400/30 hover:bg-violet-400/[0.04]"
                           }
                         >
                           <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <p className="font-semibold text-white">
+                            <div className="min-w-0">
+                              <p className="break-words font-semibold text-white">
                                 {template.title}
                               </p>
 
-                              <p className="mt-2 text-sm leading-6 text-slate-400">
+                              <p className="mt-2 break-words text-sm leading-6 text-zinc-400">
                                 {
                                   template.description
                                 }
@@ -462,8 +464,8 @@ useEffect(() => {
                             <span
                               className={
                                 isSelected
-                                  ? "text-indigo-300"
-                                  : "text-slate-600"
+                                  ? "text-violet-300"
+                                  : "text-zinc-600"
                               }
                             >
                               {isSelected
@@ -478,11 +480,11 @@ useEffect(() => {
                 </div>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid min-w-0 gap-5 md:grid-cols-2">
                 <div>
                   <label
                     htmlFor="country"
-                    className="mb-2 block text-sm font-medium text-slate-200"
+                    className="mb-2 block text-sm font-medium text-zinc-200"
                   >
                     {copy.common.country}
                   </label>
@@ -496,7 +498,7 @@ useEffect(() => {
                       )
                     }
                     disabled={isSubmitting}
-                    className="h-12 w-full rounded-xl border border-white/10 bg-slate-900 px-4 text-sm text-white outline-none focus:border-indigo-400/60 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full min-w-0 rounded-xl border border-white/[0.08] bg-[#070810] px-4 text-sm text-white outline-none transition focus:border-violet-400/50 focus:ring-4 focus:ring-violet-500/10"
                   >
                     {[
                       "DE",
@@ -525,10 +527,10 @@ useEffect(() => {
                 <div>
                   <label
                     htmlFor="deadline"
-                    className="mb-2 block text-sm font-medium text-slate-200"
+                    className="mb-2 block text-sm font-medium text-zinc-200"
                   >
                     {copy.newProcess.deadline}{" "}
-                    <span className="text-slate-500">
+                    <span className="text-zinc-500">
                       (
                       {copy.newProcess.optional}
                       )
@@ -545,7 +547,7 @@ useEffect(() => {
                       )
                     }
                     disabled={isSubmitting}
-                    className="h-12 w-full rounded-xl border border-white/10 bg-slate-900 px-4 text-sm text-white outline-none focus:border-indigo-400/60 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full min-w-0 rounded-xl border border-white/[0.08] bg-[#070810] px-4 text-sm text-white outline-none transition focus:border-violet-400/50 focus:ring-4 focus:ring-violet-500/10"
                   />
                 </div>
               </div>
@@ -553,10 +555,10 @@ useEffect(() => {
               <div>
                 <label
                   htmlFor="notes"
-                  className="mb-2 block text-sm font-medium text-slate-200"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
                 >
                   {copy.newProcess.notes}{" "}
-                  <span className="text-slate-500">
+                  <span className="text-zinc-500">
                     (
                     {copy.newProcess.optional})
                   </span>
@@ -575,31 +577,31 @@ useEffect(() => {
                     copy.newProcess
                       .notesPlaceholder
                   }
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-indigo-400/60 focus:ring-4 focus:ring-indigo-500/10"
+                  className="w-full min-w-0 rounded-xl border border-white/[0.08] bg-[#070810] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-violet-400/50 focus:ring-4 focus:ring-violet-500/10"
                 />
               </div>
 
               {selectedTemplate ? (
-                <div className="rounded-2xl border border-indigo-400/20 bg-indigo-500/[0.07] p-5">
-                  <p className="font-semibold text-indigo-200">
+                <div className="rounded-2xl border border-violet-400/20 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.12),transparent_55%),rgba(11,10,19,0.82)] p-5 shadow-[0_16px_45px_rgba(0,0,0,0.18)]">
+                  <p className="font-semibold text-violet-200">
                     {
                       copy.newProcess
                         .generatedDocuments
                     }
                   </p>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
                     {selectedTemplate.documents.map(
                       (item) => (
                         <div
                           key={item.key}
-                          className="rounded-xl border border-white/10 bg-black/10 p-4"
+                          className="min-w-0 rounded-xl border border-white/[0.07] bg-black/10 p-4"
                         >
-                          <p className="text-sm font-semibold text-slate-200">
+                          <p className="break-words text-sm font-semibold text-zinc-200">
                             {item.title}
                           </p>
 
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
                             {item.required
                               ? copy.newProcess
                                   .requiredDocument
@@ -622,10 +624,10 @@ useEffect(() => {
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-3 border-t border-white/10 pt-8 sm:flex-row sm:justify-end">
+              <div className="flex flex-col gap-3 border-t border-white/[0.08] pt-8 sm:flex-row sm:justify-end">
                 <Link
                   href="/processes"
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-700 px-6 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-violet-400/25 hover:bg-violet-400/[0.05] sm:w-auto"
                 >
                   {copy.common.cancel}
                 </Link>
@@ -633,7 +635,7 @@ useEffect(() => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex h-12 items-center justify-center rounded-xl bg-indigo-500 px-7 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-7 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {isSubmitting
                     ? copy.newProcess.creating
