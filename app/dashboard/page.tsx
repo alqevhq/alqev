@@ -1944,15 +1944,23 @@ export default function DashboardPage() {
             </div>
 
             <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-white/15 hover:bg-[#151522] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSigningOut
-                ? copy.signingOut
-                : copy.signOut}
-            </button>
+  type="button"
+  onClick={handleSignOut}
+  disabled={isSigningOut}
+  aria-label={copy.signOut}
+  title={copy.signOut}
+  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-zinc-200 transition hover:border-violet-400/30 hover:bg-violet-500/[0.06] disabled:cursor-not-allowed disabled:opacity-60 sm:h-auto sm:w-auto sm:px-4 sm:py-2.5"
+>
+  <span className="text-lg sm:hidden" aria-hidden="true">
+    ↪
+  </span>
+
+  <span className="hidden text-sm font-semibold sm:inline">
+    {isSigningOut
+      ? copy.signingOut
+      : copy.signOut}
+  </span>
+</button>
           </div>
         </nav>
       </header>
