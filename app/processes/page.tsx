@@ -268,7 +268,7 @@ function getStatusClasses(status: string) {
       return "border-red-400/20 bg-red-400/10 text-red-200";
     case "active":
     default:
-      return "border-indigo-400/20 bg-indigo-400/10 text-indigo-200";
+      return "border-violet-400/25 bg-violet-400/10 text-violet-200";
   }
 }
 
@@ -519,20 +519,22 @@ export default function ProcessesPage() {
   return (
     <main
       dir={direction}
-      className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-white sm:px-6"
+      className="relative min-h-[100dvh] overflow-x-hidden bg-[#030309] px-3 py-6 text-white sm:px-6 sm:py-10"
     >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
       >
-        <div className="absolute left-1/4 top-[-260px] h-[560px] w-[560px] rounded-full bg-indigo-700/20 blur-[150px]" />
-        <div className="absolute bottom-[-280px] right-[-180px] h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[170px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-violet-700/12 blur-[165px]" />
+        <div className="absolute right-[-240px] top-[30%] h-[560px] w-[560px] rounded-full bg-fuchsia-700/[0.08] blur-[175px]" />
+        <div className="absolute bottom-[-320px] left-[-220px] h-[620px] w-[620px] rounded-full bg-violet-800/[0.08] blur-[180px]" />
+        <div className="absolute left-1/2 top-[165px] h-[220px] w-[1050px] -translate-x-1/2 rounded-[50%] border-t border-fuchsia-400/25 shadow-[0_-18px_80px_rgba(168,85,247,0.12)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
         <Link
           href="/dashboard"
-          className="mb-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-indigo-400/30 hover:bg-white/[0.06] hover:text-white"
+          className="mb-6 inline-flex max-w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#090911]/80 px-4 py-2.5 text-sm font-semibold text-zinc-300 shadow-[0_10px_30px_rgba(0,0,0,0.20)] backdrop-blur-xl transition hover:border-violet-400/30 hover:bg-violet-400/[0.06] hover:text-white"
         >
           <span aria-hidden="true">
             {direction === "rtl" ? "→" : "←"}
@@ -540,24 +542,24 @@ export default function ProcessesPage() {
           {currentCopy.backToDashboard}
         </Link>
 
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-violet-300">
               ALQEV
             </p>
 
-            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-3 break-words text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
               {currentCopy.title}
             </h1>
 
-            <p className="mt-4 max-w-2xl leading-7 text-slate-400">
+            <p className="mt-4 max-w-2xl break-words leading-7 text-zinc-400">
               {currentCopy.description}
             </p>
           </div>
 
           <Link
             href="/processes/new"
-            className="inline-flex h-12 items-center justify-center rounded-xl bg-indigo-500 px-6 text-sm font-semibold text-white transition hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-violet-500/20 sm:w-auto"
           >
             <span
               className={
@@ -581,7 +583,7 @@ export default function ProcessesPage() {
               </h2>
 
               {!loading && !errorMessage ? (
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-zinc-500">
                   {fillTemplate(
                     currentCopy.totalProcesses,
                     {
@@ -595,10 +597,10 @@ export default function ProcessesPage() {
           </div>
 
           {loading ? (
-            <div className="mt-8 flex min-h-64 items-center justify-center rounded-3xl border border-white/10 bg-white/[0.035]">
+            <div className="mt-8 flex min-h-64 items-center justify-center rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(17,17,28,0.90),rgba(8,8,15,0.94))] shadow-[0_18px_55px_rgba(0,0,0,0.20)]">
               <div className="text-center">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-400" />
-                <p className="mt-4 text-sm text-slate-400">
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
+                <p className="mt-4 text-sm text-zinc-400">
                   {currentCopy.loading}
                 </p>
               </div>
@@ -608,7 +610,7 @@ export default function ProcessesPage() {
           {!loading && errorMessage ? (
             <div
               role="alert"
-              className="mt-8 rounded-3xl border border-red-400/20 bg-red-400/10 p-8 text-center"
+              className="mt-8 rounded-3xl border border-red-400/20 bg-red-400/[0.08] p-6 text-center shadow-[0_18px_55px_rgba(0,0,0,0.18)] sm:p-8"
             >
               <h2 className="text-xl font-semibold text-red-100">
                 {currentCopy.loadFailed}
@@ -623,8 +625,8 @@ export default function ProcessesPage() {
           {!loading &&
           !errorMessage &&
           localizedProcesses.length === 0 ? (
-            <div className="mt-8 rounded-3xl border border-dashed border-white/10 bg-white/[0.025] p-10 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-2xl text-indigo-300">
+            <div className="mt-8 rounded-3xl border border-dashed border-violet-400/20 bg-[linear-gradient(145deg,rgba(17,17,28,0.86),rgba(8,8,15,0.92))] p-6 text-center shadow-[0_18px_55px_rgba(0,0,0,0.20)] sm:p-10">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10 text-2xl text-violet-300 shadow-[0_0_28px_rgba(139,92,246,0.12)]">
                 +
               </div>
 
@@ -632,13 +634,13 @@ export default function ProcessesPage() {
                 {currentCopy.noProcesses}
               </h2>
 
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-400">
                 {currentCopy.noProcessesText}
               </p>
 
               <Link
                 href="/processes/new"
-                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-slate-200"
+                className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(139,92,246,0.20)] transition hover:brightness-110"
               >
                 {currentCopy.firstProcess}
               </Link>
@@ -648,7 +650,7 @@ export default function ProcessesPage() {
           {!loading &&
           !errorMessage &&
           localizedProcesses.length > 0 ? (
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
+            <div className="mt-8 grid min-w-0 gap-5 md:grid-cols-2">
               {localizedProcesses.map(
                 (process) => {
                   const progress = Math.min(
@@ -665,11 +667,11 @@ export default function ProcessesPage() {
                     <Link
                       key={process.id}
                       href={`/processes/${process.id}`}
-                      className="group rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-xl transition hover:-translate-y-1 hover:border-indigo-400/40 hover:bg-white/[0.055] hover:shadow-indigo-950/30"
+                      className="group min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.09),transparent_45%),linear-gradient(145deg,rgba(17,17,28,0.94),rgba(8,8,15,0.96))] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-1 hover:border-violet-400/35 hover:shadow-[0_22px_65px_rgba(91,33,182,0.16)] sm:p-6"
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3 sm:flex-nowrap sm:gap-4">
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+                          <p className="break-words text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">
                             {process.country
                               ? getLocalizedCountryLabel(
                                   process.country,
@@ -678,7 +680,7 @@ export default function ProcessesPage() {
                               : currentCopy.unspecified}
                           </p>
 
-                          <h3 className="mt-3 text-xl font-semibold text-white transition group-hover:text-indigo-200">
+                          <h3 className="mt-3 break-words text-xl font-semibold text-white transition group-hover:text-violet-200">
                             {
                               process.localizedTitle
                             }
@@ -686,7 +688,7 @@ export default function ProcessesPage() {
                         </div>
 
                         <span
-                          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${getStatusClasses(
+                          className={`max-w-full shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${getStatusClasses(
                             process.status,
                           )}`}
                         >
@@ -698,7 +700,7 @@ export default function ProcessesPage() {
                       </div>
 
                       {process.localizedDescription ? (
-                        <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                        <p className="mt-4 line-clamp-2 break-words text-sm leading-6 text-zinc-400">
                           {
                             process.localizedDescription
                           }
@@ -707,7 +709,7 @@ export default function ProcessesPage() {
 
                       <div className="mt-7">
                         <div className="flex items-center justify-between gap-4 text-sm">
-                          <span className="text-slate-400">
+                          <span className="text-zinc-400">
                             {
                               currentCopy.progress
                             }
@@ -718,9 +720,9 @@ export default function ProcessesPage() {
                           </span>
                         </div>
 
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#151522]">
                           <div
-                            className="h-full rounded-full bg-indigo-500 transition-all"
+                            className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 transition-all"
                             style={{
                               width: `${progress}%`,
                             }}
@@ -728,15 +730,15 @@ export default function ProcessesPage() {
                         </div>
                       </div>
 
-                      <div className="mt-6 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-white/5 bg-black/10 p-4">
-                          <p className="text-xs text-slate-500">
+                      <div className="mt-6 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+                          <p className="text-xs text-zinc-500">
                             {
                               currentCopy.documents
                             }
                           </p>
 
-                          <p className="mt-2 text-sm font-semibold text-slate-200">
+                          <p className="mt-2 break-words text-sm font-semibold text-zinc-200">
                             {
                               process.completedDocumentCount
                             }{" "}
@@ -747,14 +749,14 @@ export default function ProcessesPage() {
                           </p>
                         </div>
 
-                        <div className="rounded-2xl border border-white/5 bg-black/10 p-4">
-                          <p className="text-xs text-slate-500">
+                        <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+                          <p className="text-xs text-zinc-500">
                             {
                               currentCopy.deadline
                             }
                           </p>
 
-                          <p className="mt-2 text-sm font-semibold text-slate-200">
+                          <p className="mt-2 break-words text-sm font-semibold text-zinc-200">
                             {formatDeadline(
                               process.deadline,
                               language,
@@ -763,8 +765,8 @@ export default function ProcessesPage() {
                         </div>
                       </div>
 
-                      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5">
-                        <span className="text-sm font-medium text-indigo-300">
+                      <div className="mt-6 flex min-w-0 items-center justify-between gap-3 border-t border-white/[0.08] pt-5">
+                        <span className="min-w-0 break-words text-sm font-medium text-violet-300">
                           {
                             currentCopy.openDetails
                           }
@@ -774,8 +776,8 @@ export default function ProcessesPage() {
                           aria-hidden="true"
                           className={
                             direction === "rtl"
-                              ? "text-xl text-indigo-300 transition-transform group-hover:-translate-x-1"
-                              : "text-xl text-indigo-300 transition-transform group-hover:translate-x-1"
+                              ? "text-xl text-violet-300 transition-transform group-hover:-translate-x-1"
+                              : "text-xl text-violet-300 transition-transform group-hover:translate-x-1"
                           }
                         >
                           {direction === "rtl"
