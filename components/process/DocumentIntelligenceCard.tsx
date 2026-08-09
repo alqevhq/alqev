@@ -526,11 +526,11 @@ export default function DocumentIntelligenceCard({
             {fields.map((field) => (
               <div
                 key={`${field.key}-${field.value}`}
-                className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5"
+                className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5"
               >
-                <dt className="flex min-w-0 flex-wrap items-start justify-between gap-2 text-[11px] text-slate-500">
-                  <span className="min-w-0 break-words">{field.label}</span>
-                  <span className="shrink-0">
+                <dt className="grid min-w-0 grid-cols-1 gap-1 text-[11px] text-slate-500 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-2">
+                  <span className="min-w-0 break-all sm:break-words">{field.label}</span>
+                  <span className="min-w-0 break-words sm:whitespace-nowrap">
                     {t.confidence}:{" "}
                     {Math.round(
                       field.confidence * 100,
@@ -538,7 +538,7 @@ export default function DocumentIntelligenceCard({
                     %
                   </span>
                 </dt>
-                <dd className="mt-1 break-words text-sm text-slate-200">
+                <dd className="mt-1 min-w-0 break-all text-sm text-slate-200 sm:break-words">
                   {field.value}
                 </dd>
               </div>
