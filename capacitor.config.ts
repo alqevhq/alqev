@@ -5,8 +5,12 @@ const config: CapacitorConfig = {
   appName: "ALQEV",
   webDir: "mobile-shell",
   server: {
-    url: "https://alqev.com",
+    url: "https://www.alqev.com",
     cleartext: false,
+    allowNavigation: [
+      "alqev.com",
+      "www.alqev.com",
+    ],
   },
 };
 
