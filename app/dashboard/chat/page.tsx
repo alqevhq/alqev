@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import {
   useRouter,
   useSearchParams,
@@ -63,6 +63,19 @@ type ChatAttachment = {
   data: string;
   kind: "image" | "pdf";
 };
+
+type NativeDocumentCameraResult = {
+  base64: string;
+  mimeType: "image/jpeg";
+  name: string;
+};
+
+type NativeDocumentCameraPlugin = {
+  capture(): Promise<NativeDocumentCameraResult>;
+};
+
+const NativeDocumentCamera =
+  registerPlugin<NativeDocumentCameraPlugin>("NativeDocumentCamera");
 
 type Profile = {
   fullName: string;
@@ -819,47 +832,36 @@ function ChatPageContent() {
     setIsPreparingAttachment(true);
 
     try {
-      const photo = await Camera.getPhoto({
-        source: CameraSource.Camera,
-        resultType: CameraResultType.Base64,
-        quality: 60,
-        width: 1400,
-        height: 1400,
-        correctOrientation: true,
-        saveToGallery: false,
-      });
+      if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
+        throw new Error("NATIVE_CAMERA_UNAVAILABLE");
+      }
 
-      if (!photo.base64String) {
+      const result = await NativeDocumentCamera.capture();
+
+      if (!result.base64) {
         throw new Error("NO_DATA");
       }
 
-      const format = (photo.format || "jpeg").toLowerCase();
-      const mimeType: ChatAttachment["mimeType"] =
-        format === "png"
-          ? "image/png"
-          : format === "webp"
-            ? "image/webp"
-            : "image/jpeg";
-
-      const approximateBytes = Math.floor(photo.base64String.length * 0.75);
+      const approximateBytes = Math.floor(result.base64.length * 0.75);
       if (approximateBytes > MAX_IMAGE_ATTACHMENT_BYTES) {
         throw new Error("TOO_LARGE");
       }
 
       setAttachment({
-        name: `camera-${Date.now()}.${mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg"}`,
-        mimeType,
-        data: photo.base64String,
+        name: result.name || `camera-${Date.now()}.jpg`,
+        mimeType: "image/jpeg",
+        data: result.base64,
         kind: "image",
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (/cancel|canceled|cancelled|user cancelled/i.test(message)) {
+
+      if (/CAMERA_CANCELLED|cancel|canceled|cancelled/i.test(message)) {
         return;
       }
 
       setErrorMessage(
-        message === "TOO_LARGE"
+        /TOO_LARGE|IMAGE_TOO_LARGE/i.test(message)
           ? t.attachmentTooLarge
           : t.cameraError,
       );
