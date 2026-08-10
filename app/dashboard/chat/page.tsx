@@ -475,13 +475,6 @@ function readString(
     : "";
 }
 
-function formatMessageContent(value: string): string {
-  return value
-    .replace(/\\r\\n/g, "\n")
-    .replace(/\\n/g, "\n")
-    .replace(/\\t/g, "\t");
-}
-
 function createMessage(
   role: ChatRole,
   content: string,
@@ -562,6 +555,8 @@ function ChatPageContent() {
     t.q3,
     t.q4,
   ];
+
+  
 
   useEffect(() => {
     let mounted = true;
@@ -1103,17 +1098,17 @@ function ChatPageContent() {
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-[100dvh] overflow-x-hidden bg-[#060b1b] text-white"
+      className="min-h-screen bg-[#060b1b] text-white"
     >
-      <div className="mx-auto flex min-h-[100dvh] max-w-[1500px] flex-col px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6 sm:py-4 lg:px-8">
-        <header className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2.5 sm:mb-4 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-3">
-          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/15 text-sm font-bold text-indigo-100 sm:h-11 sm:w-11 sm:rounded-2xl sm:text-lg">
+      <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-white/[0.035] px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-500/15 text-lg font-bold text-indigo-100">
               AL
             </div>
 
             <div>
-              <h1 className="truncate text-sm font-semibold text-white sm:text-base">
+              <h1 className="font-semibold text-white">
                 {t.title}
               </h1>
               <p className="text-xs text-slate-400">
@@ -1122,7 +1117,7 @@ function ChatPageContent() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <select
               value={language}
               onChange={(event) =>
@@ -1131,7 +1126,7 @@ function ChatPageContent() {
                     .value as Language,
                 )
               }
-              className="max-w-[112px] rounded-xl border border-white/10 bg-[#0b1227] px-2 py-2 text-xs text-slate-200 outline-none sm:max-w-none sm:px-3 sm:text-sm"
+              className="rounded-xl border border-white/10 bg-[#0b1227] px-3 py-2 text-sm text-slate-200 outline-none"
               aria-label="Language"
             >
               {supportedLanguages.map(
@@ -1149,14 +1144,14 @@ function ChatPageContent() {
             <button
               type="button"
               onClick={resetChat}
-              className="hidden rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:border-indigo-400/40 hover:text-white sm:inline-flex"
+              className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:border-indigo-400/40 hover:text-white"
             >
               {t.newChat}
             </button>
 
             <Link
               href="/dashboard"
-              className="rounded-xl bg-indigo-500 px-2.5 py-2 text-xs font-semibold text-white transition hover:bg-indigo-400 sm:px-3 sm:text-sm"
+              className="rounded-xl bg-indigo-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
             >
               {t.back}
             </Link>
@@ -1164,27 +1159,27 @@ function ChatPageContent() {
         </header>
 
         <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a1126] sm:rounded-[28px] lg:min-h-[72vh]">
-            <div className="border-b border-white/10 px-4 py-3.5 sm:px-7 sm:py-5">
-              <h2 className="text-xl font-bold sm:text-3xl">
+          <div className="flex min-h-[72vh] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0a1126]">
+            <div className="border-b border-white/10 px-5 py-5 sm:px-7">
+              <h2 className="text-2xl font-bold sm:text-3xl">
                 {t.welcomeTitle.replace(
                   "{name}",
                   displayName,
                 )}
               </h2>
-              <p className="mt-1 text-sm text-slate-300 sm:mt-2 sm:text-base">
+              <p className="mt-2 text-slate-300">
                 {t.welcomeText}
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-7 sm:py-5">
+            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-7">
               {messages.length === 0 ? (
-                <div className="mx-auto flex h-full max-w-3xl flex-col justify-start py-3 sm:justify-center sm:py-8">
+                <div className="mx-auto flex h-full max-w-3xl flex-col justify-center py-8">
                   <p className="text-center text-sm font-medium text-slate-400">
                     {t.topics}
                   </p>
 
-                  <div className="mt-3 grid gap-2.5 sm:mt-5 sm:grid-cols-2 sm:gap-3">
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     {exampleQuestions.map(
                       (question) => (
                         <button
@@ -1195,7 +1190,7 @@ function ChatPageContent() {
                               question,
                             )
                           }
-                          className="rounded-2xl border border-white/10 bg-white/[0.035] p-3.5 text-start text-[13px] leading-5 text-slate-200 transition hover:-translate-y-0.5 hover:border-indigo-400/40 hover:bg-indigo-400/[0.07] sm:p-4 sm:text-sm sm:leading-6"
+                          className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-start text-sm leading-6 text-slate-200 transition hover:-translate-y-0.5 hover:border-indigo-400/40 hover:bg-indigo-400/[0.07]"
                         >
                           {question}
                           <span className="mt-3 block text-indigo-300">
@@ -1207,7 +1202,7 @@ function ChatPageContent() {
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto max-w-4xl space-y-3 sm:space-y-5">
+                <div className="mx-auto max-w-4xl space-y-5">
                   {messages.map(
                     (message) => (
                       <article
@@ -1220,7 +1215,7 @@ function ChatPageContent() {
                         }`}
                       >
                         <div
-                          className={`max-w-[88%] rounded-2xl border px-3.5 py-3 sm:max-w-[82%] sm:rounded-3xl sm:px-5 sm:py-4 ${
+                          className={`max-w-[92%] rounded-3xl border px-5 py-4 sm:max-w-[82%] ${
                             message.role ===
                             "user"
                               ? "border-indigo-400/30 bg-indigo-500 text-white"
@@ -1236,8 +1231,10 @@ function ChatPageContent() {
                             </div>
                           ) : null}
 
-                          <p className="whitespace-pre-wrap break-words text-[13px] leading-6 sm:text-[15px] sm:leading-7">
-                            {formatMessageContent(message.content)}
+                          <p className="whitespace-pre-wrap text-sm leading-7 sm:text-[15px]">
+                            {
+                              message.content
+                            }
                           </p>
 
                           {message
@@ -1347,7 +1344,7 @@ function ChatPageContent() {
               )}
             </div>
 
-            <div className="border-t border-white/10 bg-[#080f22] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-5">
+            <div className="border-t border-white/10 bg-[#080f22] p-4 sm:p-5">
               {errorMessage && (
                 <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-rose-400/20 bg-rose-400/[0.07] px-4 py-3 text-sm text-rose-100">
                   <span>
@@ -1394,7 +1391,7 @@ function ChatPageContent() {
                 onSubmit={handleSubmit}
                 className="mx-auto max-w-5xl"
               >
-                <div className="rounded-2xl border border-white/10 bg-[#050a18] p-2.5 focus-within:border-indigo-400/40 sm:rounded-3xl sm:p-3">
+                <div className="rounded-3xl border border-white/10 bg-[#050a18] p-3 focus-within:border-indigo-400/40">
                   <textarea
                     value={draft}
                     onChange={(event) =>
@@ -1405,12 +1402,12 @@ function ChatPageContent() {
                     onKeyDown={
                       handleKeyDown
                     }
-                    rows={2}
+                    rows={3}
                     maxLength={4000}
                     placeholder={
                       t.placeholder
                     }
-                    className="max-h-32 min-h-[52px] w-full resize-none bg-transparent px-2 py-2 text-[16px] leading-6 text-white outline-none placeholder:text-slate-600 sm:text-sm"
+                    className="w-full resize-none bg-transparent px-2 py-2 text-sm leading-6 text-white outline-none placeholder:text-slate-600"
                   />
 
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
@@ -1481,7 +1478,7 @@ function ChatPageContent() {
                         isPreparingAttachment ||
                         (!draft.trim() && !attachment)
                       }
-                      className="ms-auto rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40 sm:rounded-2xl sm:px-5"
+                      className="ms-auto rounded-2xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isSending
                         ? t.sending
