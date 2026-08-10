@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import {
   useRouter,
   useSearchParams,
@@ -47,12 +48,20 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  attachmentName?: string;
   category?: string;
   topic?: string;
   suggestedActions?: string[];
   officialBodies?: string[];
   importantNotice?: string;
   createdAt: string;
+};
+
+type ChatAttachment = {
+  name: string;
+  mimeType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+  data: string;
+  kind: "image" | "pdf";
 };
 
 type Profile = {
@@ -150,6 +159,16 @@ const copy: Record<
     q2: "Ev sahibim Kaution'u geri vermiyor. Ne yapmalıyım?",
     q3: "Steuererklärung için hangi belgeler gerekli?",
     q4: "Krankenkasse diş protezinin ne kadarını karşılar?",
+    attach: "Ekle",
+    camera: "Kamerayı kullan",
+    chooseAttachment: "Fotoğraf veya dosya seç",
+    removeAttachment: "Eki kaldır",
+    attachmentReady: "Ek hazır",
+    preparingAttachment: "Dosya hazırlanıyor...",
+    attachmentTooLarge: "Dosya çok büyük. PDF en fazla 2 MB olmalı; fotoğraflar otomatik küçültülür.",
+    attachmentTypeError: "Yalnızca PDF, JPG, PNG veya WEBP dosyaları destekleniyor.",
+    cameraError: "Kamera açılamadı. Tekrar deneyebilir veya mevcut bir fotoğraf seçebilirsin.",
+    documentPrompt: "Bu belgeyi incele. Ne olduğunu, önemli bilgileri, riskleri ve benim atmam gereken sonraki adımları açıkla.",
   },
   de: {
     title: "AL Lebensassistent",
@@ -175,6 +194,16 @@ const copy: Record<
     q2: "Mein Vermieter zahlt die Kaution nicht zurück. Was kann ich tun?",
     q3: "Welche Unterlagen brauche ich für die Steuererklärung?",
     q4: "Wie viel zahlt die Krankenkasse für Zahnersatz?",
+    attach: "Anhängen",
+    camera: "Kamera verwenden",
+    chooseAttachment: "Foto oder Datei auswählen",
+    removeAttachment: "Anhang entfernen",
+    attachmentReady: "Anhang bereit",
+    preparingAttachment: "Datei wird vorbereitet...",
+    attachmentTooLarge: "Die Datei ist zu groß. PDFs dürfen höchstens 2 MB groß sein; Fotos werden automatisch verkleinert.",
+    attachmentTypeError: "Unterstützt werden nur PDF, JPG, PNG oder WEBP.",
+    cameraError: "Die Kamera konnte nicht geöffnet werden. Versuche es erneut oder wähle ein vorhandenes Foto.",
+    documentPrompt: "Analysiere dieses Dokument. Erkläre, was es ist, welche wichtigen Informationen und Risiken es enthält und was ich als Nächstes tun sollte.",
   },
   en: {
     title: "AL Life Assistant",
@@ -200,6 +229,16 @@ const copy: Record<
     q2: "My landlord is not returning my deposit. What should I do?",
     q3: "Which documents do I need for a tax return?",
     q4: "How much does health insurance pay for dentures?",
+    attach: "Attach",
+    camera: "Use camera",
+    chooseAttachment: "Choose photo or file",
+    removeAttachment: "Remove attachment",
+    attachmentReady: "Attachment ready",
+    preparingAttachment: "Preparing file...",
+    attachmentTooLarge: "The file is too large. PDFs may be up to 2 MB; photos are automatically reduced.",
+    attachmentTypeError: "Only PDF, JPG, PNG or WEBP files are supported.",
+    cameraError: "The camera could not be opened. Try again or choose an existing photo.",
+    documentPrompt: "Analyze this document. Explain what it is, the important information and risks, and what I should do next.",
   },
   ru: {
     title: "AL — помощник по жизни",
@@ -225,6 +264,16 @@ const copy: Record<
     q2: "Арендодатель не возвращает залог. Что делать?",
     q3: "Какие документы нужны для налоговой декларации?",
     q4: "Сколько касса оплачивает за зубные протезы?",
+    attach: "Прикрепить",
+    camera: "Использовать камеру",
+    chooseAttachment: "Выбрать фото или файл",
+    removeAttachment: "Удалить вложение",
+    attachmentReady: "Вложение готово",
+    preparingAttachment: "Подготовка файла...",
+    attachmentTooLarge: "Файл слишком большой. PDF — не более 2 МБ; фотографии автоматически уменьшаются.",
+    attachmentTypeError: "Поддерживаются только PDF, JPG, PNG и WEBP.",
+    cameraError: "Не удалось открыть камеру. Попробуйте ещё раз или выберите готовое фото.",
+    documentPrompt: "Проанализируй этот документ. Объясни, что это, какие важные сведения и риски он содержит и что мне делать дальше.",
   },
   ar: {
     title: "مساعد الحياة AL",
@@ -250,6 +299,16 @@ const copy: Record<
     q2: "المالك لا يعيد مبلغ التأمين. ماذا أفعل؟",
     q3: "ما الوثائق المطلوبة للإقرار الضريبي؟",
     q4: "كم تدفع شركة التأمين الصحي لطقم الأسنان؟",
+    attach: "إرفاق",
+    camera: "استخدام الكاميرا",
+    chooseAttachment: "اختيار صورة أو ملف",
+    removeAttachment: "إزالة المرفق",
+    attachmentReady: "المرفق جاهز",
+    preparingAttachment: "جارٍ تجهيز الملف...",
+    attachmentTooLarge: "الملف كبير جدًا. الحد الأقصى لملفات PDF هو 2 ميغابايت، ويتم تصغير الصور تلقائيًا.",
+    attachmentTypeError: "يتم دعم PDF وJPG وPNG وWEBP فقط.",
+    cameraError: "تعذر فتح الكاميرا. حاول مرة أخرى أو اختر صورة موجودة.",
+    documentPrompt: "حلّل هذا المستند. اشرح ما هو، والمعلومات والمخاطر المهمة فيه، وما الخطوات التالية التي ينبغي علي اتخاذها.",
   },
   fa: {
     title: "دستیار زندگی AL",
@@ -275,8 +334,115 @@ const copy: Record<
     q2: "صاحبخانه ودیعه را پس نمی‌دهد. چه کنم؟",
     q3: "برای اظهارنامه مالیاتی چه مدارکی لازم است؟",
     q4: "بیمه درمانی چه مقدار از هزینه پروتز دندان را می‌پردازد؟",
+    attach: "پیوست",
+    camera: "استفاده از دوربین",
+    chooseAttachment: "انتخاب عکس یا فایل",
+    removeAttachment: "حذف پیوست",
+    attachmentReady: "پیوست آماده است",
+    preparingAttachment: "در حال آماده‌سازی فایل...",
+    attachmentTooLarge: "فایل بیش از حد بزرگ است. PDF حداکثر ۲ مگابایت؛ عکس‌ها به‌صورت خودکار کوچک می‌شوند.",
+    attachmentTypeError: "فقط PDF، JPG، PNG یا WEBP پشتیبانی می‌شود.",
+    cameraError: "دوربین باز نشد. دوباره تلاش کنید یا یک عکس موجود را انتخاب کنید.",
+    documentPrompt: "این سند را تحلیل کن. توضیح بده چیست، چه اطلاعات و ریسک‌های مهمی دارد و قدم بعدی من چه باید باشد.",
   },
 };
+
+const MAX_PDF_ATTACHMENT_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_ATTACHMENT_BYTES = 1_500_000;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+function fileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.split(",")[1] || "");
+    };
+    reader.onerror = () => reject(reader.error || new Error("FileReader failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressImageFile(file: File): Promise<ChatAttachment> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new window.Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("Image could not be decoded"));
+      element.src = objectUrl;
+    });
+
+    const maxDimension = 1600;
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(image.naturalWidth, image.naturalHeight),
+    );
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas is unavailable");
+
+    context.drawImage(image, 0, 0, width, height);
+
+    let quality = 0.78;
+    let blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality),
+    );
+
+    while (blob && blob.size > MAX_IMAGE_ATTACHMENT_BYTES && quality > 0.48) {
+      quality -= 0.1;
+      blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality),
+      );
+    }
+
+    if (!blob || blob.size > MAX_IMAGE_ATTACHMENT_BYTES) {
+      throw new Error("IMAGE_TOO_LARGE");
+    }
+
+    return {
+      name: file.name.replace(/\.[^.]+$/, "") + ".jpg",
+      mimeType: "image/jpeg",
+      data: await fileToBase64(blob),
+      kind: "image",
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function prepareAttachment(file: File): Promise<ChatAttachment> {
+  if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+    throw new Error("TYPE");
+  }
+
+  if (file.type === "application/pdf") {
+    if (file.size > MAX_PDF_ATTACHMENT_BYTES) {
+      throw new Error("TOO_LARGE");
+    }
+
+    return {
+      name: file.name,
+      mimeType: "application/pdf",
+      data: await fileToBase64(file),
+      kind: "pdf",
+    };
+  }
+
+  return compressImageFile(file);
+}
 
 function normalizeLanguage(
   value: unknown,
@@ -321,6 +487,8 @@ function ChatPageContent() {
     useRef<HTMLDivElement | null>(null);
   const initialQuestionHandled =
     useRef(false);
+  const attachmentInputRef =
+    useRef<HTMLInputElement | null>(null);
 
   const [user, setUser] =
     useState<User | null>(null);
@@ -344,6 +512,12 @@ function ChatPageContent() {
     useState(false);
   const [errorMessage, setErrorMessage] =
     useState("");
+  const [attachment, setAttachment] =
+    useState<ChatAttachment | null>(null);
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] =
+    useState(false);
+  const [isPreparingAttachment, setIsPreparingAttachment] =
+    useState(false);
 
   const t = copy[language];
   const isRtl =
@@ -610,16 +784,103 @@ function ChatPageContent() {
     );
   }, [messages, isSending]);
 
+  const handleAttachmentFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file || isSending || isPreparingAttachment) return;
+
+      setErrorMessage("");
+      setIsPreparingAttachment(true);
+      setIsAttachmentMenuOpen(false);
+
+      try {
+        const prepared = await prepareAttachment(file);
+        setAttachment(prepared);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        setErrorMessage(
+          code === "TYPE"
+            ? t.attachmentTypeError
+            : t.attachmentTooLarge,
+        );
+      } finally {
+        setIsPreparingAttachment(false);
+      }
+    },
+    [isPreparingAttachment, isSending, t.attachmentTooLarge, t.attachmentTypeError],
+  );
+
+  const handleNativeCamera = useCallback(async () => {
+    if (isSending || isPreparingAttachment) return;
+
+    setErrorMessage("");
+    setIsAttachmentMenuOpen(false);
+    setIsPreparingAttachment(true);
+
+    try {
+      const photo = await Camera.getPhoto({
+        source: CameraSource.Camera,
+        resultType: CameraResultType.Base64,
+        quality: 60,
+        width: 1400,
+        height: 1400,
+        correctOrientation: true,
+        saveToGallery: false,
+      });
+
+      if (!photo.base64String) {
+        throw new Error("NO_DATA");
+      }
+
+      const format = (photo.format || "jpeg").toLowerCase();
+      const mimeType: ChatAttachment["mimeType"] =
+        format === "png"
+          ? "image/png"
+          : format === "webp"
+            ? "image/webp"
+            : "image/jpeg";
+
+      const approximateBytes = Math.floor(photo.base64String.length * 0.75);
+      if (approximateBytes > MAX_IMAGE_ATTACHMENT_BYTES) {
+        throw new Error("TOO_LARGE");
+      }
+
+      setAttachment({
+        name: `camera-${Date.now()}.${mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg"}`,
+        mimeType,
+        data: photo.base64String,
+        kind: "image",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/cancel|canceled|cancelled|user cancelled/i.test(message)) {
+        return;
+      }
+
+      setErrorMessage(
+        message === "TOO_LARGE"
+          ? t.attachmentTooLarge
+          : t.cameraError,
+      );
+    } finally {
+      setIsPreparingAttachment(false);
+    }
+  }, [isPreparingAttachment, isSending, t.attachmentTooLarge, t.cameraError]);
+
   const sendMessage = useCallback(
     async (rawMessage: string) => {
-      const message = rawMessage.trim();
+      const typedMessage = rawMessage.trim();
+      const activeAttachment = attachment;
+      const message =
+        typedMessage || (activeAttachment ? t.documentPrompt : "");
 
-      if (!message || isSending) {
+      if (!message || isSending || isPreparingAttachment) {
         return;
       }
 
       const userMessage =
-        createMessage("user", message);
+        createMessage("user", message, {
+          attachmentName: activeAttachment?.name,
+        });
 
       const previousMessages =
         messages.slice(-20);
@@ -629,6 +890,8 @@ function ChatPageContent() {
         userMessage,
       ]);
       setDraft("");
+      setAttachment(null);
+      setIsAttachmentMenuOpen(false);
       setErrorMessage("");
       setIsSending(true);
 
@@ -651,6 +914,7 @@ function ChatPageContent() {
             body: JSON.stringify({
               message,
               language,
+              attachment: activeAttachment,
               history:
                 previousMessages.map(
                   (item) => ({
@@ -714,13 +978,16 @@ function ChatPageContent() {
       }
     },
     [
+      attachment,
       displayName,
       documents,
+      isPreparingAttachment,
       isSending,
       language,
       messages,
       processes,
       profile,
+      t.documentPrompt,
       t.error,
       user,
     ],
@@ -781,6 +1048,8 @@ function ChatPageContent() {
   function resetChat() {
     setMessages([]);
     setDraft("");
+    setAttachment(null);
+    setIsAttachmentMenuOpen(false);
     setErrorMessage("");
     router.replace("/dashboard/chat");
   }
@@ -925,6 +1194,15 @@ function ChatPageContent() {
                               : "border-white/10 bg-white/[0.045] text-slate-100"
                           }`}
                         >
+                          {message.attachmentName ? (
+                            <div className="mb-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-white/15 bg-black/10 px-3 py-2 text-xs">
+                              <span aria-hidden="true">📎</span>
+                              <span className="truncate">
+                                {message.attachmentName}
+                              </span>
+                            </div>
+                          ) : null}
+
                           <p className="whitespace-pre-wrap text-sm leading-7 sm:text-[15px]">
                             {
                               message.content
@@ -1056,6 +1334,31 @@ function ChatPageContent() {
                 </div>
               )}
 
+              {(attachment || isPreparingAttachment) && (
+                <div className="mx-auto mb-3 flex max-w-5xl items-center justify-between gap-3 rounded-2xl border border-indigo-400/25 bg-indigo-400/[0.07] px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-300">
+                      {isPreparingAttachment ? t.preparingAttachment : t.attachmentReady}
+                    </p>
+                    {attachment ? (
+                      <p className="mt-1 truncate text-sm text-slate-200">
+                        📎 {attachment.name}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {attachment && !isSending ? (
+                    <button
+                      type="button"
+                      onClick={() => setAttachment(null)}
+                      className="shrink-0 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/5"
+                    >
+                      {t.removeAttachment}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+
               <form
                 onSubmit={handleSubmit}
                 className="mx-auto max-w-5xl"
@@ -1080,15 +1383,72 @@ function ChatPageContent() {
                   />
 
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
-                    <p className="hidden text-xs text-slate-500 sm:block">
-                      {t.warning}
-                    </p>
+                    <div className="relative flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsAttachmentMenuOpen((current) => !current)
+                        }
+                        disabled={isSending || isPreparingAttachment}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-xl text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
+                        aria-label={t.attach}
+                        title={t.attach}
+                      >
+                        +
+                      </button>
+
+                      {isAttachmentMenuOpen ? (
+                        <div
+                          className={`absolute bottom-12 z-30 w-64 rounded-2xl border border-white/10 bg-[#0b1227] p-2 shadow-2xl ${
+                            isRtl ? "right-0" : "left-0"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => void handleNativeCamera()}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                          >
+                            <span aria-hidden="true">📷</span>
+                            <span>{t.camera}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAttachmentMenuOpen(false);
+                              attachmentInputRef.current?.click();
+                            }}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                          >
+                            <span aria-hidden="true">📎</span>
+                            <span>{t.chooseAttachment}</span>
+                          </button>
+                        </div>
+                      ) : null}
+
+                      <input
+                        ref={attachmentInputRef}
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          void handleAttachmentFile(file);
+                        }}
+                      />
+
+                      <p className="hidden text-xs text-slate-500 sm:block">
+                        {t.warning}
+                      </p>
+                    </div>
 
                     <button
                       type="submit"
                       disabled={
                         isSending ||
-                        !draft.trim()
+                        isPreparingAttachment ||
+                        (!draft.trim() && !attachment)
                       }
                       className="ms-auto rounded-2xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
                     >
