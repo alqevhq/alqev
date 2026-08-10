@@ -487,6 +487,8 @@ function ChatPageContent() {
     useRef<HTMLDivElement | null>(null);
   const initialQuestionHandled =
     useRef(false);
+  const initialAttachmentActionHandled =
+    useRef(false);
   const attachmentInputRef =
     useRef<HTMLInputElement | null>(null);
 
@@ -992,6 +994,30 @@ function ChatPageContent() {
       user,
     ],
   );
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      initialAttachmentActionHandled.current
+    ) {
+      return;
+    }
+
+    const action = searchParams.get("action");
+    if (action !== "camera" && action !== "file") {
+      return;
+    }
+
+    initialAttachmentActionHandled.current = true;
+
+    const timer = window.setTimeout(() => {
+      setIsAttachmentMenuOpen(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isLoading, searchParams]);
 
   useEffect(() => {
     if (

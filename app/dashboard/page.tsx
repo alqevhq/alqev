@@ -135,6 +135,9 @@ const uiTranslations: Record<
     alPopularTopics: "Sık sorulan konular",
     alExplore: "Bir konu seç veya doğrudan sorunu yaz",
     alEmptyQuestion: "Lütfen önce bir soru yaz.",
+    alAttach: "Belge veya fotoğraf ekle",
+    alCamera: "Kamerayı kullan",
+    alChooseFile: "Fotoğraf veya dosya seç",
     topicImmigration: "Oturum ve vatandaşlık",
     topicFamily: "Aile ve çocuk",
     topicBenefits: "Sosyal yardımlar",
@@ -230,6 +233,9 @@ const uiTranslations: Record<
     alPopularTopics: "Häufige Themen",
     alExplore: "Wähle ein Thema oder stelle direkt deine Frage",
     alEmptyQuestion: "Bitte gib zuerst eine Frage ein.",
+    alAttach: "Dokument oder Foto anhängen",
+    alCamera: "Kamera verwenden",
+    alChooseFile: "Foto oder Datei auswählen",
     topicImmigration: "Aufenthalt und Einbürgerung",
     topicFamily: "Familie und Kinder",
     topicBenefits: "Sozialleistungen",
@@ -317,6 +323,9 @@ const uiTranslations: Record<
     alPopularTopics: "Popular topics",
     alExplore: "Choose a topic or ask your question directly",
     alEmptyQuestion: "Please enter a question first.",
+    alAttach: "Attach document or photo",
+    alCamera: "Use camera",
+    alChooseFile: "Choose photo or file",
     topicImmigration: "Residence and citizenship",
     topicFamily: "Family and children",
     topicBenefits: "Social benefits",
@@ -404,6 +413,9 @@ const uiTranslations: Record<
     alPopularTopics: "Популярные темы",
     alExplore: "Выберите тему или задайте вопрос напрямую",
     alEmptyQuestion: "Сначала введите вопрос.",
+    alAttach: "Прикрепить документ или фото",
+    alCamera: "Использовать камеру",
+    alChooseFile: "Выбрать фото или файл",
     topicImmigration: "ВНЖ и гражданство",
     topicFamily: "Семья и дети",
     topicBenefits: "Социальные выплаты",
@@ -491,6 +503,9 @@ const uiTranslations: Record<
     alPopularTopics: "مواضيع شائعة",
     alExplore: "اختر موضوعًا أو اكتب سؤالك مباشرة",
     alEmptyQuestion: "يرجى كتابة سؤال أولًا.",
+    alAttach: "إرفاق مستند أو صورة",
+    alCamera: "استخدام الكاميرا",
+    alChooseFile: "اختيار صورة أو ملف",
     topicImmigration: "الإقامة والجنسية",
     topicFamily: "الأسرة والأطفال",
     topicBenefits: "المساعدات الاجتماعية",
@@ -578,6 +593,9 @@ const uiTranslations: Record<
     alPopularTopics: "موضوعات پرکاربرد",
     alExplore: "یک موضوع انتخاب کنید یا مستقیماً سؤال خود را بنویسید",
     alEmptyQuestion: "لطفاً ابتدا یک سؤال بنویسید.",
+    alAttach: "پیوست سند یا عکس",
+    alCamera: "استفاده از دوربین",
+    alChooseFile: "انتخاب عکس یا فایل",
     topicImmigration: "اقامت و تابعیت",
     topicFamily: "خانواده و فرزندان",
     topicBenefits: "کمک‌های اجتماعی",
@@ -1165,6 +1183,7 @@ export default function DashboardPage() {
 
   const [alQuestion, setAlQuestion] = useState("");
   const [alQuestionError, setAlQuestionError] = useState("");
+  const [isAlAttachmentMenuOpen, setIsAlAttachmentMenuOpen] = useState(false);
 
   
   useEffect(() => {
@@ -1769,6 +1788,12 @@ export default function DashboardPage() {
     router.push(`/dashboard/chat?question=${encodeURIComponent(question)}`);
   }
 
+  function openAlAttachment(action: "camera" | "file") {
+    setAlQuestionError("");
+    setIsAlAttachmentMenuOpen(false);
+    router.push(`/dashboard/chat?action=${action}`);
+  }
+
   function handleSuggestedQuestion(question: string) {
     setAlQuestion(question);
     setAlQuestionError("");
@@ -2027,9 +2052,47 @@ export default function DashboardPage() {
                   />
 
                   <div className="flex min-w-0 flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs leading-5 text-zinc-500">
-                      {copy.alPrivacy}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIsAlAttachmentMenuOpen((current) => !current)
+                          }
+                          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-2xl font-light text-zinc-200 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white"
+                          aria-label={copy.alAttach}
+                          title={copy.alAttach}
+                        >
+                          +
+                        </button>
+
+                        {isAlAttachmentMenuOpen ? (
+                          <div className="absolute bottom-14 left-0 z-40 w-64 rounded-2xl border border-white/10 bg-[#0d0d18] p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55)]">
+                            <button
+                              type="button"
+                              onClick={() => openAlAttachment("camera")}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
+                            >
+                              <span aria-hidden="true">📷</span>
+                              <span>{copy.alCamera}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => openAlAttachment("file")}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
+                            >
+                              <span aria-hidden="true">📎</span>
+                              <span>{copy.alChooseFile}</span>
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <p className="hidden min-w-0 text-xs leading-5 text-zinc-500 sm:block">
+                        {copy.alPrivacy}
+                      </p>
+                    </div>
 
                     <button
                       type="submit"
