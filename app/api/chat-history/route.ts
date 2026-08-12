@@ -13,6 +13,7 @@ import {
   getChatConversation,
   listChats,
   renameChat,
+  saveChatExchange,
 } from "@/lib/ai/chat-history";
 
 async function getUserId(
@@ -58,6 +59,22 @@ function readString(
   return typeof value === "string"
     ? value.trim()
     : "";
+}
+
+function readStringArray(
+  value: unknown,
+): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (item): item is string =>
+        typeof item === "string",
+    )
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export async function GET(
@@ -168,10 +185,101 @@ export async function POST(
     }
 
     const body =
-      (await request.json()) as {
-        title?: unknown;
-        language?: unknown;
-      };
+      (await request.json()) as Record<
+        string,
+        unknown
+      >;
+
+    const action =
+      readString(
+        body.action,
+      );
+
+    if (action === "saveExchange") {
+      const userMessage =
+        body.userMessage &&
+        typeof body.userMessage === "object"
+          ? (body.userMessage as Record<string, unknown>)
+          : {};
+
+      const assistantMessage =
+        body.assistantMessage &&
+        typeof body.assistantMessage === "object"
+          ? (body.assistantMessage as Record<string, unknown>)
+          : {};
+
+      const userContent =
+        readString(
+          userMessage.content,
+        );
+
+      const assistantContent =
+        readString(
+          assistantMessage.content,
+        );
+
+      if (!userContent || !assistantContent) {
+        return NextResponse.json(
+          {
+            error:
+              "Kullanıcı ve AL mesajı gerekli.",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      const result =
+        await saveChatExchange({
+          userId,
+          chatId:
+            readString(
+              body.chatId,
+            ) || null,
+          language:
+            readString(
+              body.language,
+            ) || "tr",
+          userMessage: {
+            content:
+              userContent,
+            attachmentName:
+              readString(
+                userMessage.attachmentName,
+              ) || undefined,
+          },
+          assistantMessage: {
+            content:
+              assistantContent,
+            category:
+              readString(
+                assistantMessage.category,
+              ) || undefined,
+            topic:
+              readString(
+                assistantMessage.topic,
+              ) || undefined,
+            suggestedActions:
+              readStringArray(
+                assistantMessage.suggestedActions,
+              ),
+            officialBodies:
+              readStringArray(
+                assistantMessage.officialBodies,
+              ),
+            importantNotice:
+              readString(
+                assistantMessage.importantNotice,
+              ) || undefined,
+          },
+        });
+
+      return NextResponse.json({
+        success: true,
+        data: result,
+      });
+    }
 
     const chat =
       await createChat(
@@ -204,7 +312,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Yeni sohbet oluşturulamadı.",
+          "Sohbet geçmişi kaydedilemedi.",
       },
       {
         status: 500,

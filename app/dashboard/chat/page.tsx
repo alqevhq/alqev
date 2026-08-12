@@ -29,7 +29,9 @@ import {
   type User,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import ChatHistorySidebar from "@/components/chat/ChatHistorySidebar";
+import ChatHistorySidebar, {
+  type ChatHistoryItem,
+} from "@/components/chat/ChatHistorySidebar";
 import {
   readStoredLanguage,
   storeLanguage,
@@ -138,6 +140,54 @@ type ChatApiResponse = {
     importantNotice: string;
     language: Language;
     createdAt: string;
+  };
+};
+
+type ChatHistorySummary = {
+  id: string;
+  title: string;
+  language: string;
+  lastMessagePreview: string;
+  messageCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+type ChatHistoryStoredMessage = {
+  id: string;
+  role: ChatRole;
+  content: string;
+  attachmentName?: string;
+  category?: string;
+  topic?: string;
+  suggestedActions?: string[];
+  officialBodies?: string[];
+  importantNotice?: string;
+  createdAt: string | null;
+};
+
+type ChatHistoryConversation = {
+  chat: ChatHistorySummary;
+  messages: ChatHistoryStoredMessage[];
+};
+
+type ChatHistoryListResponse = {
+  success?: boolean;
+  error?: string;
+  data?: ChatHistorySummary[];
+};
+
+type ChatHistoryConversationResponse = {
+  success?: boolean;
+  error?: string;
+  data?: ChatHistoryConversation;
+};
+
+type ChatHistorySaveResponse = {
+  success?: boolean;
+  error?: string;
+  data?: {
+    chatId: string;
   };
 };
 
@@ -534,6 +584,10 @@ function ChatPageContent() {
     useState<string | null>(null);
   const [chatHistoryOpen, setChatHistoryOpen] =
     useState(false);
+  const [chatHistoryItems, setChatHistoryItems] =
+    useState<ChatHistoryItem[]>([]);
+  const [isChatHistoryLoading, setIsChatHistoryLoading] =
+    useState(false);
   const [draft, setDraft] =
     useState("");
   const [isLoading, setIsLoading] =
@@ -570,6 +624,145 @@ function ChatPageContent() {
     t.q3,
     t.q4,
   ];
+
+  const formatChatHistoryDate = useCallback(
+    (value: string | null): string => {
+      if (!value) return "";
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+
+      const localeByLanguage: Record<Language, string> = {
+        tr: "tr-TR",
+        de: "de-DE",
+        en: "en-GB",
+        ru: "ru-RU",
+        ar: "ar",
+        fa: "fa-IR",
+      };
+
+      return new Intl.DateTimeFormat(
+        localeByLanguage[language],
+        {
+          dateStyle: "medium",
+          timeStyle: "short",
+        },
+      ).format(date);
+    },
+    [language],
+  );
+
+  const loadChatHistory = useCallback(async () => {
+    if (!user) return;
+
+    setIsChatHistoryLoading(true);
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch(
+        "/api/chat-history",
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+          cache: "no-store",
+        },
+      );
+
+      const payload =
+        (await response.json()) as ChatHistoryListResponse;
+
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(
+          payload.error || "Sohbet geçmişi yüklenemedi.",
+        );
+      }
+
+      setChatHistoryItems(
+        payload.data.map((chat) => ({
+          id: chat.id,
+          title: chat.title || "Yeni sohbet",
+          updatedAt: formatChatHistoryDate(chat.updatedAt),
+        })),
+      );
+    } catch (error) {
+      console.error(
+        "Sohbet geçmişi yüklenemedi:",
+        error,
+      );
+    } finally {
+      setIsChatHistoryLoading(false);
+    }
+  }, [formatChatHistoryDate, user]);
+
+  const loadConversation = useCallback(
+    async (conversationId: string) => {
+      if (!user || isSending) return;
+
+      setErrorMessage("");
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(
+          `/api/chat-history?chatId=${encodeURIComponent(
+            conversationId,
+          )}`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+            cache: "no-store",
+          },
+        );
+
+        const payload =
+          (await response.json()) as ChatHistoryConversationResponse;
+
+        if (!response.ok || !payload.success || !payload.data) {
+          throw new Error(
+            payload.error || t.error,
+          );
+        }
+
+        const restoredMessages: ChatMessage[] =
+          payload.data.messages.map((item) => ({
+            id: item.id,
+            role: item.role,
+            content: item.content,
+            attachmentName: item.attachmentName,
+            category: item.category,
+            topic: item.topic,
+            suggestedActions: item.suggestedActions,
+            officialBodies: item.officialBodies,
+            importantNotice: item.importantNotice,
+            createdAt:
+              item.createdAt || new Date().toISOString(),
+          }));
+
+        setMessages(restoredMessages);
+        setActiveConversationId(conversationId);
+        setDraft("");
+        setAttachment(null);
+        setIsAttachmentMenuOpen(false);
+        setChatHistoryOpen(false);
+        router.replace("/dashboard/chat");
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : t.error,
+        );
+      }
+    },
+    [isSending, router, t.error, user],
+  );
+
+  useEffect(() => {
+    if (!chatHistoryOpen || !user) return;
+    void loadChatHistory();
+  }, [chatHistoryOpen, loadChatHistory, user]);
 
   useEffect(() => {
     let mounted = true;
@@ -1071,6 +1264,63 @@ function ChatPageContent() {
           ...current,
           assistantMessage,
         ]);
+
+        try {
+          const historyResponse = await fetch(
+            "/api/chat-history",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({
+                action: "saveExchange",
+                chatId: activeConversationId,
+                language,
+                userMessage: {
+                  content: userMessage.content,
+                  attachmentName: userMessage.attachmentName,
+                },
+                assistantMessage: {
+                  content: assistantMessage.content,
+                  category: assistantMessage.category,
+                  topic: assistantMessage.topic,
+                  suggestedActions:
+                    assistantMessage.suggestedActions,
+                  officialBodies:
+                    assistantMessage.officialBodies,
+                  importantNotice:
+                    assistantMessage.importantNotice,
+                },
+              }),
+            },
+          );
+
+          const historyPayload =
+            (await historyResponse.json()) as ChatHistorySaveResponse;
+
+          if (
+            historyResponse.ok &&
+            historyPayload.success &&
+            historyPayload.data?.chatId
+          ) {
+            setActiveConversationId(
+              historyPayload.data.chatId,
+            );
+            void loadChatHistory();
+          } else {
+            console.error(
+              "Sohbet geçmişi kaydedilemedi:",
+              historyPayload.error,
+            );
+          }
+        } catch (historyError) {
+          console.error(
+            "Sohbet geçmişi kaydedilemedi:",
+            historyError,
+          );
+        }
       } catch (error) {
         const messageText =
           error instanceof Error
@@ -1083,12 +1333,14 @@ function ChatPageContent() {
       }
     },
     [
+      activeConversationId,
       attachment,
       displayName,
       documents,
       isPreparingAttachment,
       isSending,
       language,
+      loadChatHistory,
       messages,
       processes,
       profile,
@@ -1175,6 +1427,7 @@ function ChatPageContent() {
   }
 
   function resetChat() {
+    setActiveConversationId(null);
     setMessages([]);
     setDraft("");
     setAttachment(null);
@@ -1277,8 +1530,14 @@ function ChatPageContent() {
             />
 
             <div className="relative h-full w-[88vw] max-w-sm shadow-2xl">
+              {isChatHistoryLoading ? (
+                <div className="pointer-events-none absolute right-14 top-5 z-10 text-xs text-slate-500">
+                  ...
+                </div>
+              ) : null}
+
               <ChatHistorySidebar
-                conversations={[]}
+                conversations={chatHistoryItems}
                 activeConversationId={activeConversationId}
                 isOpen
                 onClose={() => setChatHistoryOpen(false)}
@@ -1288,8 +1547,7 @@ function ChatPageContent() {
                   setChatHistoryOpen(false);
                 }}
                 onSelectConversation={(conversationId) => {
-                  setActiveConversationId(conversationId);
-                  setChatHistoryOpen(false);
+                  void loadConversation(conversationId);
                 }}
               />
             </div>
