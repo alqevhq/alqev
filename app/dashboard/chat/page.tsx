@@ -1366,13 +1366,36 @@ function ChatPageContent() {
     initialAttachmentActionHandled.current = true;
 
     const timer = window.setTimeout(() => {
+      if (
+        action === "camera" &&
+        Capacitor.isNativePlatform() &&
+        Capacitor.getPlatform() === "android"
+      ) {
+        void handleNativeCamera();
+        router.replace("/dashboard/chat");
+        return;
+      }
+
+      if (action === "file") {
+        attachmentInputRef.current?.click();
+        router.replace("/dashboard/chat");
+        return;
+      }
+
+      // Web/non-Android fallback keeps the existing attachment menu behavior.
       setIsAttachmentMenuOpen(true);
+      router.replace("/dashboard/chat");
     }, 0);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [isLoading, searchParams]);
+  }, [
+    handleNativeCamera,
+    isLoading,
+    router,
+    searchParams,
+  ]);
 
   useEffect(() => {
     if (
