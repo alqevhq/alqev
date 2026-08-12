@@ -809,7 +809,7 @@ async function callGeminiWithRetry(input: {
           ],
           generationConfig: {
             responseMimeType: "application/json",
-            maxOutputTokens: 2500,
+            maxOutputTokens: 4096,
             temperature: 0.25,
             topP: 0.85,
             responseSchema: buildResponseSchema(),
@@ -964,11 +964,29 @@ function buildResponseSchema() {
 
 function parseGeminiResult(responseText: string): ChatResult {
   let parsed: unknown;
+  const normalizedResponse = responseText
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 
   try {
-    parsed = JSON.parse(responseText);
+    parsed = JSON.parse(normalizedResponse);
   } catch {
-    throw new Error("AL sağlayıcısının JSON sonucu okunamadı.");
+    const firstBrace = normalizedResponse.indexOf("{");
+    const lastBrace = normalizedResponse.lastIndexOf("}");
+
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      try {
+        parsed = JSON.parse(
+          normalizedResponse.slice(firstBrace, lastBrace + 1),
+        );
+      } catch {
+        throw new Error("AL sağlayıcısının JSON sonucu okunamadı.");
+      }
+    } else {
+      throw new Error("AL sağlayıcısının JSON sonucu okunamadı.");
+    }
   }
 
   if (!parsed || typeof parsed !== "object") {
