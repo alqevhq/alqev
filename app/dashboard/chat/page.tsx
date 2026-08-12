@@ -1808,47 +1808,76 @@ function ChatPageContent() {
 
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
                     <div className="relative flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setIsAttachmentMenuOpen((current) => !current)
-                        }
-                        disabled={isSending || isPreparingAttachment}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-xl text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
-                        aria-label={t.attach}
-                        title={t.attach}
-                      >
-                        +
-                      </button>
-
-                      {isAttachmentMenuOpen ? (
-                        <div
-                          className={`absolute bottom-12 z-30 w-64 rounded-2xl border border-white/10 bg-[#0b1227] p-2 shadow-2xl ${
-                            isRtl ? "right-0" : "left-0"
-                          }`}
-                        >
+                      {Capacitor.isNativePlatform() &&
+                      Capacitor.getPlatform() === "android" ? (
+                        <>
                           <button
                             type="button"
                             onClick={() => void handleNativeCamera()}
-                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                            disabled={isSending || isPreparingAttachment}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-base text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
+                            aria-label={t.camera}
+                            title={t.camera}
                           >
-                            <span aria-hidden="true">📷</span>
-                            <span>{t.camera}</span>
+                            📷
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setIsAttachmentMenuOpen(false);
-                              attachmentInputRef.current?.click();
-                            }}
-                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                            onClick={() => attachmentInputRef.current?.click()}
+                            disabled={isSending || isPreparingAttachment}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-base text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
+                            aria-label={t.chooseAttachment}
+                            title={t.chooseAttachment}
                           >
-                            <span aria-hidden="true">📎</span>
-                            <span>{t.chooseAttachment}</span>
+                            📎
                           </button>
-                        </div>
-                      ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setIsAttachmentMenuOpen((current) => !current)
+                            }
+                            disabled={isSending || isPreparingAttachment}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-xl text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
+                            aria-label={t.attach}
+                            title={t.attach}
+                          >
+                            +
+                          </button>
+
+                          {isAttachmentMenuOpen ? (
+                            <div
+                              className={`absolute bottom-12 z-30 w-64 rounded-2xl border border-white/10 bg-[#0b1227] p-2 shadow-2xl ${
+                                isRtl ? "right-0" : "left-0"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => void handleNativeCamera()}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                              >
+                                <span aria-hidden="true">📷</span>
+                                <span>{t.camera}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsAttachmentMenuOpen(false);
+                                  attachmentInputRef.current?.click();
+                                }}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                              >
+                                <span aria-hidden="true">📎</span>
+                                <span>{t.chooseAttachment}</span>
+                              </button>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
 
                       <input
                         ref={attachmentInputRef}
