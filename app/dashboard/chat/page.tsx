@@ -67,6 +67,15 @@ type ChatAttachment = {
   kind: "image" | "pdf";
 };
 
+type DashboardChatHandoff = {
+  question: string;
+  attachment: ChatAttachment;
+  createdAt?: number;
+};
+
+const DASHBOARD_CHAT_HANDOFF_KEY =
+  "alqev:dashboard-chat-handoff";
+
 type NativeDocumentCameraResult = {
   base64: string;
   mimeType: "image/jpeg";
@@ -558,6 +567,8 @@ function ChatPageContent() {
   const scrollAnchorRef =
     useRef<HTMLDivElement | null>(null);
   const initialQuestionHandled =
+    useRef(false);
+  const initialHandoffHandled =
     useRef(false);
   const initialAttachmentActionHandled =
     useRef(false);
@@ -1165,9 +1176,15 @@ function ChatPageContent() {
   ]);
 
   const sendMessage = useCallback(
-    async (rawMessage: string) => {
+    async (
+      rawMessage: string,
+      attachmentOverride?: ChatAttachment | null,
+    ) => {
       const typedMessage = rawMessage.trim();
-      const activeAttachment = attachment;
+      const activeAttachment =
+        attachmentOverride === undefined
+          ? attachment
+          : attachmentOverride;
       const message =
         typedMessage || (activeAttachment ? t.documentPrompt : "");
 
@@ -1349,6 +1366,88 @@ function ChatPageContent() {
       user,
     ],
   );
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      initialHandoffHandled.current ||
+      searchParams.get("handoff") !== "1"
+    ) {
+      return;
+    }
+
+    initialHandoffHandled.current =
+      true;
+
+    let handoff:
+      | DashboardChatHandoff
+      | null = null;
+
+    try {
+      const stored =
+        window.sessionStorage.getItem(
+          DASHBOARD_CHAT_HANDOFF_KEY,
+        );
+
+      if (stored) {
+        const parsed =
+          JSON.parse(
+            stored,
+          ) as DashboardChatHandoff;
+
+        if (
+          parsed?.question &&
+          parsed?.attachment?.name &&
+          parsed?.attachment?.data &&
+          parsed?.attachment?.mimeType &&
+          (parsed.attachment.kind ===
+            "image" ||
+            parsed.attachment.kind ===
+              "pdf")
+        ) {
+          handoff = parsed;
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Dashboard attachment handoff could not be read:",
+        error,
+      );
+    } finally {
+      try {
+        window.sessionStorage.removeItem(
+          DASHBOARD_CHAT_HANDOFF_KEY,
+        );
+      } catch {
+        // Optional cleanup only.
+      }
+    }
+
+    router.replace(
+      "/dashboard/chat",
+    );
+
+    if (!handoff) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(() => {
+        void sendMessage(
+          handoff!.question,
+          handoff!.attachment,
+        );
+      }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    isLoading,
+    router,
+    searchParams,
+    sendMessage,
+  ]);
 
   useEffect(() => {
     if (

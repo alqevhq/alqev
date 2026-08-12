@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import {
   collection,
@@ -31,6 +32,45 @@ import {
 } from "@/lib/i18n";
 
 type SupportedLanguage = "de" | "en" | "tr" | "ru" | "ar" | "fa";
+
+type DashboardChatAttachment = {
+  name: string;
+  mimeType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+  data: string;
+  kind: "image" | "pdf";
+};
+
+type NativeDocumentCameraResult = {
+  base64: string;
+  mimeType: "image/jpeg";
+  name: string;
+};
+
+type NativeDocumentCameraPendingResult = {
+  available: boolean;
+  base64?: string;
+  mimeType?: "image/jpeg";
+  name?: string;
+};
+
+type NativeDocumentCameraPlugin = {
+  capture(): Promise<NativeDocumentCameraResult>;
+  getPendingResult(): Promise<NativeDocumentCameraPendingResult>;
+};
+
+const NativeDocumentCamera =
+  registerPlugin<NativeDocumentCameraPlugin>("NativeDocumentCamera");
+
+const DASHBOARD_CHAT_HANDOFF_KEY = "alqev:dashboard-chat-handoff";
+const MAX_DASHBOARD_PDF_BYTES = 2 * 1024 * 1024;
+const MAX_DASHBOARD_IMAGE_BYTES = 1_500_000;
+const DASHBOARD_ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 
 const supportedLanguages: { code: SupportedLanguage; label: string }[] = [
   { code: "de", label: "Deutsch" },
@@ -138,6 +178,13 @@ const uiTranslations: Record<
     alAttach: "Belge veya fotoğraf ekle",
     alCamera: "Kamerayı kullan",
     alChooseFile: "Fotoğraf veya dosya seç",
+    alAttachmentReady: "Ek hazır",
+    alRemoveAttachment: "Eki kaldır",
+    alPreparingAttachment: "Dosya hazırlanıyor...",
+    alAttachmentTooLarge: "Dosya çok büyük. PDF en fazla 2 MB olmalı; fotoğraflar otomatik küçültülür.",
+    alAttachmentTypeError: "Yalnızca PDF, JPG, PNG veya WEBP dosyaları destekleniyor.",
+    alCameraError: "Kamera açılamadı. Tekrar deneyebilir veya mevcut bir fotoğraf seçebilirsin.",
+    alDocumentPrompt: "Bu belgeyi incele. Ne olduğunu, önemli bilgileri, riskleri ve benim atmam gereken sonraki adımları açıkla.",
     topicImmigration: "Oturum ve vatandaşlık",
     topicFamily: "Aile ve çocuk",
     topicBenefits: "Sosyal yardımlar",
@@ -236,6 +283,13 @@ const uiTranslations: Record<
     alAttach: "Dokument oder Foto anhängen",
     alCamera: "Kamera verwenden",
     alChooseFile: "Foto oder Datei auswählen",
+    alAttachmentReady: "Anhang bereit",
+    alRemoveAttachment: "Anhang entfernen",
+    alPreparingAttachment: "Datei wird vorbereitet...",
+    alAttachmentTooLarge: "Die Datei ist zu groß. PDFs dürfen höchstens 2 MB groß sein; Fotos werden automatisch verkleinert.",
+    alAttachmentTypeError: "Unterstützt werden nur PDF, JPG, PNG oder WEBP.",
+    alCameraError: "Die Kamera konnte nicht geöffnet werden. Versuche es erneut oder wähle ein vorhandenes Foto.",
+    alDocumentPrompt: "Analysiere dieses Dokument. Erkläre, was es ist, welche wichtigen Informationen und Risiken es enthält und was ich als Nächstes tun sollte.",
     topicImmigration: "Aufenthalt und Einbürgerung",
     topicFamily: "Familie und Kinder",
     topicBenefits: "Sozialleistungen",
@@ -326,6 +380,13 @@ const uiTranslations: Record<
     alAttach: "Attach document or photo",
     alCamera: "Use camera",
     alChooseFile: "Choose photo or file",
+    alAttachmentReady: "Attachment ready",
+    alRemoveAttachment: "Remove attachment",
+    alPreparingAttachment: "Preparing file...",
+    alAttachmentTooLarge: "The file is too large. PDFs may be up to 2 MB; photos are automatically reduced.",
+    alAttachmentTypeError: "Only PDF, JPG, PNG or WEBP files are supported.",
+    alCameraError: "The camera could not be opened. Try again or choose an existing photo.",
+    alDocumentPrompt: "Analyze this document. Explain what it is, the important information and risks, and what I should do next.",
     topicImmigration: "Residence and citizenship",
     topicFamily: "Family and children",
     topicBenefits: "Social benefits",
@@ -416,6 +477,13 @@ const uiTranslations: Record<
     alAttach: "Прикрепить документ или фото",
     alCamera: "Использовать камеру",
     alChooseFile: "Выбрать фото или файл",
+    alAttachmentReady: "Вложение готово",
+    alRemoveAttachment: "Удалить вложение",
+    alPreparingAttachment: "Подготовка файла...",
+    alAttachmentTooLarge: "Файл слишком большой. PDF — не более 2 МБ; фотографии автоматически уменьшаются.",
+    alAttachmentTypeError: "Поддерживаются только PDF, JPG, PNG и WEBP.",
+    alCameraError: "Не удалось открыть камеру. Попробуйте ещё раз или выберите готовое фото.",
+    alDocumentPrompt: "Проанализируй этот документ. Объясни, что это, какие важные сведения и риски он содержит и что мне делать дальше.",
     topicImmigration: "ВНЖ и гражданство",
     topicFamily: "Семья и дети",
     topicBenefits: "Социальные выплаты",
@@ -506,6 +574,13 @@ const uiTranslations: Record<
     alAttach: "إرفاق مستند أو صورة",
     alCamera: "استخدام الكاميرا",
     alChooseFile: "اختيار صورة أو ملف",
+    alAttachmentReady: "المرفق جاهز",
+    alRemoveAttachment: "إزالة المرفق",
+    alPreparingAttachment: "جارٍ تجهيز الملف...",
+    alAttachmentTooLarge: "الملف كبير جدًا. الحد الأقصى لملفات PDF هو 2 ميغابايت، ويتم تصغير الصور تلقائيًا.",
+    alAttachmentTypeError: "يتم دعم PDF وJPG وPNG وWEBP فقط.",
+    alCameraError: "تعذر فتح الكاميرا. حاول مرة أخرى أو اختر صورة موجودة.",
+    alDocumentPrompt: "حلّل هذا المستند. اشرح ما هو، والمعلومات والمخاطر المهمة فيه، وما الخطوات التالية التي ينبغي علي اتخاذها.",
     topicImmigration: "الإقامة والجنسية",
     topicFamily: "الأسرة والأطفال",
     topicBenefits: "المساعدات الاجتماعية",
@@ -596,6 +671,13 @@ const uiTranslations: Record<
     alAttach: "پیوست سند یا عکس",
     alCamera: "استفاده از دوربین",
     alChooseFile: "انتخاب عکس یا فایل",
+    alAttachmentReady: "پیوست آماده است",
+    alRemoveAttachment: "حذف پیوست",
+    alPreparingAttachment: "در حال آماده‌سازی فایل...",
+    alAttachmentTooLarge: "فایل بیش از حد بزرگ است. PDF حداکثر ۲ مگابایت؛ عکس‌ها به‌صورت خودکار کوچک می‌شوند.",
+    alAttachmentTypeError: "فقط PDF، JPG، PNG یا WEBP پشتیبانی می‌شود.",
+    alCameraError: "دوربین باز نشد. دوباره تلاش کنید یا یک عکس موجود را انتخاب کنید.",
+    alDocumentPrompt: "این سند را تحلیل کن. توضیح بده چیست، چه اطلاعات و ریسک‌های مهمی دارد و قدم بعدی من چه باید باشد.",
     topicImmigration: "اقامت و تابعیت",
     topicFamily: "خانواده و فرزندان",
     topicBenefits: "کمک‌های اجتماعی",
@@ -1157,6 +1239,205 @@ function getRecommendationText(
   };
 }
 
+
+function dashboardFileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result =
+        typeof reader.result === "string"
+          ? reader.result
+          : "";
+
+      resolve(result.split(",")[1] || "");
+    };
+
+    reader.onerror = () =>
+      reject(
+        reader.error ||
+          new Error("FileReader failed"),
+      );
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressDashboardImage(
+  file: File,
+): Promise<DashboardChatAttachment> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image =
+      await new Promise<HTMLImageElement>(
+        (resolve, reject) => {
+          const element =
+            new window.Image();
+
+          element.onload = () =>
+            resolve(element);
+
+          element.onerror = () =>
+            reject(
+              new Error(
+                "Image could not be decoded",
+              ),
+            );
+
+          element.src = objectUrl;
+        },
+      );
+
+    const maxDimension = 1600;
+    const scale = Math.min(
+      1,
+      maxDimension /
+        Math.max(
+          image.naturalWidth,
+          image.naturalHeight,
+        ),
+    );
+
+    const width = Math.max(
+      1,
+      Math.round(
+        image.naturalWidth * scale,
+      ),
+    );
+
+    const height = Math.max(
+      1,
+      Math.round(
+        image.naturalHeight * scale,
+      ),
+    );
+
+    const canvas =
+      document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context =
+      canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error(
+        "Canvas is unavailable",
+      );
+    }
+
+    context.drawImage(
+      image,
+      0,
+      0,
+      width,
+      height,
+    );
+
+    let quality = 0.78;
+
+    let blob =
+      await new Promise<Blob | null>(
+        (resolve) =>
+          canvas.toBlob(
+            resolve,
+            "image/jpeg",
+            quality,
+          ),
+      );
+
+    while (
+      blob &&
+      blob.size >
+        MAX_DASHBOARD_IMAGE_BYTES &&
+      quality > 0.48
+    ) {
+      quality -= 0.1;
+
+      blob =
+        await new Promise<Blob | null>(
+          (resolve) =>
+            canvas.toBlob(
+              resolve,
+              "image/jpeg",
+              quality,
+            ),
+        );
+    }
+
+    if (
+      !blob ||
+      blob.size >
+        MAX_DASHBOARD_IMAGE_BYTES
+    ) {
+      throw new Error(
+        "IMAGE_TOO_LARGE",
+      );
+    }
+
+    return {
+      name:
+        file.name.replace(
+          /\.[^.]+$/,
+          "",
+        ) + ".jpg",
+      mimeType: "image/jpeg",
+      data:
+        await dashboardFileToBase64(
+          blob,
+        ),
+      kind: "image",
+    };
+  } finally {
+    URL.revokeObjectURL(
+      objectUrl,
+    );
+  }
+}
+
+async function prepareDashboardAttachment(
+  file: File,
+): Promise<DashboardChatAttachment> {
+  if (
+    !DASHBOARD_ALLOWED_ATTACHMENT_TYPES.has(
+      file.type,
+    )
+  ) {
+    throw new Error("TYPE");
+  }
+
+  if (
+    file.type ===
+    "application/pdf"
+  ) {
+    if (
+      file.size >
+      MAX_DASHBOARD_PDF_BYTES
+    ) {
+      throw new Error(
+        "TOO_LARGE",
+      );
+    }
+
+    return {
+      name: file.name,
+      mimeType:
+        "application/pdf",
+      data:
+        await dashboardFileToBase64(
+          file,
+        ),
+      kind: "pdf",
+    };
+  }
+
+  return compressDashboardImage(
+    file,
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -1184,6 +1465,16 @@ export default function DashboardPage() {
   const [alQuestion, setAlQuestion] = useState("");
   const [alQuestionError, setAlQuestionError] = useState("");
   const [isAlAttachmentMenuOpen, setIsAlAttachmentMenuOpen] = useState(false);
+  const [alAttachment, setAlAttachment] =
+    useState<DashboardChatAttachment | null>(null);
+  const [isAlAttachmentPreparing, setIsAlAttachmentPreparing] =
+    useState(false);
+  const alAttachmentInputRef =
+    useRef<HTMLInputElement | null>(null);
+  const alCameraInputRef =
+    useRef<HTMLInputElement | null>(null);
+  const pendingDashboardCameraRecoveryHandled =
+    useRef(false);
 
   
   useEffect(() => {
@@ -1774,24 +2065,284 @@ export default function DashboardPage() {
     }
   }
 
-  function handleAlSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    if (
+      pendingDashboardCameraRecoveryHandled.current
+    ) {
+      return;
+    }
 
-    const question = alQuestion.trim();
+    pendingDashboardCameraRecoveryHandled.current =
+      true;
 
-    if (!question) {
-      setAlQuestionError(uiTranslations[selectedLanguage].alEmptyQuestion);
+    if (
+      !Capacitor.isNativePlatform() ||
+      Capacitor.getPlatform() !== "android"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const recoverPendingCameraResult =
+      async () => {
+        try {
+          const result =
+            await NativeDocumentCamera.getPendingResult();
+
+          if (
+            cancelled ||
+            !result.available ||
+            !result.base64
+          ) {
+            return;
+          }
+
+          const approximateBytes =
+            Math.floor(
+              result.base64.length *
+                0.75,
+            );
+
+          if (
+            approximateBytes >
+            MAX_DASHBOARD_IMAGE_BYTES
+          ) {
+            if (!cancelled) {
+              setAlQuestionError(
+                uiTranslations[
+                  selectedLanguage
+                ].alAttachmentTooLarge,
+              );
+            }
+
+            return;
+          }
+
+          if (cancelled) {
+            return;
+          }
+
+          setAlAttachment({
+            name:
+              result.name ||
+              `camera-${Date.now()}.jpg`,
+            mimeType: "image/jpeg",
+            data: result.base64,
+            kind: "image",
+          });
+
+          setAlQuestionError("");
+        } catch (error) {
+          console.error(
+            "Pending dashboard camera result could not be recovered:",
+            error,
+          );
+
+          if (!cancelled) {
+            setAlQuestionError(
+              uiTranslations[
+                selectedLanguage
+              ].alCameraError,
+            );
+          }
+        }
+      };
+
+    void recoverPendingCameraResult();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLanguage]);
+
+  async function handleDashboardAttachmentFile(
+    file: File | undefined,
+  ) {
+    if (!file || isAlAttachmentPreparing) {
       return;
     }
 
     setAlQuestionError("");
-    router.push(`/dashboard/chat?question=${encodeURIComponent(question)}`);
+    setIsAlAttachmentMenuOpen(false);
+    setIsAlAttachmentPreparing(true);
+
+    try {
+      const prepared =
+        await prepareDashboardAttachment(
+          file,
+        );
+
+      setAlAttachment(prepared);
+    } catch (error) {
+      const code =
+        error instanceof Error
+          ? error.message
+          : "";
+
+      setAlQuestionError(
+        code === "TYPE"
+          ? uiTranslations[selectedLanguage]
+              .alAttachmentTypeError
+          : uiTranslations[selectedLanguage]
+              .alAttachmentTooLarge,
+      );
+    } finally {
+      setIsAlAttachmentPreparing(false);
+    }
   }
 
-  function openAlAttachment(action: "camera" | "file") {
+  async function handleAlNativeCamera() {
+    if (isAlAttachmentPreparing) {
+      return;
+    }
+
     setAlQuestionError("");
     setIsAlAttachmentMenuOpen(false);
-    router.push(`/dashboard/chat?action=${action}`);
+
+    if (
+      !Capacitor.isNativePlatform() ||
+      Capacitor.getPlatform() !==
+        "android"
+    ) {
+      alCameraInputRef.current?.click();
+      return;
+    }
+
+    setIsAlAttachmentPreparing(true);
+
+    try {
+      const result =
+        await NativeDocumentCamera.capture();
+
+      if (!result.base64) {
+        throw new Error("NO_DATA");
+      }
+
+      const approximateBytes =
+        Math.floor(
+          result.base64.length * 0.75,
+        );
+
+      if (
+        approximateBytes >
+        MAX_DASHBOARD_IMAGE_BYTES
+      ) {
+        throw new Error(
+          "TOO_LARGE",
+        );
+      }
+
+      setAlAttachment({
+        name:
+          result.name ||
+          `camera-${Date.now()}.jpg`,
+        mimeType: "image/jpeg",
+        data: result.base64,
+        kind: "image",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      if (
+        /CAMERA_CANCELLED|cancel|canceled|cancelled/i.test(
+          message,
+        )
+      ) {
+        return;
+      }
+
+      setAlQuestionError(
+        /TOO_LARGE|IMAGE_TOO_LARGE/i.test(
+          message,
+        )
+          ? uiTranslations[
+              selectedLanguage
+            ].alAttachmentTooLarge
+          : uiTranslations[
+              selectedLanguage
+            ].alCameraError,
+      );
+    } finally {
+      setIsAlAttachmentPreparing(false);
+    }
+  }
+
+  function handleAlSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    const typedQuestion =
+      alQuestion.trim();
+
+    if (
+      !typedQuestion &&
+      !alAttachment
+    ) {
+      setAlQuestionError(
+        uiTranslations[
+          selectedLanguage
+        ].alEmptyQuestion,
+      );
+      return;
+    }
+
+    setAlQuestionError("");
+
+    if (!alAttachment) {
+      router.push(
+        `/dashboard/chat?question=${encodeURIComponent(
+          typedQuestion,
+        )}`,
+      );
+      return;
+    }
+
+    const question =
+      typedQuestion ||
+      uiTranslations[
+        selectedLanguage
+      ].alDocumentPrompt;
+
+    try {
+      window.sessionStorage.setItem(
+        DASHBOARD_CHAT_HANDOFF_KEY,
+        JSON.stringify({
+          question,
+          attachment: alAttachment,
+          createdAt: Date.now(),
+        }),
+      );
+    } catch {
+      setAlQuestionError(
+        uiTranslations[
+          selectedLanguage
+        ].alAttachmentTooLarge,
+      );
+      return;
+    }
+
+    router.push(
+      "/dashboard/chat?handoff=1",
+    );
+  }
+
+  function openAlAttachment(
+    action: "camera" | "file",
+  ) {
+    setAlQuestionError("");
+    setIsAlAttachmentMenuOpen(false);
+
+    if (action === "camera") {
+      void handleAlNativeCamera();
+      return;
+    }
+
+    alAttachmentInputRef.current?.click();
   }
 
   function handleSuggestedQuestion(question: string) {
@@ -2050,6 +2601,75 @@ export default function DashboardPage() {
                     rows={3}
                     className="w-full resize-none bg-transparent px-3 py-3 text-base leading-7 text-white outline-none placeholder:text-zinc-600"
                   />
+
+                  <input
+                    ref={alAttachmentInputRef}
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file =
+                        event.target.files?.[0];
+
+                      void handleDashboardAttachmentFile(
+                        file,
+                      );
+
+                      event.currentTarget.value =
+                        "";
+                    }}
+                  />
+
+                  <input
+                    ref={alCameraInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file =
+                        event.target.files?.[0];
+
+                      void handleDashboardAttachmentFile(
+                        file,
+                      );
+
+                      event.currentTarget.value =
+                        "";
+                    }}
+                  />
+
+                  {(alAttachment ||
+                    isAlAttachmentPreparing) ? (
+                    <div className="mx-2 mb-3 flex items-center justify-between gap-3 rounded-2xl border border-violet-400/25 bg-violet-400/[0.08] px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-300">
+                          {isAlAttachmentPreparing
+                            ? copy.alPreparingAttachment
+                            : copy.alAttachmentReady}
+                        </p>
+
+                        {alAttachment ? (
+                          <p className="mt-1 truncate text-sm text-zinc-200">
+                            📎 {alAttachment.name}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {alAttachment &&
+                      !isAlAttachmentPreparing ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAlAttachment(null)
+                          }
+                          className="shrink-0 rounded-xl border border-white/10 px-3 py-2 text-xs text-zinc-300 transition hover:bg-white/5"
+                        >
+                          {copy.alRemoveAttachment}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="flex min-w-0 flex-col gap-3 border-t border-white/10 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
