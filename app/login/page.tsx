@@ -62,6 +62,8 @@ const languages: { code: Language; label: string; short: string }[] = [
   { code: "fa", label: "فارسی", short: "FA" },
 ];
 
+const REMEMBERED_EMAIL_KEY = "alqev:remembered-email";
+
 const copy: Record<Language, LoginCopy> = {
   de: {
     welcome: "Willkommen zurück",
@@ -476,6 +478,18 @@ export default function LoginPage() {
     document.documentElement.dir = isRtlLanguage(preferred)
       ? "rtl"
       : "ltr";
+
+    try {
+      const rememberedEmail = window.localStorage
+        .getItem(REMEMBERED_EMAIL_KEY)
+        ?.trim();
+
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+      }
+    } catch {
+      // localStorage may be unavailable in restricted/private browser contexts.
+    }
   }, []);
 
   const t = copy[language];
@@ -543,6 +557,15 @@ export default function LoginPage() {
       }
 
       await userCredential.user.getIdToken(true);
+
+      try {
+        window.localStorage.setItem(
+          REMEMBERED_EMAIL_KEY,
+          normalizedEmail,
+        );
+      } catch {
+        // Email remembering is optional and must never block sign-in.
+      }
 
       setSuccessMessage(t.loginSuccess);
 
