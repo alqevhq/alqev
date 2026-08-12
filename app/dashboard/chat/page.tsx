@@ -29,6 +29,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
+import ChatHistorySidebar from "@/components/chat/ChatHistorySidebar";
 import {
   readStoredLanguage,
   storeLanguage,
@@ -529,6 +530,10 @@ function ChatPageContent() {
   );
   const [messages, setMessages] =
     useState<ChatMessage[]>([]);
+  const [activeConversationId, setActiveConversationId] =
+    useState<string | null>(null);
+  const [chatHistoryOpen, setChatHistoryOpen] =
+    useState(false);
   const [draft, setDraft] =
     useState("");
   const [isLoading, setIsLoading] =
@@ -1239,6 +1244,14 @@ function ChatPageContent() {
 
             <button
               type="button"
+              onClick={() => setChatHistoryOpen(true)}
+              className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:border-indigo-400/40 hover:text-white"
+            >
+              Sohbetler
+            </button>
+
+            <button
+              type="button"
               onClick={resetChat}
               className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:border-indigo-400/40 hover:text-white"
             >
@@ -1253,6 +1266,35 @@ function ChatPageContent() {
             </Link>
           </div>
         </header>
+
+        {chatHistoryOpen ? (
+          <div className="fixed inset-0 z-50 flex">
+            <button
+              type="button"
+              aria-label="Sohbet geçmişini kapat"
+              onClick={() => setChatHistoryOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            <div className="relative h-full w-[88vw] max-w-sm shadow-2xl">
+              <ChatHistorySidebar
+                conversations={[]}
+                activeConversationId={activeConversationId}
+                isOpen
+                onClose={() => setChatHistoryOpen(false)}
+                onNewChat={() => {
+                  resetChat();
+                  setActiveConversationId(null);
+                  setChatHistoryOpen(false);
+                }}
+                onSelectConversation={(conversationId) => {
+                  setActiveConversationId(conversationId);
+                  setChatHistoryOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-h-[72vh] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0a1126]">
