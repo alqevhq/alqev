@@ -70,8 +70,16 @@ type NativeDocumentCameraResult = {
   name: string;
 };
 
+type NativeDocumentCameraPendingResult = {
+  available: boolean;
+  base64?: string;
+  mimeType?: "image/jpeg";
+  name?: string;
+};
+
 type NativeDocumentCameraPlugin = {
   capture(): Promise<NativeDocumentCameraResult>;
+  getPendingResult(): Promise<NativeDocumentCameraPendingResult>;
 };
 
 const NativeDocumentCamera =
@@ -502,6 +510,8 @@ function ChatPageContent() {
     useRef(false);
   const initialAttachmentActionHandled =
     useRef(false);
+  const pendingCameraRecoveryHandled =
+    useRef(false);
   const attachmentInputRef =
     useRef<HTMLInputElement | null>(null);
 
@@ -555,8 +565,6 @@ function ChatPageContent() {
     t.q3,
     t.q4,
   ];
-
-  
 
   useEffect(() => {
     let mounted = true;
@@ -869,6 +877,94 @@ function ChatPageContent() {
       setIsPreparingAttachment(false);
     }
   }, [isPreparingAttachment, isSending, t.attachmentTooLarge, t.cameraError]);
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      !user ||
+      pendingCameraRecoveryHandled.current
+    ) {
+      return;
+    }
+
+    pendingCameraRecoveryHandled.current = true;
+
+    if (
+      !Capacitor.isNativePlatform() ||
+      Capacitor.getPlatform() !== "android"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const recoverPendingCameraResult = async () => {
+      try {
+        const result =
+          await NativeDocumentCamera.getPendingResult();
+
+        if (
+          cancelled ||
+          !result.available ||
+          !result.base64
+        ) {
+          return;
+        }
+
+        const approximateBytes =
+          Math.floor(result.base64.length * 0.75);
+
+        if (
+          approximateBytes >
+          MAX_IMAGE_ATTACHMENT_BYTES
+        ) {
+          if (!cancelled) {
+            setErrorMessage(
+              t.attachmentTooLarge,
+            );
+          }
+          return;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setAttachment({
+          name:
+            result.name ||
+            `camera-${Date.now()}.jpg`,
+          mimeType: "image/jpeg",
+          data: result.base64,
+          kind: "image",
+        });
+
+        setErrorMessage("");
+      } catch (error) {
+        console.error(
+          "Pending camera result could not be recovered:",
+          error,
+        );
+
+        if (!cancelled) {
+          setErrorMessage(
+            t.cameraError,
+          );
+        }
+      }
+    };
+
+    void recoverPendingCameraResult();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isLoading,
+    user,
+    t.attachmentTooLarge,
+    t.cameraError,
+  ]);
 
   const sendMessage = useCallback(
     async (rawMessage: string) => {

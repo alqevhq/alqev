@@ -1,5 +1,11 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
+  type Auth,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -17,7 +23,33 @@ const firebaseConfig = {
 const app =
   getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+function createAuth(): Auth {
+  /*
+   * Next.js build / server tarafında browser persistence API'lerini
+   * başlatmıyoruz. Browser veya Capacitor WebView tarafında ise Auth'u
+   * açıkça kalıcı storage ile başlatıyoruz.
+   */
+  if (typeof window === "undefined") {
+    return getAuth(app);
+  }
+
+  try {
+    return initializeAuth(app, {
+      persistence: [
+        indexedDBLocalPersistence,
+        browserLocalPersistence,
+      ],
+    });
+  } catch {
+    /*
+     * Hot reload veya başka bir import Auth'u daha önce başlattıysa
+     * mevcut instance'ı kullan.
+     */
+    return getAuth(app);
+  }
+}
+
+export const auth = createAuth();
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
