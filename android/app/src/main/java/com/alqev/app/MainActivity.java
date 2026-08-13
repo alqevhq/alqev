@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NativeDocumentCameraPlugin.class);
+        registerPlugin(NativeSpeechRecognizerPlugin.class);
         super.onCreate(savedInstanceState);
 
         View rootView = findViewById(android.R.id.content);

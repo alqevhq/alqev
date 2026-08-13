@@ -61,6 +61,29 @@ type NativeDocumentCameraPlugin = {
 const NativeDocumentCamera =
   registerPlugin<NativeDocumentCameraPlugin>("NativeDocumentCamera");
 
+type NativeSpeechRecognizerResult = {
+  text: string;
+};
+
+type NativeSpeechRecognizerPlugin = {
+  startListening(options?: {
+    language?: string;
+  }): Promise<NativeSpeechRecognizerResult>;
+  stopListening(): Promise<void>;
+};
+
+const NativeSpeechRecognizer =
+  registerPlugin<NativeSpeechRecognizerPlugin>("NativeSpeechRecognizer");
+
+const SPEECH_LANGUAGE_TAGS: Record<SupportedLanguage, string> = {
+  de: "de-DE",
+  en: "en-US",
+  tr: "tr-TR",
+  ru: "ru-RU",
+  ar: "ar-SA",
+  fa: "fa-IR",
+};
+
 const DASHBOARD_CHAT_HANDOFF_KEY = "alqev:dashboard-chat-handoff";
 const MAX_DASHBOARD_PDF_BYTES = 2 * 1024 * 1024;
 const MAX_DASHBOARD_IMAGE_BYTES = 1_500_000;
@@ -185,6 +208,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "Yalnızca PDF, JPG, PNG veya WEBP dosyaları destekleniyor.",
     alCameraError: "Kamera açılamadı. Tekrar deneyebilir veya mevcut bir fotoğraf seçebilirsin.",
     alDocumentPrompt: "Bu belgeyi incele. Ne olduğunu, önemli bilgileri, riskleri ve benim atmam gereken sonraki adımları açıkla.",
+    alVoiceStart: "Sesle yaz",
+    alVoiceListening: "Dinliyorum...",
+    alVoiceError: "Ses anlaşılamadı. Lütfen tekrar dene.",
+    alVoicePermissionError: "Mikrofon izni verilmedi.",
     topicImmigration: "Oturum ve vatandaşlık",
     topicFamily: "Aile ve çocuk",
     topicBenefits: "Sosyal yardımlar",
@@ -290,6 +317,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "Unterstützt werden nur PDF, JPG, PNG oder WEBP.",
     alCameraError: "Die Kamera konnte nicht geöffnet werden. Versuche es erneut oder wähle ein vorhandenes Foto.",
     alDocumentPrompt: "Analysiere dieses Dokument. Erkläre, was es ist, welche wichtigen Informationen und Risiken es enthält und was ich als Nächstes tun sollte.",
+    alVoiceStart: "Per Sprache eingeben",
+    alVoiceListening: "Ich höre zu...",
+    alVoiceError: "Die Sprache wurde nicht erkannt. Bitte versuche es erneut.",
+    alVoicePermissionError: "Der Mikrofonzugriff wurde nicht erlaubt.",
     topicImmigration: "Aufenthalt und Einbürgerung",
     topicFamily: "Familie und Kinder",
     topicBenefits: "Sozialleistungen",
@@ -387,6 +418,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "Only PDF, JPG, PNG or WEBP files are supported.",
     alCameraError: "The camera could not be opened. Try again or choose an existing photo.",
     alDocumentPrompt: "Analyze this document. Explain what it is, the important information and risks, and what I should do next.",
+    alVoiceStart: "Voice input",
+    alVoiceListening: "Listening...",
+    alVoiceError: "Speech could not be recognized. Please try again.",
+    alVoicePermissionError: "Microphone permission was not granted.",
     topicImmigration: "Residence and citizenship",
     topicFamily: "Family and children",
     topicBenefits: "Social benefits",
@@ -484,6 +519,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "Поддерживаются только PDF, JPG, PNG и WEBP.",
     alCameraError: "Не удалось открыть камеру. Попробуйте ещё раз или выберите готовое фото.",
     alDocumentPrompt: "Проанализируй этот документ. Объясни, что это, какие важные сведения и риски он содержит и что мне делать дальше.",
+    alVoiceStart: "Голосовой ввод",
+    alVoiceListening: "Слушаю...",
+    alVoiceError: "Не удалось распознать речь. Попробуйте ещё раз.",
+    alVoicePermissionError: "Нет разрешения на использование микрофона.",
     topicImmigration: "ВНЖ и гражданство",
     topicFamily: "Семья и дети",
     topicBenefits: "Социальные выплаты",
@@ -581,6 +620,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "يتم دعم PDF وJPG وPNG وWEBP فقط.",
     alCameraError: "تعذر فتح الكاميرا. حاول مرة أخرى أو اختر صورة موجودة.",
     alDocumentPrompt: "حلّل هذا المستند. اشرح ما هو، والمعلومات والمخاطر المهمة فيه، وما الخطوات التالية التي ينبغي علي اتخاذها.",
+    alVoiceStart: "إدخال صوتي",
+    alVoiceListening: "أستمع...",
+    alVoiceError: "تعذر التعرف على الكلام. حاول مرة أخرى.",
+    alVoicePermissionError: "لم يتم منح إذن الميكروفون.",
     topicImmigration: "الإقامة والجنسية",
     topicFamily: "الأسرة والأطفال",
     topicBenefits: "المساعدات الاجتماعية",
@@ -678,6 +721,10 @@ const uiTranslations: Record<
     alAttachmentTypeError: "فقط PDF، JPG، PNG یا WEBP پشتیبانی می‌شود.",
     alCameraError: "دوربین باز نشد. دوباره تلاش کنید یا یک عکس موجود را انتخاب کنید.",
     alDocumentPrompt: "این سند را تحلیل کن. توضیح بده چیست، چه اطلاعات و ریسک‌های مهمی دارد و قدم بعدی من چه باید باشد.",
+    alVoiceStart: "ورودی صوتی",
+    alVoiceListening: "در حال گوش دادن...",
+    alVoiceError: "گفتار تشخیص داده نشد. دوباره تلاش کنید.",
+    alVoicePermissionError: "اجازه دسترسی به میکروفون داده نشد.",
     topicImmigration: "اقامت و تابعیت",
     topicFamily: "خانواده و فرزندان",
     topicBenefits: "کمک‌های اجتماعی",
@@ -1468,6 +1515,8 @@ export default function DashboardPage() {
   const [alAttachment, setAlAttachment] =
     useState<DashboardChatAttachment | null>(null);
   const [isAlAttachmentPreparing, setIsAlAttachmentPreparing] =
+    useState(false);
+  const [isAlListening, setIsAlListening] =
     useState(false);
   const alAttachmentInputRef =
     useRef<HTMLInputElement | null>(null);
@@ -2331,6 +2380,79 @@ export default function DashboardPage() {
     );
   }
 
+  async function handleAlVoiceInput() {
+    if (isAlListening) {
+      try {
+        await NativeSpeechRecognizer.stopListening();
+      } catch {
+        // Stopping is best-effort.
+      } finally {
+        setIsAlListening(false);
+      }
+
+      return;
+    }
+
+    setAlQuestionError("");
+    setIsAlAttachmentMenuOpen(false);
+    setIsAlListening(true);
+
+    try {
+      const result =
+        await NativeSpeechRecognizer.startListening({
+          language:
+            SPEECH_LANGUAGE_TAGS[
+              selectedLanguage
+            ],
+        });
+
+      const recognizedText =
+        result.text?.trim();
+
+      if (!recognizedText) {
+        return;
+      }
+
+      setAlQuestion((current) => {
+        const existing =
+          current.trim();
+
+        return existing
+          ? `${existing} ${recognizedText}`
+          : recognizedText;
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      if (
+        /MICROPHONE_PERMISSION_DENIED/i.test(
+          message,
+        )
+      ) {
+        setAlQuestionError(
+          uiTranslations[
+            selectedLanguage
+          ].alVoicePermissionError,
+        );
+      } else if (
+        !/SPEECH_TIMEOUT|SPEECH_NO_MATCH|cancel|canceled|cancelled/i.test(
+          message,
+        )
+      ) {
+        setAlQuestionError(
+          uiTranslations[
+            selectedLanguage
+          ].alVoiceError,
+        );
+      }
+    } finally {
+      setIsAlListening(false);
+    }
+  }
+
   function openAlAttachment(
     action: "camera" | "file",
   ) {
@@ -2708,6 +2830,57 @@ export default function DashboardPage() {
                           </div>
                         ) : null}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleAlVoiceInput()
+                        }
+                        className={
+                          isAlListening
+                            ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-fuchsia-400/50 bg-fuchsia-500/15 text-fuchsia-200 shadow-[0_0_28px_rgba(217,70,239,0.18)] transition"
+                            : "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-zinc-200 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white"
+                        }
+                        aria-label={
+                          isAlListening
+                            ? copy.alVoiceListening
+                            : copy.alVoiceStart
+                        }
+                        title={
+                          isAlListening
+                            ? copy.alVoiceListening
+                            : copy.alVoiceStart
+                        }
+                      >
+                        {isAlListening ? (
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 animate-pulse rounded-full bg-current"
+                          />
+                        ) : (
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect
+                              x="9"
+                              y="3"
+                              width="6"
+                              height="11"
+                              rx="3"
+                            />
+                            <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+                            <path d="M12 17.5V21" />
+                            <path d="M9 21h6" />
+                          </svg>
+                        )}
+                      </button>
 
                       <p className="hidden min-w-0 text-xs leading-5 text-zinc-500 sm:block">
                         {copy.alPrivacy}
