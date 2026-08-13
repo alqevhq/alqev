@@ -97,6 +97,29 @@ type NativeDocumentCameraPlugin = {
 const NativeDocumentCamera =
   registerPlugin<NativeDocumentCameraPlugin>("NativeDocumentCamera");
 
+type NativeSpeechRecognizerResult = {
+  text: string;
+};
+
+type NativeSpeechRecognizerPlugin = {
+  startListening(options?: {
+    language?: string;
+  }): Promise<NativeSpeechRecognizerResult>;
+  stopListening(): Promise<void>;
+};
+
+const NativeSpeechRecognizer =
+  registerPlugin<NativeSpeechRecognizerPlugin>("NativeSpeechRecognizer");
+
+const SPEECH_LANGUAGE_TAGS: Record<Language, string> = {
+  tr: "tr-TR",
+  de: "de-DE",
+  en: "en-US",
+  ru: "ru-RU",
+  ar: "ar-SA",
+  fa: "fa-IR",
+};
+
 type Profile = {
   fullName: string;
   country: string;
@@ -250,6 +273,10 @@ const copy: Record<
     attachmentTypeError: "Yalnızca PDF, JPG, PNG veya WEBP dosyaları destekleniyor.",
     cameraError: "Kamera açılamadı. Tekrar deneyebilir veya mevcut bir fotoğraf seçebilirsin.",
     documentPrompt: "Bu belgeyi incele. Ne olduğunu, önemli bilgileri, riskleri ve benim atmam gereken sonraki adımları açıkla.",
+    voiceStart: "Sesle yaz",
+    voiceListening: "Dinliyorum...",
+    voiceError: "Ses anlaşılamadı. Lütfen tekrar dene.",
+    voicePermissionError: "Mikrofon izni verilmedi.",
   },
   de: {
     title: "AL Lebensassistent",
@@ -285,6 +312,10 @@ const copy: Record<
     attachmentTypeError: "Unterstützt werden nur PDF, JPG, PNG oder WEBP.",
     cameraError: "Die Kamera konnte nicht geöffnet werden. Versuche es erneut oder wähle ein vorhandenes Foto.",
     documentPrompt: "Analysiere dieses Dokument. Erkläre, was es ist, welche wichtigen Informationen und Risiken es enthält und was ich als Nächstes tun sollte.",
+    voiceStart: "Per Sprache eingeben",
+    voiceListening: "Ich höre zu...",
+    voiceError: "Die Sprache wurde nicht erkannt. Bitte versuche es erneut.",
+    voicePermissionError: "Der Mikrofonzugriff wurde nicht erlaubt.",
   },
   en: {
     title: "AL Life Assistant",
@@ -320,6 +351,10 @@ const copy: Record<
     attachmentTypeError: "Only PDF, JPG, PNG or WEBP files are supported.",
     cameraError: "The camera could not be opened. Try again or choose an existing photo.",
     documentPrompt: "Analyze this document. Explain what it is, the important information and risks, and what I should do next.",
+    voiceStart: "Voice input",
+    voiceListening: "Listening...",
+    voiceError: "Speech could not be recognized. Please try again.",
+    voicePermissionError: "Microphone permission was not granted.",
   },
   ru: {
     title: "AL — помощник по жизни",
@@ -355,6 +390,10 @@ const copy: Record<
     attachmentTypeError: "Поддерживаются только PDF, JPG, PNG и WEBP.",
     cameraError: "Не удалось открыть камеру. Попробуйте ещё раз или выберите готовое фото.",
     documentPrompt: "Проанализируй этот документ. Объясни, что это, какие важные сведения и риски он содержит и что мне делать дальше.",
+    voiceStart: "Голосовой ввод",
+    voiceListening: "Слушаю...",
+    voiceError: "Не удалось распознать речь. Попробуйте ещё раз.",
+    voicePermissionError: "Нет разрешения на использование микрофона.",
   },
   ar: {
     title: "مساعد الحياة AL",
@@ -390,6 +429,10 @@ const copy: Record<
     attachmentTypeError: "يتم دعم PDF وJPG وPNG وWEBP فقط.",
     cameraError: "تعذر فتح الكاميرا. حاول مرة أخرى أو اختر صورة موجودة.",
     documentPrompt: "حلّل هذا المستند. اشرح ما هو، والمعلومات والمخاطر المهمة فيه، وما الخطوات التالية التي ينبغي علي اتخاذها.",
+    voiceStart: "إدخال صوتي",
+    voiceListening: "أستمع...",
+    voiceError: "تعذر التعرف على الكلام. حاول مرة أخرى.",
+    voicePermissionError: "لم يتم منح إذن الميكروفون.",
   },
   fa: {
     title: "دستیار زندگی AL",
@@ -425,6 +468,10 @@ const copy: Record<
     attachmentTypeError: "فقط PDF، JPG، PNG یا WEBP پشتیبانی می‌شود.",
     cameraError: "دوربین باز نشد. دوباره تلاش کنید یا یک عکس موجود را انتخاب کنید.",
     documentPrompt: "این سند را تحلیل کن. توضیح بده چیست، چه اطلاعات و ریسک‌های مهمی دارد و قدم بعدی من چه باید باشد.",
+    voiceStart: "ورودی صوتی",
+    voiceListening: "در حال گوش دادن...",
+    voiceError: "گفتار تشخیص داده نشد. دوباره تلاش کنید.",
+    voicePermissionError: "اجازه دسترسی به میکروفون داده نشد.",
   },
 };
 
@@ -612,6 +659,8 @@ function ChatPageContent() {
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] =
     useState(false);
   const [isPreparingAttachment, setIsPreparingAttachment] =
+    useState(false);
+  const [isListening, setIsListening] =
     useState(false);
 
   const t = copy[language];
@@ -1522,6 +1571,74 @@ function ChatPageContent() {
     }
   }, [isLoading, searchParams, sendMessage]);
 
+  async function handleVoiceInput() {
+    if (isListening) {
+      try {
+        await NativeSpeechRecognizer.stopListening();
+      } catch {
+        // Best-effort stop.
+      } finally {
+        setIsListening(false);
+      }
+      return;
+    }
+
+    setErrorMessage("");
+    setIsAttachmentMenuOpen(false);
+    setIsListening(true);
+
+    try {
+      const result =
+        await NativeSpeechRecognizer.startListening({
+          language:
+            SPEECH_LANGUAGE_TAGS[
+              language
+            ],
+        });
+
+      const recognizedText =
+        result.text?.trim();
+
+      if (!recognizedText) {
+        return;
+      }
+
+      setDraft((current) => {
+        const existing =
+          current.trim();
+
+        return existing
+          ? `${existing} ${recognizedText}`
+          : recognizedText;
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      if (
+        /MICROPHONE_PERMISSION_DENIED/i.test(
+          message,
+        )
+      ) {
+        setErrorMessage(
+          t.voicePermissionError,
+        );
+      } else if (
+        !/SPEECH_TIMEOUT|SPEECH_NO_MATCH|cancel|canceled|cancelled/i.test(
+          message,
+        )
+      ) {
+        setErrorMessage(
+          t.voiceError,
+        );
+      }
+    } finally {
+      setIsListening(false);
+    }
+  }
+
   function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -1933,6 +2050,43 @@ function ChatPageContent() {
                       {Capacitor.isNativePlatform() &&
                       Capacitor.getPlatform() === "android" ? (
                         <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleVoiceInput()
+                            }
+                            disabled={
+                              isSending ||
+                              isPreparingAttachment
+                            }
+                            className={
+                              isListening
+                                ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-fuchsia-400/50 bg-fuchsia-500/15 text-fuchsia-200 transition disabled:opacity-40"
+                                : "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] text-slate-200 transition hover:border-indigo-400/40 hover:bg-indigo-400/[0.08] disabled:opacity-40"
+                            }
+                            aria-label={
+                              isListening
+                                ? t.voiceListening
+                                : t.voiceStart
+                            }
+                            title={
+                              isListening
+                                ? t.voiceListening
+                                : t.voiceStart
+                            }
+                          >
+                            {isListening ? (
+                              <span
+                                aria-hidden="true"
+                                className="h-2.5 w-2.5 animate-pulse rounded-full bg-current"
+                              />
+                            ) : (
+                              <span aria-hidden="true">
+                                🎙️
+                              </span>
+                            )}
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => void handleNativeCamera()}

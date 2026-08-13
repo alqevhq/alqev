@@ -40,6 +40,25 @@ type DashboardChatAttachment = {
   kind: "image" | "pdf";
 };
 
+type DashboardChatApiResponse = {
+  success?: boolean;
+  error?: string;
+  data?: {
+    answer: string;
+    category: string;
+    topic: string;
+    suggestedActions: string[];
+    officialBodies: string[];
+    importantNotice: string;
+  };
+};
+
+type DashboardInlineAnswer = {
+  question: string;
+  answer: string;
+  attachmentName?: string;
+};
+
 type NativeDocumentCameraResult = {
   base64: string;
   mimeType: "image/jpeg";
@@ -212,6 +231,7 @@ const uiTranslations: Record<
     alVoiceListening: "Dinliyorum...",
     alVoiceError: "Ses anlaşılamadı. Lütfen tekrar dene.",
     alVoicePermissionError: "Mikrofon izni verilmedi.",
+    alThinking: "AL düşünüyor...",
     topicImmigration: "Oturum ve vatandaşlık",
     topicFamily: "Aile ve çocuk",
     topicBenefits: "Sosyal yardımlar",
@@ -321,6 +341,7 @@ const uiTranslations: Record<
     alVoiceListening: "Ich höre zu...",
     alVoiceError: "Die Sprache wurde nicht erkannt. Bitte versuche es erneut.",
     alVoicePermissionError: "Der Mikrofonzugriff wurde nicht erlaubt.",
+    alThinking: "AL denkt nach...",
     topicImmigration: "Aufenthalt und Einbürgerung",
     topicFamily: "Familie und Kinder",
     topicBenefits: "Sozialleistungen",
@@ -422,6 +443,7 @@ const uiTranslations: Record<
     alVoiceListening: "Listening...",
     alVoiceError: "Speech could not be recognized. Please try again.",
     alVoicePermissionError: "Microphone permission was not granted.",
+    alThinking: "AL is thinking...",
     topicImmigration: "Residence and citizenship",
     topicFamily: "Family and children",
     topicBenefits: "Social benefits",
@@ -523,6 +545,7 @@ const uiTranslations: Record<
     alVoiceListening: "Слушаю...",
     alVoiceError: "Не удалось распознать речь. Попробуйте ещё раз.",
     alVoicePermissionError: "Нет разрешения на использование микрофона.",
+    alThinking: "AL готовит ответ...",
     topicImmigration: "ВНЖ и гражданство",
     topicFamily: "Семья и дети",
     topicBenefits: "Социальные выплаты",
@@ -624,6 +647,7 @@ const uiTranslations: Record<
     alVoiceListening: "أستمع...",
     alVoiceError: "تعذر التعرف على الكلام. حاول مرة أخرى.",
     alVoicePermissionError: "لم يتم منح إذن الميكروفون.",
+    alThinking: "AL يجهز الإجابة...",
     topicImmigration: "الإقامة والجنسية",
     topicFamily: "الأسرة والأطفال",
     topicBenefits: "المساعدات الاجتماعية",
@@ -725,6 +749,7 @@ const uiTranslations: Record<
     alVoiceListening: "در حال گوش دادن...",
     alVoiceError: "گفتار تشخیص داده نشد. دوباره تلاش کنید.",
     alVoicePermissionError: "اجازه دسترسی به میکروفون داده نشد.",
+    alThinking: "AL در حال آماده‌سازی پاسخ است...",
     topicImmigration: "اقامت و تابعیت",
     topicFamily: "خانواده و فرزندان",
     topicBenefits: "کمک‌های اجتماعی",
@@ -1518,6 +1543,10 @@ export default function DashboardPage() {
     useState(false);
   const [isAlListening, setIsAlListening] =
     useState(false);
+  const [isAlSending, setIsAlSending] =
+    useState(false);
+  const [alInlineAnswer, setAlInlineAnswer] =
+    useState<DashboardInlineAnswer | null>(null);
   const alAttachmentInputRef =
     useRef<HTMLInputElement | null>(null);
   const alCameraInputRef =
@@ -2320,17 +2349,19 @@ export default function DashboardPage() {
     }
   }
 
-  function handleAlSubmit(
+  async function handleAlSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
     const typedQuestion =
       alQuestion.trim();
+    const activeAttachment =
+      alAttachment;
 
     if (
       !typedQuestion &&
-      !alAttachment
+      !activeAttachment
     ) {
       setAlQuestionError(
         uiTranslations[
@@ -2340,14 +2371,10 @@ export default function DashboardPage() {
       return;
     }
 
-    setAlQuestionError("");
-
-    if (!alAttachment) {
-      router.push(
-        `/dashboard/chat?question=${encodeURIComponent(
-          typedQuestion,
-        )}`,
-      );
+    if (
+      isAlSending ||
+      isAlAttachmentPreparing
+    ) {
       return;
     }
 
@@ -2357,27 +2384,124 @@ export default function DashboardPage() {
         selectedLanguage
       ].alDocumentPrompt;
 
-    try {
-      window.sessionStorage.setItem(
-        DASHBOARD_CHAT_HANDOFF_KEY,
-        JSON.stringify({
-          question,
-          attachment: alAttachment,
-          createdAt: Date.now(),
-        }),
-      );
-    } catch {
-      setAlQuestionError(
-        uiTranslations[
-          selectedLanguage
-        ].alAttachmentTooLarge,
-      );
-      return;
-    }
+    setAlQuestionError("");
+    setIsAlAttachmentMenuOpen(false);
+    setIsAlSending(true);
 
-    router.push(
-      "/dashboard/chat?handoff=1",
-    );
+    try {
+      if (!user) {
+        throw new Error(
+          uiTranslations[
+            selectedLanguage
+          ].alVoiceError,
+        );
+      }
+
+      const idToken =
+        await user.getIdToken(true);
+
+      const response = await fetch(
+        "/api/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            message: question,
+            language:
+              selectedLanguage,
+            attachment:
+              activeAttachment,
+            history: [],
+          }),
+        },
+      );
+
+      const payload =
+        (await response.json()) as DashboardChatApiResponse;
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.data
+      ) {
+        throw new Error(
+          payload.error ||
+            "AL cevap oluşturamadı.",
+        );
+      }
+
+      setAlInlineAnswer({
+        question,
+        answer:
+          payload.data.answer,
+        attachmentName:
+          activeAttachment?.name,
+      });
+
+      setAlQuestion("");
+      setAlAttachment(null);
+
+      try {
+        await fetch(
+          "/api/chat-history",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Authorization:
+                `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              action: "saveExchange",
+              chatId: null,
+              language:
+                selectedLanguage,
+              userMessage: {
+                content: question,
+                attachmentName:
+                  activeAttachment?.name,
+              },
+              assistantMessage: {
+                content:
+                  payload.data.answer,
+                category:
+                  payload.data.category,
+                topic:
+                  payload.data.topic,
+                suggestedActions:
+                  payload.data
+                    .suggestedActions,
+                officialBodies:
+                  payload.data
+                    .officialBodies,
+                importantNotice:
+                  payload.data
+                    .importantNotice,
+              },
+            }),
+          },
+        );
+      } catch (historyError) {
+        console.error(
+          "Dashboard sohbet geçmişi kaydedilemedi:",
+          historyError,
+        );
+      }
+    } catch (error) {
+      setAlQuestionError(
+        error instanceof Error
+          ? error.message
+          : "AL cevap oluşturamadı.",
+      );
+    } finally {
+      setIsAlSending(false);
+    }
   }
 
   async function handleAlVoiceInput() {
@@ -2889,10 +3013,20 @@ export default function DashboardPage() {
 
                     <button
                       type="submit"
-                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
+                      disabled={
+                        isAlSending ||
+                        isAlAttachmentPreparing ||
+                        (!alQuestion.trim() &&
+                          !alAttachment)
+                      }
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-[0_12px_34px_rgba(139,92,246,0.24)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                     >
-                      {copy.alSend}
-                      <span aria-hidden="true">→</span>
+                      {isAlSending
+                        ? copy.alThinking
+                        : copy.alSend}
+                      {!isAlSending ? (
+                        <span aria-hidden="true">→</span>
+                      ) : null}
                     </button>
                   </div>
                 </div>
@@ -2903,6 +3037,34 @@ export default function DashboardPage() {
                   </p>
                 ) : null}
               </form>
+
+              {alInlineAnswer ? (
+                <div className="mt-6 space-y-3">
+                  <div className="flex justify-end">
+                    <div className="max-w-[92%] rounded-3xl border border-violet-400/30 bg-violet-500/15 px-5 py-4 text-sm leading-7 text-zinc-100 sm:max-w-[82%]">
+                      {alInlineAnswer.attachmentName ? (
+                        <div className="mb-2 text-xs text-violet-200">
+                          📎 {alInlineAnswer.attachmentName}
+                        </div>
+                      ) : null}
+                      <p className="whitespace-pre-wrap">
+                        {alInlineAnswer.question}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-start">
+                    <div className="max-w-[96%] rounded-3xl border border-white/10 bg-white/[0.045] px-5 py-4 text-sm leading-7 text-zinc-200 sm:max-w-[88%]">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+                        AL
+                      </div>
+                      <p className="whitespace-pre-wrap">
+                        {alInlineAnswer.answer}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-7">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
