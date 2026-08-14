@@ -232,6 +232,9 @@ const uiTranslations: Record<
     alVoiceError: "Ses anlaşılamadı. Lütfen tekrar dene.",
     alVoicePermissionError: "Mikrofon izni verilmedi.",
     alThinking: "AL düşünüyor...",
+    alListenAnswer: "Cevabı dinle",
+    alStopSpeaking: "Sesi durdur",
+    alSpeechUnavailable: "Bu cihazda sesli okuma kullanılamıyor.",
     topicImmigration: "Oturum ve vatandaşlık",
     topicFamily: "Aile ve çocuk",
     topicBenefits: "Sosyal yardımlar",
@@ -342,6 +345,9 @@ const uiTranslations: Record<
     alVoiceError: "Die Sprache wurde nicht erkannt. Bitte versuche es erneut.",
     alVoicePermissionError: "Der Mikrofonzugriff wurde nicht erlaubt.",
     alThinking: "AL denkt nach...",
+    alListenAnswer: "Antwort anhören",
+    alStopSpeaking: "Wiedergabe stoppen",
+    alSpeechUnavailable: "Die Sprachausgabe ist auf diesem Gerät nicht verfügbar.",
     topicImmigration: "Aufenthalt und Einbürgerung",
     topicFamily: "Familie und Kinder",
     topicBenefits: "Sozialleistungen",
@@ -444,6 +450,9 @@ const uiTranslations: Record<
     alVoiceError: "Speech could not be recognized. Please try again.",
     alVoicePermissionError: "Microphone permission was not granted.",
     alThinking: "AL is thinking...",
+    alListenAnswer: "Listen to answer",
+    alStopSpeaking: "Stop speaking",
+    alSpeechUnavailable: "Speech playback is not available on this device.",
     topicImmigration: "Residence and citizenship",
     topicFamily: "Family and children",
     topicBenefits: "Social benefits",
@@ -546,6 +555,9 @@ const uiTranslations: Record<
     alVoiceError: "Не удалось распознать речь. Попробуйте ещё раз.",
     alVoicePermissionError: "Нет разрешения на использование микрофона.",
     alThinking: "AL готовит ответ...",
+    alListenAnswer: "Прослушать ответ",
+    alStopSpeaking: "Остановить озвучивание",
+    alSpeechUnavailable: "Озвучивание недоступно на этом устройстве.",
     topicImmigration: "ВНЖ и гражданство",
     topicFamily: "Семья и дети",
     topicBenefits: "Социальные выплаты",
@@ -648,6 +660,9 @@ const uiTranslations: Record<
     alVoiceError: "تعذر التعرف على الكلام. حاول مرة أخرى.",
     alVoicePermissionError: "لم يتم منح إذن الميكروفون.",
     alThinking: "AL يجهز الإجابة...",
+    alListenAnswer: "استمع إلى الإجابة",
+    alStopSpeaking: "إيقاف الصوت",
+    alSpeechUnavailable: "القراءة الصوتية غير متاحة على هذا الجهاز.",
     topicImmigration: "الإقامة والجنسية",
     topicFamily: "الأسرة والأطفال",
     topicBenefits: "المساعدات الاجتماعية",
@@ -750,6 +765,9 @@ const uiTranslations: Record<
     alVoiceError: "گفتار تشخیص داده نشد. دوباره تلاش کنید.",
     alVoicePermissionError: "اجازه دسترسی به میکروفون داده نشد.",
     alThinking: "AL در حال آماده‌سازی پاسخ است...",
+    alListenAnswer: "پاسخ را گوش کن",
+    alStopSpeaking: "توقف صدا",
+    alSpeechUnavailable: "خواندن صوتی در این دستگاه در دسترس نیست.",
     topicImmigration: "اقامت و تابعیت",
     topicFamily: "خانواده و فرزندان",
     topicBenefits: "کمک‌های اجتماعی",
@@ -1547,6 +1565,8 @@ export default function DashboardPage() {
     useState(false);
   const [alInlineAnswer, setAlInlineAnswer] =
     useState<DashboardInlineAnswer | null>(null);
+  const [isAlSpeaking, setIsAlSpeaking] =
+    useState(false);
   const alAttachmentInputRef =
     useRef<HTMLInputElement | null>(null);
   const alCameraInputRef =
@@ -1555,6 +1575,17 @@ export default function DashboardPage() {
     useRef(false);
 
   
+  useEffect(() => {
+    return () => {
+      if (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window
+      ) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -2349,6 +2380,90 @@ export default function DashboardPage() {
     }
   }
 
+  function handleAlSpeechPlayback() {
+    if (!alInlineAnswer?.answer) {
+      return;
+    }
+
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      typeof SpeechSynthesisUtterance ===
+        "undefined"
+    ) {
+      setAlQuestionError(
+        uiTranslations[
+          selectedLanguage
+        ].alSpeechUnavailable,
+      );
+      return;
+    }
+
+    if (isAlSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsAlSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    setAlQuestionError("");
+
+    const utterance =
+      new SpeechSynthesisUtterance(
+        alInlineAnswer.answer,
+      );
+
+    utterance.lang =
+      SPEECH_LANGUAGE_TAGS[
+        selectedLanguage
+      ];
+    utterance.rate = 0.96;
+    utterance.pitch = 1;
+
+    const voices =
+      window.speechSynthesis.getVoices();
+
+    const exactVoice = voices.find(
+      (voice) =>
+        voice.lang.toLowerCase() ===
+        utterance.lang.toLowerCase(),
+    );
+
+    const languagePrefix =
+      utterance.lang
+        .split("-")[0]
+        .toLowerCase();
+
+    const compatibleVoice =
+      exactVoice ||
+      voices.find((voice) =>
+        voice.lang
+          .toLowerCase()
+          .startsWith(languagePrefix),
+      );
+
+    if (compatibleVoice) {
+      utterance.voice =
+        compatibleVoice;
+    }
+
+    utterance.onstart = () => {
+      setIsAlSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsAlSpeaking(false);
+    };
+
+    utterance.onerror = () => {
+      setIsAlSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(
+      utterance,
+    );
+  }
+
   async function handleAlSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -2433,6 +2548,14 @@ export default function DashboardPage() {
           payload.error ||
             "AL cevap oluşturamadı.",
         );
+      }
+
+      if (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window
+      ) {
+        window.speechSynthesis.cancel();
+        setIsAlSpeaking(false);
       }
 
       setAlInlineAnswer({
@@ -3061,6 +3184,39 @@ export default function DashboardPage() {
                       <p className="whitespace-pre-wrap">
                         {alInlineAnswer.answer}
                       </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          handleAlSpeechPlayback
+                        }
+                        className={
+                          isAlSpeaking
+                            ? "mt-4 inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/40 bg-fuchsia-500/10 px-3 py-2 text-xs font-semibold text-fuchsia-200 transition"
+                            : "mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-violet-400/40 hover:text-white"
+                        }
+                        aria-label={
+                          isAlSpeaking
+                            ? copy.alStopSpeaking
+                            : copy.alListenAnswer
+                        }
+                        title={
+                          isAlSpeaking
+                            ? copy.alStopSpeaking
+                            : copy.alListenAnswer
+                        }
+                      >
+                        <span aria-hidden="true">
+                          {isAlSpeaking
+                            ? "⏹️"
+                            : "🔊"}
+                        </span>
+                        <span>
+                          {isAlSpeaking
+                            ? copy.alStopSpeaking
+                            : copy.alListenAnswer}
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </div>
