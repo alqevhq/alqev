@@ -94,6 +94,25 @@ type NativeSpeechRecognizerPlugin = {
 const NativeSpeechRecognizer =
   registerPlugin<NativeSpeechRecognizerPlugin>("NativeSpeechRecognizer");
 
+type NativeTextToSpeechPlugin = {
+  speak(options: {
+    text: string;
+    language?: string;
+  }): Promise<void>;
+  stop(): Promise<void>;
+  addListener(
+    eventName: "speechState",
+    listenerFunc: (event: {
+      speaking: boolean;
+    }) => void,
+  ): Promise<{
+    remove: () => Promise<void>;
+  }>;
+};
+
+const NativeTextToSpeech =
+  registerPlugin<NativeTextToSpeechPlugin>("NativeTextToSpeech");
+
 const SPEECH_LANGUAGE_TAGS: Record<SupportedLanguage, string> = {
   de: "de-DE",
   en: "en-US",
@@ -1576,7 +1595,45 @@ export default function DashboardPage() {
 
   
   useEffect(() => {
+    let nativeSpeechListener:
+      | {
+          remove: () => Promise<void>;
+        }
+      | null = null;
+
+    if (
+      Capacitor.isNativePlatform() &&
+      Capacitor.getPlatform() === "android"
+    ) {
+      void NativeTextToSpeech.addListener(
+        "speechState",
+        (event) => {
+          setIsAlSpeaking(
+            Boolean(event.speaking),
+          );
+        },
+      ).then((listener) => {
+        nativeSpeechListener =
+          listener;
+      });
+    }
+
     return () => {
+      if (
+        Capacitor.isNativePlatform() &&
+        Capacitor.getPlatform() === "android"
+      ) {
+        void NativeTextToSpeech.stop().catch(
+          () => undefined,
+        );
+
+        if (nativeSpeechListener) {
+          void nativeSpeechListener
+            .remove()
+            .catch(() => undefined);
+        }
+      }
+
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window
@@ -2380,8 +2437,71 @@ export default function DashboardPage() {
     }
   }
 
-  function handleAlSpeechPlayback() {
+  async function handleAlSpeechPlayback() {
     if (!alInlineAnswer?.answer) {
+      return;
+    }
+
+    const isNativeAndroid =
+      Capacitor.isNativePlatform() &&
+      Capacitor.getPlatform() === "android";
+
+    if (isAlSpeaking) {
+      if (isNativeAndroid) {
+        try {
+          await NativeTextToSpeech.stop();
+        } catch {
+          // Best-effort stop.
+        } finally {
+          setIsAlSpeaking(false);
+        }
+        return;
+      }
+
+      if (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window
+      ) {
+        window.speechSynthesis.cancel();
+      }
+
+      setIsAlSpeaking(false);
+      return;
+    }
+
+    setAlQuestionError("");
+
+    if (isNativeAndroid) {
+      try {
+        setIsAlSpeaking(true);
+
+        await NativeTextToSpeech.speak({
+          text: alInlineAnswer.answer,
+          language:
+            SPEECH_LANGUAGE_TAGS[
+              selectedLanguage
+            ],
+        });
+      } catch (error) {
+        setIsAlSpeaking(false);
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        console.error(
+          "Native TTS error:",
+          message,
+        );
+
+        setAlQuestionError(
+          uiTranslations[
+            selectedLanguage
+          ].alSpeechUnavailable,
+        );
+      }
+
       return;
     }
 
@@ -2399,14 +2519,7 @@ export default function DashboardPage() {
       return;
     }
 
-    if (isAlSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsAlSpeaking(false);
-      return;
-    }
-
     window.speechSynthesis.cancel();
-    setAlQuestionError("");
 
     const utterance =
       new SpeechSynthesisUtterance(
@@ -2551,12 +2664,24 @@ export default function DashboardPage() {
       }
 
       if (
+        Capacitor.isNativePlatform() &&
+        Capacitor.getPlatform() === "android"
+      ) {
+        try {
+          await NativeTextToSpeech.stop();
+        } catch {
+          // Best-effort stop.
+        }
+      }
+
+      if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window
       ) {
         window.speechSynthesis.cancel();
-        setIsAlSpeaking(false);
       }
+
+      setIsAlSpeaking(false);
 
       setAlInlineAnswer({
         question,
