@@ -300,10 +300,10 @@ export default function NotificationCenter({
         <div
           role="dialog"
           aria-label={copy.notifications}
-          className="absolute right-0 z-50 mt-3 w-[min(92vw,420px)] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/50"
+          className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+5.25rem)] z-50 max-h-[calc(100dvh-env(safe-area-inset-top)-6.25rem)] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-3 sm:max-h-none sm:w-[min(92vw,420px)]"
         >
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
-            <div>
+          <div className="flex min-w-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:items-center sm:gap-4 sm:px-5 sm:py-4">
+            <div className="min-w-0">
               <p className="font-semibold text-white">{copy.notifications}</p>
               <p className="mt-0.5 text-xs text-slate-500">
                 {unreadCount} {copy.unread}
@@ -314,14 +314,14 @@ export default function NotificationCenter({
               <button
                 type="button"
                 onClick={markAllRead}
-                className="text-xs font-semibold text-indigo-300 transition hover:text-indigo-200"
+                className="max-w-[48%] shrink-0 text-right text-xs font-semibold leading-4 text-indigo-300 transition hover:text-indigo-200"
               >
                 {copy.markAllRead}
               </button>
             ) : null}
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto p-3">
+          <div className="max-h-[calc(100dvh-env(safe-area-inset-top)-10.5rem)] overflow-x-hidden overflow-y-auto overscroll-contain p-2.5 sm:max-h-[70vh] sm:p-3">
             {result.notifications.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <p className="font-semibold text-slate-200">
@@ -339,7 +339,7 @@ export default function NotificationCenter({
                   const content = (
                     <div
                       className={[
-                        "rounded-xl border p-4 transition hover:bg-white/[0.04]",
+                        "w-full min-w-0 overflow-hidden rounded-xl border p-3.5 transition hover:bg-white/[0.04] sm:p-4",
                         severityClass(notification),
                         isRead ? "opacity-60" : "",
                       ].join(" ")}
@@ -351,10 +351,10 @@ export default function NotificationCenter({
                         />
 
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-100">
+                          <p className="break-words text-sm font-semibold leading-5 text-slate-100">
                             {notification.title}
                           </p>
-                          <p className="mt-1 text-xs leading-5 text-slate-400">
+                          <p className="mt-1 break-words text-xs leading-5 text-slate-400">
                             {notification.message}
                           </p>
 
@@ -383,7 +383,7 @@ export default function NotificationCenter({
                         markRead(notification.id);
                         setIsOpen(false);
                       }}
-                      className="block"
+                      className="block min-w-0"
                     >
                       {content}
                     </Link>
